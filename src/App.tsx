@@ -11,12 +11,14 @@ import { Dashboard } from './components/dashboard/Dashboard';
 import { LicenseManagement } from './components/licenses/LicenseManagement';
 import { LicenseDetails } from './components/licenses/LicenseDetails';
 import { Reports } from './components/reports/Reports';
+import { UserManagement } from './components/users/UserManagement';
 import { Notifications } from './components/notifications/Notifications';
 import { AccountSettings } from './components/account/AccountSettings';
 import { AuditLogs } from './components/audit/AuditLogs';
+import { PendingApproval } from './components/auth/PendingApproval';
 
 function App() {
-  const { isAuthenticated, getCurrentUser } = useAuthStore();
+  const { isAuthenticated, getCurrentUser, user, profileStatus } = useAuthStore();
   const { subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchNotifications } = useNotificationStore();
   const { fetchLicenses } = useLicenseStore();
 
@@ -73,7 +75,47 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            {/* Allow pending-approval landing even before session is restored */}
+            <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Router>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#fff',
+              color: '#374151',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff'
+              }
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff'
+              }
+            }
+          }}
+        />
+      </>
+    );
+  }
+
+  // If authenticated and pending, show approval page WITHOUT layout/sidebar
+  if (profileStatus === 'pending') {
+    return (
+      <>
+        <Router>
+          <Routes>
+            <Route path="/pending-approval" element={<PendingApproval />} />
+            <Route path="*" element={<Navigate to="/pending-approval" replace />} />
           </Routes>
         </Router>
         <Toaster 
@@ -109,15 +151,21 @@ function App() {
       <Router>
         <Layout>
           <Routes>
+            {/* Pending approval page (won't render here because handled above) */}
+            <Route path="/pending-approval" element={<PendingApproval />} />
+
+            {/* Protected routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/licenses" element={<LicenseManagement />} />
             <Route path="/licenses/:id" element={<LicenseDetails />} />
+            <Route path="/users" element={user?.role === 'admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/audit" element={<AuditLogs />} />
             <Route path="/account" element={<AccountSettings />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+            <Route path="/" element={<Navigate to={'/dashboard'} replace />} />
+            <Route path="*" element={<Navigate to={'/dashboard'} replace />} />
           </Routes>
         </Layout>
       </Router>

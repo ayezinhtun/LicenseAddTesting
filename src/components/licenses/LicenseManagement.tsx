@@ -9,6 +9,7 @@ import { Select } from '../common/Select';
 import { Modal } from '../common/Modal';
 import { Card } from '../common/Card';
 import { useLicenseStore } from '../../store/licenseStore';
+import { useAuthStore } from '../../store/authStore';
 import { License } from '../../store/licenseStore';
 import toast from 'react-hot-toast';
 import { format, parseISO, addDays } from 'date-fns';
@@ -31,6 +32,8 @@ export const LicenseManagement: React.FC = () => {
     setSorting,
     exportLicenses
   } = useLicenseStore();
+
+  const { user } = useAuthStore();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
@@ -279,12 +282,14 @@ export const LicenseManagement: React.FC = () => {
           >
             Export
           </Button>
-          <Button
-            icon={Plus}
-            onClick={handleAddLicense}
-          >
-            Add License
-          </Button>
+          {user?.role !== 'user' && (
+            <Button
+              icon={Plus}
+              onClick={handleAddLicense}
+            >
+              Add License
+            </Button>
+          )}
         </div>
       </motion.div>
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+
 import { Save, X, Plus, Trash2 } from 'lucide-react';
 import { License } from '../../store/licenseStore';
 import { Button } from '../common/Button';
@@ -6,6 +7,7 @@ import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { useLicenseStore } from '../../store/licenseStore';
 import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/authStore';
 
 interface LicenseFormProps {
   license?: License | null;
@@ -19,6 +21,8 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
   onCancel
 }) => {
   const { validateLicense } = useLicenseStore();
+  const { user, assignments } = useAuthStore();
+
   const [formData, setFormData] = useState({
     // Core
     vendor: '',
@@ -270,6 +274,24 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     { value: 'suspended', label: 'Suspended' }
   ];
 
+  // Role-aware project assignment options
+  const projectAssignOptions = useMemo(() => {
+    const all = [
+      { value: 'NPT', label: 'NPT' },
+      { value: 'YGN', label: 'YGN' },
+      { value: 'MPT', label: 'MPT' }
+    ];
+    if (user?.role === 'admin') return all;
+    const assigned = (assignments || []).filter(Boolean) as Array<'NPT'|'YGN'|'MPT'>;
+    const opts = assigned.map(a => ({ value: a, label: a }));
+    // If editing and current value is outside allowed list (legacy), include it to render
+    if (license && (license as any).project_assign && !opts.find(o => o.value === (license as any).project_assign)) {
+      const val = (license as any).project_assign as 'NPT'|'YGN'|'MPT';
+      opts.push({ value: val, label: val });
+    }
+    return opts;
+  }, [user?.role, assignments, license]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Error Display */}
@@ -309,11 +331,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
             label="Project Assign"
             value={formData.project_assign}
             onChange={(value) => handleChange('project_assign', value)}
-            options={[
-              { value: 'NPT', label: 'NPT' },
-              { value: 'YGN', label: 'YGN' },
-              { value: 'MPT', label: 'MPT' }
-            ]}
+            options={projectAssignOptions}
             required
           />
           <Input

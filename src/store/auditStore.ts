@@ -89,6 +89,9 @@ export const useAuditStore = create<AuditState>((set, get) => ({
     
     try {
       const { filters, pageSize } = get();
+      const auth = useAuthStore.getState();
+      const role = auth.user?.role;
+      const currentUser = await get().getCurrentUser();
       const offset = (page - 1) * pageSize;
       
       let query = supabase
@@ -96,6 +99,11 @@ export const useAuditStore = create<AuditState>((set, get) => ({
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
+
+      // Role-based visibility: admin sees all; others only their own logs
+      if (role !== 'admin' && currentUser?.id) {
+        query = query.eq('user_id', currentUser.id);
+      }
 
       // Apply filters
       if (filters.action && filters.action.length > 0) {
