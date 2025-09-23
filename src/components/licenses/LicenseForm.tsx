@@ -23,6 +23,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     // Core
     vendor: '',
     project_name: '',
+    project_assign: '' as '' | 'NPT' | 'YGN' | 'MPT',
     item_description: '', // Product
     remark: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
@@ -78,6 +79,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         vendor: license.vendor || '',
         item_description: license.item_description || '',
         project_name: license.project_name || '',
+        project_assign: (license as any).project_assign || '',
         customer_name: license.customer_name || '',
         business_unit: license.business_unit || '',
         license_start_date: license.license_start_date || '',
@@ -215,6 +217,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       const payload: any = {
         vendor: formData.vendor,
         project_name: formData.project_name,
+        project_assign: formData.project_assign || undefined,
         item_description: formData.item_description || '',
         remark: formData.remark || '',
         priority: formData.priority,
@@ -300,7 +303,18 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
             onChange={(value) => handleChange('project_name', value)}
             required
             placeholder="Enter project name"
-            error={errors.find(e => e.includes('Project'))}
+            error={errors.find(e => e.includes('Project name is required'))}
+          />
+          <Select
+            label="Project Assign"
+            value={formData.project_assign}
+            onChange={(value) => handleChange('project_assign', value)}
+            options={[
+              { value: 'NPT', label: 'NPT' },
+              { value: 'YGN', label: 'YGN' },
+              { value: 'MPT', label: 'MPT' }
+            ]}
+            required
           />
           <Input
             label="License Start Date"

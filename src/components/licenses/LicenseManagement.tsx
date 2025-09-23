@@ -44,7 +44,8 @@ export const LicenseManagement: React.FC = () => {
     vendor: '',
     status: '',
     priority: '',
-    project_name: ''
+    project_name: '',
+    project_assign: '' as '' | 'NPT' | 'YGN' | 'MPT'
   });
 
   const [exportOptions, setExportOptions] = useState({
@@ -164,6 +165,7 @@ export const LicenseManagement: React.FC = () => {
     if (localFilters.status) appliedFilters.status = [localFilters.status];
     if (localFilters.priority) appliedFilters.priority = [localFilters.priority];
     if (localFilters.project_name) appliedFilters.project_name = localFilters.project_name;
+    if (localFilters.project_assign) appliedFilters.project_assign = localFilters.project_assign;
 
     setFilters(appliedFilters);
     setShowFilters(false);
@@ -175,7 +177,8 @@ export const LicenseManagement: React.FC = () => {
       vendor: '',
       status: '',
       priority: '',
-      project_name: ''
+      project_name: '',
+      project_assign: ''
     });
     setFilters({});
     setShowFilters(false);
@@ -392,10 +395,17 @@ export const LicenseManagement: React.FC = () => {
                   />
                   
                   <Input
-                    label="Project"
+                    label="Project Name"
                     value={localFilters.project_name}
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, project_name: value }))}
-                    placeholder="Filter by project"
+                    placeholder="Filter by project name"
+                  />
+
+                  <Select
+                    label="Project Assign"
+                    value={localFilters.project_assign}
+                    onChange={(value) => setLocalFilters(prev => ({ ...prev, project_assign: value as any }))}
+                    options={[{ value: '', label: 'All Assigns' }, { value: 'NPT', label: 'NPT' }, { value: 'YGN', label: 'YGN' }, { value: 'MPT', label: 'MPT' }]}
                   />
                   
                   <Select

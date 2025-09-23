@@ -257,7 +257,10 @@ export const LicenseDetails: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">License Details</h1>
-            <p className="text-gray-600 mt-1">{selectedLicense.vendor} • {selectedLicense.project_name}</p>
+            <p className="text-gray-600 mt-1">
+              {selectedLicense.vendor} • {selectedLicense.project_name}
+              {((selectedLicense as any).project_assign) ? ` • ${(selectedLicense as any).project_assign}` : ''}
+            </p>
           </div>
         </div>
         
@@ -331,6 +334,10 @@ export const LicenseDetails: React.FC = () => {
                     <div>
                       <label className="text-sm font-medium text-gray-500">Project</label>
                       <p className="text-gray-900">{selectedLicense.project_name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Project Assign</label>
+                      <p className="text-gray-900">{(selectedLicense as any).project_assign || '-'}</p>
                     </div>
                     
                     <div>
