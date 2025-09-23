@@ -200,6 +200,40 @@ export const Sidebar: React.FC = () => {
             </motion.div>
           );
         })}
+
+        {/* Admin-only: User Management */}
+        {user?.role === 'admin' && (
+          <motion.div
+            key="/users"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, delay: menuItems.length * 0.05 }}
+          >
+            <Link
+              to="/users"
+              className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${
+                location.pathname === '/users'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <User className={`${isCollapsed ? 'mx-auto' : 'mr-3'} h-5 w-5 flex-shrink-0`} />
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-between flex-1"
+                  >
+                    <span className="font-medium">User Management</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Link>
+          </motion.div>
+        )}
       </nav>
 
       {/* Quick Actions */}

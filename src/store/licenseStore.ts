@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { useAuditStore } from './auditStore';
+import { useAuthStore } from './authStore';
 import { useNotificationStore } from './notificationStore';
 import { addDays, format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 
@@ -260,6 +261,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     
     try {
       const { filters, sortBy, sortOrder, pageSize } = get();
+      // Read role and assignments from auth store to enforce UI-level filtering aligned with RLS
+      const { user, assignments } = useAuthStore.getState();
       const offset = (page - 1) * pageSize;
       
       let query = supabase
@@ -281,7 +284,19 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         query = query.ilike('project_name', `%${filters.project_name}%`);
       }
       if (filters.project_assign) {
+        // Explicit single project filter applied by UI
         query = query.eq('project_assign', filters.project_assign);
+      } else {
+        // If no explicit project filter, restrict by user's assignments for non-admin roles
+        if (user && (user.role === 'super_user' || user.role === 'user')) {
+          if (assignments && assignments.length > 0) {
+            query = query.in('project_assign', assignments as any);
+          } else {
+            // If user has no assignments, return empty by filtering on impossible condition
+            // This avoids showing unassigned/null rows to non-admins at the UI level
+            query = query.in('project_assign', ['__no_assign__']);
+          }
+        }
       }
       
       if (filters.company) {
@@ -388,6 +403,20 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const currentUser = await get().getCurrentUser();
       if (!currentUser) {
         throw new Error('No authenticated user found');
+      }
+      // Enforce permissions: plain users cannot create; super_user restricted to assigned projects
+      const { user, assignments } = useAuthStore.getState();
+      if (user && user.role === 'user') {
+        throw new Error('You do not have permission to create licenses.');
+      }
+      const requestedAssign = (licenseData as any)?.project_assign as string | undefined;
+      if (user && (user.role === 'super_user' || user.role === 'user')) {
+        if (!requestedAssign) {
+          throw new Error('Project assign is required for creating a license');
+        }
+        if (!assignments || !assignments.includes(requestedAssign as any)) {
+          throw new Error(`You are not assigned to project ${requestedAssign}. Allowed: ${assignments?.join(', ') || 'none'}`);
+        }
       }
 
       // Extract child arrays if provided by UI (and strip them out of core insert)

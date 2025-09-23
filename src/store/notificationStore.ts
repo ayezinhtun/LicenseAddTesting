@@ -86,13 +86,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         set({ notifications: [], unreadCount: 0, isLoading: false });
         return;
       }
+      const role = useAuthStore.getState().user?.role;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
+
+      // Admin sees all notifications, others only their own
+      if (role !== 'admin') {
+        query = query.eq('user_id', currentUser.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -333,15 +340,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         { event: 'INSERT', schema: 'public', table: 'notifications' },
         async (payload) => {
           const newNotification = payload.new as Notification;
-          
-          // Send email notification for new notifications
-          if (get().emailNotificationsEnabled) {
-            const currentUser = await get().getCurrentUser();
-            if (currentUser && currentUser.id === newNotification.user_id) {
-              await get().sendEmailNotification(newNotification, currentUser.email);
-            }
+          const role = useAuthStore.getState().user?.role;
+          const currentUser = await get().getCurrentUser();
+          const isVisible = role === 'admin' || (currentUser && currentUser.id === newNotification.user_id);
+          if (!isVisible) return;
+
+          // Send email notification for current user if enabled
+          if (get().emailNotificationsEnabled && currentUser && currentUser.id === newNotification.user_id) {
+            await get().sendEmailNotification(newNotification, currentUser.email);
           }
-          
+
           set(state => ({
             notifications: [newNotification, ...state.notifications],
             unreadCount: state.unreadCount + 1
@@ -350,8 +358,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'notifications' },
-        (payload) => {
+        async (payload) => {
           const updatedNotification = payload.new as Notification;
+          const role = useAuthStore.getState().user?.role;
+          const currentUser = await get().getCurrentUser();
+          const isVisible = role === 'admin' || (currentUser && currentUser.id === updatedNotification.user_id);
+          if (!isVisible) return;
           set(state => ({
             notifications: state.notifications.map(n => 
               n.id === updatedNotification.id ? updatedNotification : n
@@ -361,8 +373,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       )
       .on('postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'notifications' },
-        (payload) => {
-          const deletedId = payload.old.id;
+        async (payload) => {
+          const deleted = payload.old as any;
+          const role = useAuthStore.getState().user?.role;
+          const currentUser = await get().getCurrentUser();
+          const isVisible = role === 'admin' || (currentUser && currentUser.id === deleted.user_id);
+          if (!isVisible) return;
+          const deletedId = deleted.id;
           set(state => ({
             notifications: state.notifications.filter(n => n.id !== deletedId)
           }));

@@ -6,7 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user' | 'viewer';
+  role: 'admin' | 'super_user' | 'user' | 'viewer';
   isVerified: boolean;
   department?: string;
   phone?: string;
@@ -20,6 +20,8 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  profileStatus: 'pending' | 'approved' | 'rejected' | null;
+  assignments: string[];
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -34,6 +36,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      profileStatus: null,
+      assignments: [],
 
       getCurrentUser: async () => {
         try {
@@ -45,11 +49,28 @@ export const useAuthStore = create<AuthState>()(
           }
           
           if (user) {
+            // Fetch user_profile and assignments
+            const { data: profileRow } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('user_id', user.id)
+              .single();
+
+            const { data: assignsRows } = await supabase
+              .from('user_project_assigns')
+              .select('project_assign')
+              .eq('user_id', user.id);
+
+            const assignments = (assignsRows || []).map((r: any) => r.project_assign as string);
+
+            const roleFromProfile = (profileRow?.role as any) || user.user_metadata?.role || 'user';
+            const statusFromProfile = (profileRow?.status as any) || null;
+
             const userData: User = {
               id: user.id,
               name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
               email: user.email || '',
-              role: user.user_metadata?.role || 'user',
+              role: roleFromProfile,
               isVerified: user.email_confirmed_at !== null,
               department: user.user_metadata?.department || 'General',
               phone: user.user_metadata?.phone || '',
@@ -58,13 +79,13 @@ export const useAuthStore = create<AuthState>()(
               lastLogin: new Date().toISOString(),
               preferences: user.user_metadata?.preferences || {}
             };
-            
-            set({ user: userData, isAuthenticated: true });
+
+            set({ user: userData, isAuthenticated: true, profileStatus: statusFromProfile, assignments });
             return userData;
           }
           
           // No user found - this is normal for unauthenticated state
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, profileStatus: null, assignments: [] });
           return null;
         } catch (error) {
           // Only log unexpected errors
@@ -85,11 +106,28 @@ export const useAuthStore = create<AuthState>()(
           if (error) throw error;
 
           if (data.user) {
+            // Fetch profile and assignments after login
+            const { data: profileRow } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('user_id', data.user.id)
+              .single();
+
+            const { data: assignsRows } = await supabase
+              .from('user_project_assigns')
+              .select('project_assign')
+              .eq('user_id', data.user.id);
+
+            const assignments = (assignsRows || []).map((r: any) => r.project_assign as string);
+
+            const roleFromProfile = (profileRow?.role as any) || data.user.user_metadata?.role || 'user';
+            const statusFromProfile = (profileRow?.status as any) || null;
+
             const userData: User = {
               id: data.user.id,
               name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
               email: data.user.email || '',
-              role: data.user.user_metadata?.role || 'user',
+              role: roleFromProfile,
               isVerified: data.user.email_confirmed_at !== null,
               department: data.user.user_metadata?.department || 'General',
               phone: data.user.user_metadata?.phone || '',
@@ -99,7 +137,7 @@ export const useAuthStore = create<AuthState>()(
               preferences: data.user.user_metadata?.preferences || {}
             };
 
-            set({ user: userData, isAuthenticated: true, isLoading: false });
+            set({ user: userData, isAuthenticated: true, isLoading: false, profileStatus: statusFromProfile, assignments });
           }
         } catch (error) {
           set({ isLoading: false });
@@ -114,6 +152,7 @@ export const useAuthStore = create<AuthState>()(
             email,
             password,
             options: {
+              emailRedirectTo: `${window.location.origin}/pending-approval`,
               data: {
                 name,
                 role: 'user',
@@ -134,7 +173,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await supabase.auth.signOut();
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, profileStatus: null, assignments: [] });
         } catch (error) {
           console.error('Error logging out:', error);
           set({ user: null, isAuthenticated: false });
@@ -179,7 +218,9 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
+        profileStatus: state.profileStatus,
+        assignments: state.assignments
       })
     }
   )
