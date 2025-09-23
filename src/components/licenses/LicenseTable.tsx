@@ -155,6 +155,9 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
               Project & Customer
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Project Assign
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Dates
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -225,6 +228,12 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
                     <div className="text-sm text-gray-500">{license.customer_name}</div>
                     <div className="text-xs text-gray-400">{license.business_unit}</div>
                     <div className="text-xs text-gray-500">{license.user_name}</div>
+                  </div>
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {(license as any).project_assign || '-'}
                   </div>
                 </td>
                 

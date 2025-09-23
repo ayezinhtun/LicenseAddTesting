@@ -15,6 +15,7 @@ export interface License {
   item_description: string;
   serial_number: string;
   project_name: string;
+  project_assign?: 'NPT' | 'YGN' | 'MPT' | null;
   customer_name: string;
   business_unit: string;
   license_start_date: string;
@@ -101,6 +102,7 @@ export interface LicenseFilters {
   vendor?: string;
   user_name?: string;
   project_name?: string;
+  project_assign?: 'NPT' | 'YGN' | 'MPT' | '';
   company?: string;
   serial_number?: string;
   status?: string[];
@@ -213,8 +215,21 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
     // New minimal required fields
     if (!license.vendor?.trim()) errors.push('Vendor is required');
-    if (!license.project_name?.trim()) errors.push('Project name is required');
+    if (!license.project_name?.trim()) {
+      errors.push('Project name is required');
+    }
+
     if (!license.status) errors.push('Status is required');
+    // Require project_assign and validate
+    const pa = (license as any).project_assign as string | undefined;
+    if (!pa || pa.trim() === '') {
+      errors.push('Project assign is required');
+    } else {
+      const allowedAssign = new Set(['NPT', 'YGN', 'MPT']);
+      if (!allowedAssign.has(pa)) {
+        errors.push('Project assign must be one of: NPT, YGN, MPT');
+      }
+    }
 
     // Validate serials (multi)
     const serials: LicenseSerial[] = license.serials || [];
@@ -264,6 +279,9 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       
       if (filters.project_name) {
         query = query.ilike('project_name', `%${filters.project_name}%`);
+      }
+      if (filters.project_assign) {
+        query = query.eq('project_assign', filters.project_assign);
       }
       
       if (filters.company) {
@@ -397,6 +415,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const allowedKeys = new Set([
         'vendor',
         'project_name',
+        'project_assign',
         'item_description',
         'remark',
         'priority',
@@ -532,6 +551,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const allowedUpdateKeys = new Set([
         'vendor',
         'project_name',
+        'project_assign',
         'item_description',
         'remark',
         'priority',
