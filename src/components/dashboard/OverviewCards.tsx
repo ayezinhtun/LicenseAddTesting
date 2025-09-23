@@ -1,32 +1,37 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText,
   AlertTriangle,
-  DollarSign,
   Building,
   FolderOpen,
   Users,
   TrendingUp,
-  Clock,
   CheckCircle,
   XCircle
 } from 'lucide-react';
 import { useLicenseStore } from '../../store/licenseStore';
 import { Card } from '../common/Card';
-import { differenceInDays } from 'date-fns';
+ 
 
 export const OverviewCards: React.FC = () => {
-  const { licenses, getLicensesNearExpiry, getExpiredLicenses } = useLicenseStore();
-  
-  const licensesNearExpiry = getLicensesNearExpiry(30);
+  const { licenses, getExpiredLicenses, getNearExpiryCount } = useLicenseStore();
+  const [nearExpiryCount, setNearExpiryCount] = useState<number>(0);
+
+  // Fetch global count for licenses expiring within next 30 days
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      const count = await getNearExpiryCount(30);
+      if (isMounted) setNearExpiryCount(count);
+    })();
+    return () => { isMounted = false; };
+  }, [getNearExpiryCount]);
   const expiredLicenses = getExpiredLicenses();
   const activeLicenses = licenses.filter(l => l.status === 'active');
-  const totalCost = licenses.reduce((sum, license) => sum + license.license_cost, 0);
   const uniqueVendors = new Set(licenses.map(license => license.vendor)).size;
   const uniqueProjects = new Set(licenses.map(license => license.project_name)).size;
   const uniqueCustomers = new Set(licenses.map(license => license.customer_name)).size;
-  const autoRenewCount = licenses.filter(l => l.auto_renew).length;
 
   // Calculate growth percentages (mock data for demonstration)
   const getGrowthPercentage = (current: number, type: string) => {
@@ -42,7 +47,21 @@ export const OverviewCards: React.FC = () => {
     return growthRates[type as keyof typeof growthRates] || 0;
   };
 
-  const cards = [
+  type ChangeType = 'positive' | 'negative' | 'neutral';
+  type CardDef = {
+    title: string;
+    value: string;
+    change: string;
+    changeType: ChangeType;
+    icon: any;
+    color: string;
+    textColor: string;
+    bgColor: string;
+    description: string;
+    subtitle?: string;
+  };
+
+  const cards: CardDef[] = [
     {
       title: 'Total Licenses',
       value: licenses.length.toString(),
@@ -56,27 +75,27 @@ export const OverviewCards: React.FC = () => {
     },
     {
       title: 'Expiring Soon',
-      value: licensesNearExpiry.length.toString(),
+      value: nearExpiryCount.toString(),
       subtitle: 'Next 30 days',
-      change: licensesNearExpiry.length > 5 ? 'High Alert' : 'Normal',
-      changeType: licensesNearExpiry.length > 5 ? 'negative' : 'neutral' as const,
+      change: nearExpiryCount > 5 ? 'High Alert' : 'Normal',
+      changeType: nearExpiryCount > 5 ? 'negative' : 'neutral' as const,
       icon: AlertTriangle,
       color: 'bg-orange-500',
       textColor: 'text-orange-600',
       bgColor: 'bg-orange-50',
       description: 'Require attention'
     },
-    {
-      title: 'Annual Cost',
-      value: `$${totalCost.toLocaleString()}`,
-      change: `+${getGrowthPercentage(totalCost, 'cost')}%`,
-      changeType: 'positive' as const,
-      icon: DollarSign,
-      color: 'bg-green-500',
-      textColor: 'text-green-600',
-      bgColor: 'bg-green-50',
-      description: 'Total yearly spend'
-    },
+    // {
+    //   title: 'Annual Cost',
+    //   value: `$${totalCost.toLocaleString()}`,
+    //   change: `+${getGrowthPercentage(totalCost, 'cost')}%`,
+    //   changeType: 'positive' as const,
+    //   icon: DollarSign,
+    //   color: 'bg-green-500',
+    //   textColor: 'text-green-600',
+    //   bgColor: 'bg-green-50',
+    //   description: 'Total yearly spend'
+    // },
     {
       title: 'Active Licenses',
       value: activeLicenses.length.toString(),
@@ -99,17 +118,17 @@ export const OverviewCards: React.FC = () => {
       bgColor: 'bg-red-50',
       description: 'Need renewal'
     },
-    {
-      title: 'Auto Renewals',
-      value: autoRenewCount.toString(),
-      change: `${Math.round((autoRenewCount / licenses.length) * 100)}%`,
-      changeType: 'positive' as const,
-      icon: Clock,
-      color: 'bg-purple-500',
-      textColor: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      description: 'Automated renewals'
-    },
+    // {
+    //   title: 'Auto Renewals',
+    //   value: autoRenewCount.toString(),
+    //   change: `${Math.round((autoRenewCount / licenses.length) * 100)}%`,
+    //   changeType: 'positive' as const,
+    //   icon: Clock,
+    //   color: 'bg-purple-500',
+    //   textColor: 'text-purple-600',
+    //   bgColor: 'bg-purple-50',
+    //   description: 'Automated renewals'
+    // },
     {
       title: 'Vendors',
       value: uniqueVendors.toString(),

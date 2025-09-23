@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { OverviewCards } from './OverviewCards';
 import { NotificationsList } from './NotificationsList';
 import { CalendarWidget } from './CalendarWidget';
-import { ChartWidget } from './ChartWidget';
+// import { ChartWidget } from './ChartWidget';
 import { RecentActivity } from './RecentActivity';
 import { QuickActions } from './QuickActions';
 import { useLicenseStore } from '../../store/licenseStore';
@@ -12,7 +12,6 @@ import { useAuthStore } from '../../store/authStore';
 export const Dashboard: React.FC = () => {
   const { fetchLicenses } = useLicenseStore();
   const { user } = useAuthStore();
-
   useEffect(() => {
     fetchLicenses();
   }, [fetchLicenses]);
@@ -63,7 +62,7 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Charts and Analytics */}
         <div className="lg:col-span-2 space-y-8">
-          <ChartWidget />
+          {/* <ChartWidget /> */}
           <RecentActivity />
         </div>
 

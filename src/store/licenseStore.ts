@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { useAuditStore } from './auditStore';
 import { useNotificationStore } from './notificationStore';
-import { addDays, isBefore, parseISO, format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval, differenceInDays } from 'date-fns';
+import { addDays, format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 
 // Storage bucket name for attachments, configurable via env
 const ATTACHMENTS_BUCKET = (import.meta as any).env?.VITE_SUPABASE_ATTACHMENTS_BUCKET || 'attachments';
@@ -158,6 +158,8 @@ interface LicenseState {
   getVendorStats: () => Array<{ vendor: string; count: number; totalCost: number }>;
   getProjectStats: () => Array<{ project: string; count: number; totalCost: number }>;
   getLicensesNearExpiry: (days: number) => License[];
+  // Global metrics (queried directly from DB, ignoring current pagination/filters)
+  getNearExpiryCount: (days: number) => Promise<number>;
   getExpiredLicenses: () => License[];
   getCostTrends: () => Array<{ month: string; cost: number }>;
   getExpiryTrends: () => Array<{ month: string; count: number }>;
@@ -526,11 +528,27 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .eq('id', id)
         .single();
 
+      // Whitelist only columns that exist on licenses table
+      const allowedUpdateKeys = new Set([
+        'vendor',
+        'project_name',
+        'item_description',
+        'remark',
+        'priority',
+        'status',
+        'license_start_date',
+        'license_end_date',
+        'serial_number'
+      ]);
+      const sanitized: any = {};
+      Object.keys(updates || {}).forEach((k) => {
+        if (allowedUpdateKeys.has(k)) sanitized[k] = (updates as any)[k];
+      });
+
       const { data, error } = await supabase
         .from('licenses')
         .update({
-          ...updates,
-           created_by: currentUser.id,
+          ...sanitized,
           last_modified_by: currentUser.id,
           updated_at: new Date().toISOString()
         })
@@ -750,7 +768,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `license-attachments/${licenseId}/${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from(ATTACHMENTS_BUCKET)
         .upload(filePath, file);
 
@@ -1098,6 +1116,30 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const endDate = new Date(license.license_end_date);
       return endDate >= today && endDate <= futureDate;
     });
+  },
+
+  // Direct DB count to avoid pagination/filtering side-effects on dashboard
+  getNearExpiryCount: async (days) => {
+    try {
+      const start = new Date();
+      const end = addDays(start, days);
+      // Use local-date strings to prevent UTC offset issues
+      const startStr = format(start, 'yyyy-MM-dd');
+      const endStr = format(end, 'yyyy-MM-dd');
+
+      const { count, error } = await supabase
+        .from('licenses')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .gte('license_start_date', startStr)
+        .lte('license_end_date', endStr);
+
+      if (error) throw error;
+      return count || 0;
+    } catch (e) {
+      console.error('Error counting near-expiry licenses:', e);
+      return 0;
+    }
   },
 
   getExpiredLicenses: () => {

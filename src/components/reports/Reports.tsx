@@ -14,7 +14,7 @@ export const Reports: React.FC = () => {
     dateTo: ''
   });
 
-  const { licenses, getFilteredLicenses } = useLicenseStore();
+  const { licenses } = useLicenseStore();
 
   const filteredLicenses = licenses.filter(license => {
     if (filters.vendor && !license.vendor.toLowerCase().includes(filters.vendor.toLowerCase())) {
@@ -32,15 +32,16 @@ export const Reports: React.FC = () => {
     return true;
   });
 
-  const totalCost = filteredLicenses.reduce((sum, license) => sum + license.license_cost, 0);
+  // license_cost removed from schema; compute 0 for now (can be derived from serials later)
+  const totalCost = 0;
   const uniqueVendors = new Set(filteredLicenses.map(license => license.vendor)).size;
   const uniqueProjects = new Set(filteredLicenses.map(license => license.project_name)).size;
 
   const handleExportCSV = () => {
     const csvContent = [
-      'Company,Vendor,Item,Description,Serial Number,Project,Customer,Business Unit,Start Date,End Date,Cost,Quantity,Auto Renew,User,URL,Remark',
+      'Vendor,Item,Description,Serial Number,Project,Start Date,End Date,Status,Priority,Remark',
       ...filteredLicenses.map(license => 
-        `"${license.company}","${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.customer_name}","${license.business_unit}","${license.license_start_date}","${license.license_end_date}","${license.license_cost}","${license.quantity}","${license.auto_renew}","${license.user_name}","${license.url || ''}","${license.remark || ''}"`
+        `"${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.license_start_date}","${license.license_end_date}","${license.status}","${license.priority}","${license.remark || ''}"`
       )
     ].join('\n');
     
@@ -83,10 +84,6 @@ export const Reports: React.FC = () => {
               <p>Total Licenses</p>
             </div>
             <div class="stat">
-              <h3>$${totalCost.toLocaleString()}</h3>
-              <p>Total Cost</p>
-            </div>
-            <div class="stat">
               <h3>${uniqueVendors}</h3>
               <p>Vendors</p>
             </div>
@@ -99,8 +96,8 @@ export const Reports: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Vendor</th>
+                <th>Priority</th>
+                <th>Status</th>
                 <th>Project</th>
                 <th>End Date</th>
                 <th>Cost</th>
@@ -109,13 +106,13 @@ export const Reports: React.FC = () => {
             <tbody>
               ${filteredLicenses.map(license => `
                 <tr>
-                  <td>${license.item}</td>
-                  <td>${license.vendor}</td>
+                  <td>${license.priority}</td>
+                  <td>${license.status}</td>
                   <td>${license.project_name}</td>
                   <td>${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}</td>
-                  <td>$${license.license_cost.toLocaleString()}</td>
+                  <td>$0</td>
                 </tr>
-              `).join('')}
+                `).join('')}
             </tbody>
           </table>
         </body>
@@ -185,7 +182,7 @@ export const Reports: React.FC = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -198,17 +195,7 @@ export const Reports: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Cost</p>
-              <p className="text-2xl font-bold text-gray-900">${totalCost.toLocaleString()}</p>
-            </div>
-            <div className="bg-green-50 p-3 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -257,7 +244,7 @@ export const Reports: React.FC = () => {
                   End Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cost
+                  Priority
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -283,16 +270,10 @@ export const Reports: React.FC = () => {
                     {format(parseISO(license.license_end_date), 'MMM dd, yyyy')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${license.license_cost.toLocaleString()}
+                    {license.priority}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      license.auto_renew 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {license.auto_renew ? 'Auto Renew' : 'Manual'}
-                    </span>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {license.status}
                   </td>
                 </tr>
               ))}

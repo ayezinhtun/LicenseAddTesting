@@ -363,7 +363,7 @@ export const LicenseDetails: React.FC = () => {
                 
                 {selectedLicense.item_description && (
                   <div className="mt-6">
-                    <label className="text-sm font-medium text-gray-500">Description</label>
+                    <label className="text-sm font-medium text-gray-500">Product</label>
                     <p className="text-gray-900 mt-1">{selectedLicense.item_description}</p>
                   </div>
                 )}

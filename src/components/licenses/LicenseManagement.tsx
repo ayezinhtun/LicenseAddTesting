@@ -11,7 +11,7 @@ import { Card } from '../common/Card';
 import { useLicenseStore } from '../../store/licenseStore';
 import { License } from '../../store/licenseStore';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 
 export const LicenseManagement: React.FC = () => {
   const {
@@ -44,8 +44,7 @@ export const LicenseManagement: React.FC = () => {
     vendor: '',
     status: '',
     priority: '',
-    project_name: '',
-    auto_renew: ''
+    project_name: ''
   });
 
   const [exportOptions, setExportOptions] = useState({
@@ -165,7 +164,6 @@ export const LicenseManagement: React.FC = () => {
     if (localFilters.status) appliedFilters.status = [localFilters.status];
     if (localFilters.priority) appliedFilters.priority = [localFilters.priority];
     if (localFilters.project_name) appliedFilters.project_name = localFilters.project_name;
-    if (localFilters.auto_renew) appliedFilters.auto_renew = localFilters.auto_renew === 'true';
 
     setFilters(appliedFilters);
     setShowFilters(false);
@@ -177,8 +175,7 @@ export const LicenseManagement: React.FC = () => {
       vendor: '',
       status: '',
       priority: '',
-      project_name: '',
-      auto_renew: ''
+      project_name: ''
     });
     setFilters({});
     setShowFilters(false);
@@ -222,11 +219,7 @@ export const LicenseManagement: React.FC = () => {
     { value: 'critical', label: 'Critical' }
   ];
 
-  const autoRenewOptions = [
-    { value: '', label: 'All' },
-    { value: 'true', label: 'Auto-renew Enabled' },
-    { value: 'false', label: 'Manual Renewal' }
-  ];
+  // autoRenewOptions removed
 
   const exportFormatOptions = [
     { value: 'csv', label: 'CSV (Comma Separated Values)' },
@@ -297,7 +290,7 @@ export const LicenseManagement: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
         <Card>
           <div className="flex items-center justify-between">
@@ -344,19 +337,7 @@ export const LicenseManagement: React.FC = () => {
           </div>
         </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Cost</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${licenses.reduce((sum, l) => sum + l.license_cost, 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="bg-purple-50 p-3 rounded-lg">
-              <Download className="h-6 w-6 text-purple-600" />
-            </div>
-          </div>
-        </Card>
+        
       </motion.div>
 
       {/* Search and Filters */}
@@ -431,12 +412,7 @@ export const LicenseManagement: React.FC = () => {
                     options={priorityOptions}
                   />
                   
-                  <Select
-                    label="Auto Renew"
-                    value={localFilters.auto_renew}
-                    onChange={(value) => setLocalFilters(prev => ({ ...prev, auto_renew: value }))}
-                    options={autoRenewOptions}
-                  />
+                  {/* Auto Renew filter removed */}
                 </div>
                 
                 <div className="flex justify-end space-x-3 mt-4">
@@ -457,7 +433,6 @@ export const LicenseManagement: React.FC = () => {
                 <div className="flex space-x-2">
                   {[
                     { field: 'license_end_date', label: 'Expiry Date' },
-                    { field: 'license_cost', label: 'Cost' },
                     { field: 'item', label: 'Name' },
                     { field: 'vendor', label: 'Vendor' },
                     { field: 'created_at', label: 'Created' }

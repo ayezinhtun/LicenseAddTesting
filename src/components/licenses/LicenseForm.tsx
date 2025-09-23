@@ -5,6 +5,7 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { useLicenseStore } from '../../store/licenseStore';
+import { supabase } from '../../lib/supabase';
 
 interface LicenseFormProps {
   license?: License | null;
@@ -22,8 +23,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     // Core
     vendor: '',
     project_name: '',
-    item: '',
-    item_description: '', // optional
+    item_description: '', // Product
     remark: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
     status: 'pending' as 'active' | 'expired' | 'suspended' | 'pending' | 'in_progress',
@@ -76,7 +76,6 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         ...prev,
         company: license.company || '',
         vendor: license.vendor || '',
-        item: license.item || '',
         item_description: license.item_description || '',
         project_name: license.project_name || '',
         customer_name: license.customer_name || '',
@@ -90,6 +89,45 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         status: (license.status as any) || 'active',
         
       }));
+
+      // Load existing child rows into the form when editing
+      (async () => {
+        try {
+          const [serialRes, customerRes, distributorRes] = await Promise.all([
+            supabase.from('license_serials').select('*').eq('license_id', license.id).order('start_date', { ascending: true }),
+            supabase.from('license_customers').select('*').eq('license_id', license.id).order('company_name', { ascending: true }),
+            supabase.from('license_distributors').select('*').eq('license_id', license.id).order('company_name', { ascending: true })
+          ]);
+
+          setFormData(prev => ({
+            ...prev,
+            serials: (serialRes.data || []).map((s: any) => ({
+              serial_or_contract: s.serial_or_contract || '',
+              start_date: s.start_date || '',
+              end_date: s.end_date || '',
+              qty: s.qty || 1,
+              unit_price: s.unit_price || 0,
+              currency: s.currency || 'MMK',
+              po_no: s.po_no || ''
+            })),
+            customers: (customerRes.data || []).map((c: any) => ({
+              company_name: c.company_name || '',
+              contact_person: c.contact_person || '',
+              contact_email: c.contact_email || '',
+              contact_number: c.contact_number || '',
+              address: c.address || ''
+            })),
+            distributors: (distributorRes.data || []).map((d: any) => ({
+              company_name: d.company_name || '',
+              contact_person: d.contact_person || '',
+              contact_email: d.contact_email || '',
+              contact_number: d.contact_number || ''
+            }))
+          }));
+        } catch (e) {
+          console.error('Failed to preload child rows for edit', e);
+        }
+      })();
     }
   }, [license]);
 
@@ -177,7 +215,6 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       const payload: any = {
         vendor: formData.vendor,
         project_name: formData.project_name,
-        item: formData.item,
         item_description: formData.item_description || '',
         remark: formData.remark || '',
         priority: formData.priority,
@@ -278,16 +315,10 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
             onChange={(value) => handleChange('license_end_date', value)}
           />
           <Input
-            label="Product Description"
+            label="Product"
             value={formData.item_description}
             onChange={(value) => handleChange('item_description', value)}
-            placeholder="Optional"
-          />
-          <Input
-            label="Item/Product"
-            value={formData.item}
-            onChange={(value) => handleChange('item', value)}
-            placeholder="Product name (optional)"
+            placeholder="Enter product name or description"
           />
           <Select
             label="Priority"
