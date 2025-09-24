@@ -23,6 +23,7 @@ import { Select } from '../common/Select';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { format, formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export const AuditLogs: React.FC = () => {
   const {
@@ -36,7 +37,9 @@ export const AuditLogs: React.FC = () => {
     setFilters,
     clearFilters,
     exportAuditLogs,
-    setTimeFilter
+    setTimeFilter,
+    deleteAuditLog,
+    clearAllAuditLogs
   } = useAuditStore();
 
   const [showFilters, setShowFilters] = useState(false);
@@ -118,6 +121,26 @@ export const AuditLogs: React.FC = () => {
     setShowFilters(false);
   };
 
+  const handleDeleteLog = async (id: string) => {
+    if (!window.confirm('Delete this audit log? This action cannot be undone.')) return;
+    try {
+      await deleteAuditLog(id);
+      toast.success('Audit log deleted');
+    } catch (error) {
+      toast.error('Failed to delete audit log');
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm('Delete ALL audit logs? This action cannot be undone.')) return;
+    try {
+      await clearAllAuditLogs();
+      toast.success('All audit logs deleted');
+    } catch (error) {
+      toast.error('Failed to clear audit logs');
+    }
+  };
+
   const handleTimeFilterChange = (period: string) => {
     setTimeFilter(period as any);
     setLocalFilters({ ...localFilters, time_period: period as any });
@@ -157,6 +180,14 @@ export const AuditLogs: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
+          <Button
+            variant="danger"
+            icon={Trash2}
+            onClick={handleClearAll}
+            disabled={logs.length === 0}
+          >
+            Clear All
+          </Button>
           <Button
             variant="secondary"
             icon={RefreshCw}
@@ -423,11 +454,20 @@ export const AuditLogs: React.FC = () => {
                               {log.action}
                             </Badge>
                           </div>
-                          <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            <Calendar className="h-3 w-3" />
-                            <span>{format(new Date(log.created_at), 'MMM dd, yyyy HH:mm')}</span>
-                            <span>•</span>
-                            <span>{formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}</span>
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2 text-xs text-gray-500">
+                              <Calendar className="h-3 w-3" />
+                              <span>{format(new Date(log.created_at), 'MMM dd, yyyy HH:mm')}</span>
+                              <span>•</span>
+                              <span>{formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={Trash2}
+                              onClick={() => handleDeleteLog(log.id)}
+                              className="text-gray-400 hover:text-red-600"
+                            />
                           </div>
                         </div>
                         

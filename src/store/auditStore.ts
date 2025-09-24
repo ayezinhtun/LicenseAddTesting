@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from './authStore';
 import { format, subDays, subMonths, subYears, startOfDay, endOfDay } from 'date-fns';
@@ -45,6 +46,9 @@ interface AuditState {
   getFilteredLogs: () => AuditLog[];
   setTimeFilter: (period: 'recent' | 'week' | 'month' | 'year') => void;
   getCurrentUser: () => Promise<{ id: string; name: string } | null>;
+  getClientIP: () => Promise<string | null>;
+  deleteAuditLog: (id: string) => Promise<void>;
+  clearAllAuditLogs: () => Promise<void>;
   
   // Analytics
   getActionStats: () => Record<string, number>;
@@ -81,6 +85,56 @@ export const useAuditStore = create<AuditState>((set, get) => ({
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
+    }
+  },
+
+  deleteAuditLog: async (id) => {
+    try {
+      // Optimistic UI update
+      const prevLogs = get().logs;
+      set({ logs: prevLogs.filter(l => l.id !== id) });
+
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .delete()
+        .eq('id', id)
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        // Revert optimistic update if nothing was deleted (e.g., RLS denies or not found)
+        set({ logs: prevLogs });
+        throw new Error('Delete not permitted or log not found');
+      }
+      // Refresh to ensure consistency
+      await get().fetchAuditLogs(1);
+    } catch (error) {
+      console.error('Error deleting audit log:', error);
+      throw error;
+    }
+  },
+
+  clearAllAuditLogs: async () => {
+    try {
+      // Optimistic UI update
+      const prevLogs = get().logs;
+      set({ logs: [] });
+
+      // Supabase requires a filter for deletes. Use a very early date to match all rows.
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .delete()
+        .gte('created_at', '1970-01-01T00:00:00Z')
+        .select('id');
+      if (error) throw error;
+      if (!data) {
+        // Unknown outcome; re-fetch
+        await get().fetchAuditLogs(1);
+      }
+    } catch (error) {
+      console.error('Error clearing audit logs:', error);
+      // Revert optimistic update
+      const prevLogs = await get().fetchAuditLogs(1);
+      throw error;
     }
   },
 
@@ -191,7 +245,21 @@ export const useAuditStore = create<AuditState>((set, get) => ({
         return;
       }
 
-      const { data, error } = await supabase
+      // Client-side de-duplication guard to avoid duplicate logs (e.g., React Strict Mode double invokes)
+      // Skip if same user logs same action on same entity within 2 seconds
+      const now = Date.now();
+      const key = `${actionData.action}:${actionData.entity_type}:${actionData.entity_id}:${currentUser.id}`;
+      // @ts-ignore - attach ephemeral cache on the store instance
+      const cache: Map<string, number> = (useAuditStore as any)._dedupeCache || new Map();
+      // @ts-ignore
+      (useAuditStore as any)._dedupeCache = cache;
+      const last = cache.get(key) || 0;
+      if (now - last < 2000) {
+        return; // suppress duplicate
+      }
+      cache.set(key, now);
+
+      const { error } = await supabase
         .from('audit_logs')
         .insert([{
           ...actionData,
@@ -323,11 +391,11 @@ export const useAuditStore = create<AuditState>((set, get) => ({
     }
   },
 
-  exportAuditLogs: async (format) => {
+  exportAuditLogs: async (exportFormat) => {
     try {
       const { logs } = get();
       
-      if (format === 'csv') {
+      if (exportFormat === 'csv') {
         const csvContent = [
           'Timestamp,Action,Entity Type,Entity ID,User,Changes,IP Address',
           ...logs.map(log => 
@@ -349,7 +417,7 @@ export const useAuditStore = create<AuditState>((set, get) => ({
         action: 'export',
         entity_type: 'report',
         entity_id: 'audit-logs',
-        changes: { format, count: logs.length },
+        changes: { format: exportFormat, count: logs.length },
         ip_address: null,
         user_agent: null
       });

@@ -114,7 +114,12 @@ export const LicenseManagement: React.FC = () => {
       setIsFormOpen(false);
       setEditingLicense(null);
     } catch (error) {
-      toast.error(editingLicense ? 'Failed to update license' : 'Failed to add license');
+      const msg = error instanceof Error ? error.message : (editingLicense ? 'Failed to update license' : 'Failed to add license');
+      if (msg.includes('duplicate serial number')) {
+        toast.error('A license with this serial number already exists');
+      } else {
+        toast.error(msg);
+      }
     }
   };
 

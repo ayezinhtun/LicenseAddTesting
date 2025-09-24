@@ -475,7 +475,14 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        const code = (error as any)?.code;
+        const message = (error as any)?.message || '';
+        if (code === '23505' && message.includes('serial_number')) {
+          throw new Error('Serial number already exists. Please enter a unique serial/contract number.');
+        }
+        throw error;
+      }
 
       // Insert child rows if provided
       if (serials.length > 0) {
@@ -542,7 +549,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: 'system',
           title: 'New License Added',
-          message: `License for ${licenseData.item} has been added successfully`,
+          message: `${currentUser.name} added license for ${licenseData.item}`,
           license_id: data.id,
           user_id: currentUser.id,
           is_read: false,
@@ -605,25 +612,21 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .select()
         .single();
 
-
-        console.log("Current user ID:", currentUser.id);
-
       if (error) throw error;
 
       // Refresh the licenses list
       await get().fetchLicenses(get().currentPage);
 
-      // Log the action with changes
+      // Log the action with detailed field changes
       try {
         const auditStore = useAuditStore.getState();
         const changes: Record<string, { old: any; new: any }> = {};
-        
         if (currentLicense) {
-          Object.keys(updates).forEach(key => {
-            if (currentLicense[key] !== updates[key as keyof typeof updates]) {
+          Object.keys(sanitized).forEach(key => {
+            if ((currentLicense as any)[key] !== (sanitized as any)[key]) {
               changes[key] = {
-                old: currentLicense[key],
-                new: updates[key as keyof typeof updates]
+                old: (currentLicense as any)[key],
+                new: (sanitized as any)[key]
               };
             }
           });
@@ -641,6 +644,25 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         console.log('Audit logging failed:', auditError);
       }
 
+      // Create notification for update (admins will see all; others will see their own via store rules)
+      try {
+        const notificationStore = useNotificationStore.getState();
+        await notificationStore.createNotification({
+          type: 'system',
+          title: 'License Updated',
+          message: `${currentUser.name} updated ${currentLicense?.item || 'license'}`,
+          license_id: id,
+          user_id: currentUser.id,
+          is_read: false,
+          priority: 'medium',
+          action_required: false,
+          action_url: `/licenses/${id}`,
+          expires_at: null
+        });
+      } catch (notificationError) {
+        console.log('Notification creation failed:', notificationError);
+      }
+
       return data;
     } catch (error) {
       console.error('Error updating license:', error);
@@ -654,6 +676,13 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
+
+      // Get license info for logging and notification before deletion
+      const { data: licenseBeforeDelete } = await supabase
+        .from('licenses')
+        .select('id, item')
+        .eq('id', id)
+        .single();
 
       const { error } = await supabase
         .from('licenses')
@@ -678,6 +707,25 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         });
       } catch (auditError) {
         console.log('Audit logging failed:', auditError);
+      }
+
+      // Create notification for delete
+      try {
+        const notificationStore = useNotificationStore.getState();
+        await notificationStore.createNotification({
+          type: 'system',
+          title: 'License Deleted',
+          message: `${currentUser.name} deleted ${licenseBeforeDelete?.item || 'license'}`,
+          license_id: null,
+          user_id: currentUser.id,
+          is_read: false,
+          priority: 'medium',
+          action_required: false,
+          action_url: null,
+          expires_at: null
+        });
+      } catch (notificationError) {
+        console.log('Notification creation failed:', notificationError);
       }
     } catch (error) {
       console.error('Error deleting license:', error);
