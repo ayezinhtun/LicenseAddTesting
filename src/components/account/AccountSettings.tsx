@@ -6,7 +6,7 @@ import { Input } from '../common/Input';
 import toast from 'react-hot-toast';
 
 export const AccountSettings: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, updateProfile, changePassword } = useAuthStore();
   const [activeTab, setActiveTab] = useState('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -36,12 +36,16 @@ export const AccountSettings: React.FC = () => {
     { id: 'privacy', label: 'Privacy', icon: Shield }
   ];
 
-  const handleProfileSave = () => {
-    // Simulate API call
-    toast.success('Profile updated successfully');
+  const handleProfileSave = async () => {
+    try {
+      await updateProfile({ name: profileData.name });
+      toast.success('Profile updated successfully');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update profile');
+    }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('New passwords do not match');
       return;
@@ -50,9 +54,13 @@ export const AccountSettings: React.FC = () => {
       toast.error('New password must be at least 6 characters');
       return;
     }
-    // Simulate API call
-    toast.success('Password changed successfully');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    try {
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      toast.success('Password changed successfully');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to change password');
+    }
   };
 
   const handlePreferencesSave = () => {
@@ -103,13 +111,17 @@ export const AccountSettings: React.FC = () => {
                     onChange={(value) => setProfileData(prev => ({ ...prev, name: value }))}
                     icon={User}
                   />
-                  <Input
-                    label="Email Address"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, email: value }))}
-                    icon={Mail}
-                  />
+                  <div>
+                    <Input
+                      label="Email Address"
+                      type="email"
+                      value={user?.email || profileData.email}
+                      onChange={() => { /* email cannot be changed */ }}
+                      icon={Mail}
+                      disabled
+                    />
+                    {/* <p className="mt-1 text-xs text-gray-500">Email cannot be changed from here.</p> */}
+                  </div>
                 </div>
               </div>
               
@@ -186,7 +198,7 @@ export const AccountSettings: React.FC = () => {
                 </Button>
               </div>
 
-              <div className="border-t border-gray-200 pt-6">
+              {/* <div className="border-t border-gray-200 pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Two-Factor Authentication</h3>
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
@@ -200,7 +212,7 @@ export const AccountSettings: React.FC = () => {
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
 

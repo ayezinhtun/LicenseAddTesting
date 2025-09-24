@@ -181,38 +181,128 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateProfile: async (updates: Partial<User>) => {
+        // Only allow changing name; email must NOT be changed here
         set({ isLoading: true });
         try {
-          const { data, error } = await supabase.auth.updateUser({
-            data: updates
-          });
+          const current = get().user;
+          if (!current) throw new Error('No authenticated user');
 
-          if (error) throw error;
+          // 1) Update name in Auth user_metadata (ignore email)
+          if (typeof updates.name === 'string' && updates.name && updates.name !== current.name) {
+            const { error: nameErr } = await supabase.auth.updateUser({
+              data: { name: updates.name }
+            });
+            if (nameErr) throw nameErr;
+          }
 
-          set(state => ({ 
-            user: state.user ? { ...state.user, ...updates } : null,
-            isLoading: false 
-          }));
+          // 2) Sync name to user_profiles table (DB)
+          try {
+            if (typeof updates.name === 'string' && updates.name) {
+              // Check if profile row exists
+              const { data: exists, error: checkErr } = await supabase
+                .from('user_profiles')
+                .select('user_id')
+                .eq('user_id', current.id)
+                .maybeSingle();
+              if (checkErr) throw checkErr;
+
+              if (exists) {
+                const { error: updErr } = await supabase
+                  .from('user_profiles')
+                  .update({ name: updates.name })
+                  .eq('user_id', current.id);
+                if (updErr) throw updErr;
+              } else {
+                const { error: insErr } = await supabase
+                  .from('user_profiles')
+                  .insert([{ user_id: current.id, name: updates.name, email: current.email }]);
+                if (insErr) throw insErr;
+              }
+            }
+          } catch (dbErr) {
+            console.error('Failed to sync name to user_profiles:', dbErr);
+            // Continue; don't block UI
+          }
+
+          // 3) Refresh Auth user and update local store (email remains unchanged)
+          const { data: { user: refreshed }, error: getErr } = await supabase.auth.getUser();
+          if (getErr) throw getErr;
+
+          if (refreshed) {
+            const updatedUser: User = {
+              id: refreshed.id,
+              name: refreshed.user_metadata?.name || current.name,
+              email: current.email, // do not change email here
+              role: current.role,
+              isVerified: refreshed.email_confirmed_at !== null,
+              department: current.department,
+              phone: current.phone,
+              avatar: current.avatar,
+              createdAt: current.createdAt,
+              lastLogin: current.lastLogin,
+              preferences: refreshed.user_metadata?.preferences || current.preferences
+            };
+            set({ user: updatedUser, isLoading: false });
+          } else {
+            set({ isLoading: false });
+          }
         } catch (error) {
           set({ isLoading: false });
           throw error;
         }
       },
 
+      // changePassword: async (currentPassword: string, newPassword: string) => {
+      //   set({ isLoading: true });
+      //   try {
+      //     const { error } = await supabase.auth.updateUser({
+      //       password: newPassword
+      //     });
+
+      //     if (error) throw error;
+      //     set({ isLoading: false });
+      //   } catch (error) {
+      //     set({ isLoading: false });
+      //     throw error;
+      //   }
+      // }
+
+
       changePassword: async (currentPassword: string, newPassword: string) => {
         set({ isLoading: true });
         try {
-          const { error } = await supabase.auth.updateUser({
+          // 1) Get current user email
+          let email = get().user?.email;
+          if (!email) {
+            const { data: { user: sessionUser }, error: getErr } = await supabase.auth.getUser();
+            if (getErr) throw getErr;
+            email = sessionUser?.email || '';
+          }
+          if (!email) throw new Error('No authenticated user email found');
+      
+          // 2) Reauthenticate (some sessions require this)
+          const { error: reauthErr } = await supabase.auth.signInWithPassword({
+            email,
+            password: currentPassword
+          });
+          if (reauthErr) {
+            // Wrong current password or reauth failed
+            throw new Error('Current password is incorrect');
+          }
+      
+          // 3) Update password
+          const { error: updErr } = await supabase.auth.updateUser({
             password: newPassword
           });
-
-          if (error) throw error;
+          if (updErr) throw updErr;
+      
           set({ isLoading: false });
         } catch (error) {
           set({ isLoading: false });
           throw error;
         }
-      }
+      },
+
     }),
     {
       name: 'auth-storage',

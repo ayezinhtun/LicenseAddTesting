@@ -30,15 +30,15 @@ const menuItems = [
   { icon: Settings, label: 'Account Settings', path: '/account', badge: null }
 ];
 
-const quickActions = [
-  { icon: Zap, label: 'Quick Add License', action: 'add-license' },
-  { icon: Shield, label: 'Security Check', action: 'security-check' },
-  { icon: HelpCircle, label: 'Help & Support', action: 'help' }
-];
+// const quickActions = [
+//   { icon: Zap, label: 'Quick Add License', action: 'add-license' },
+//   { icon: Shield, label: 'Security Check', action: 'security-check' },
+//   { icon: HelpCircle, label: 'Help & Support', action: 'help' }
+// ];
 
 export const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showQuickActions, setShowQuickActions] = useState(false);
+  // const [showQuickActions, setShowQuickActions] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const { getLicensesNearExpiry } = useLicenseStore();
@@ -49,19 +49,19 @@ export const Sidebar: React.FC = () => {
     logout();
   };
 
-  const handleQuickAction = (action: string) => {
-    switch (action) {
-      case 'add-license':
-        // Navigate to add license
-        break;
-      case 'security-check':
-        // Run security check
-        break;
-      case 'help':
-        // Open help
-        break;
-    }
-  };
+  // const handleQuickAction = (action: string) => {
+  //   switch (action) {
+  //     case 'add-license':
+  //       // Navigate to add license
+  //       break;
+  //     case 'security-check':
+  //       // Run security check
+  //       break;
+  //     case 'help':
+  //       // Open help
+  //       break;
+  //   }
+  // };
 
   const getBadgeCount = (badgeType: string | null) => {
     switch (badgeType) {
@@ -79,7 +79,7 @@ export const Sidebar: React.FC = () => {
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${
         isCollapsed ? 'w-20' : 'w-72'
-      }`}
+      } flex flex-col min-h-0`}
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
@@ -157,7 +157,7 @@ export const Sidebar: React.FC = () => {
       </AnimatePresence>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const badgeCount = getBadgeCount(item.badge);
@@ -237,7 +237,7 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Quick Actions */}
-      <AnimatePresence>
+      {/* <AnimatePresence>
         {!isCollapsed && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -277,7 +277,7 @@ export const Sidebar: React.FC = () => {
             </AnimatePresence>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
