@@ -1228,7 +1228,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .from('licenses')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active')
-        .gte('license_start_date', startStr)
+        .gte('license_end_date', startStr)
         .lte('license_end_date', endStr);
 
       if (error) throw error;

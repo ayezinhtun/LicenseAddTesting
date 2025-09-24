@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { OverviewCards } from './OverviewCards';
 import { NotificationsList } from './NotificationsList';
-import { CalendarWidget } from './CalendarWidget';
+// import { CalendarWidget } from './CalendarWidget';
 // import { ChartWidget } from './ChartWidget';
 import { RecentActivity } from './RecentActivity';
 import { QuickActions } from './QuickActions';
@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Right Column - Notifications and Calendar */}
         <div className="space-y-8">
-          <CalendarWidget />
+          {/* <CalendarWidget /> */}
           <NotificationsList />
         </div>
       </div>

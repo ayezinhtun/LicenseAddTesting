@@ -4,6 +4,8 @@ import { useLicenseStore } from '../../store/licenseStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { format, parseISO } from 'date-fns';
 import type { Notification } from '../../store/notificationStore';
+import { useNavigate } from 'react-router-dom';
+
 
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
@@ -63,6 +65,9 @@ const getNotificationColor = (type: Notification['type'], priority: Notification
 };
 
 export const NotificationsList: React.FC = () => {
+
+  const navigate = useNavigate();
+
   const { getLicensesNearExpiry } = useLicenseStore();
   const { notifications } = useNotificationStore();
   
@@ -178,7 +183,7 @@ export const NotificationsList: React.FC = () => {
       
       {allNotifications.length > 0 && (
         <div className="p-4 border-t border-gray-100">
-          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200">
+          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200" onClick={() => navigate('/notifications')}>
             View all notifications
           </button>
         </div>

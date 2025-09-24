@@ -5,8 +5,12 @@ import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { useAuditStore } from '../../store/auditStore';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+
 
 export const RecentActivity: React.FC = () => {
+  const navigate = useNavigate();
+
   const { logs, fetchAuditLogs } = useAuditStore();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -240,7 +244,7 @@ export const RecentActivity: React.FC = () => {
         </div>
         
         <div className="mt-6 pt-4 border-t border-gray-100">
-          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200">
+          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200" onClick={() => navigate('/audit')}>
             View all activity
           </button>
         </div>
