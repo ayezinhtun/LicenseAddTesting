@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuthStore } from '../../store/authStore';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -29,6 +30,8 @@ import toast from 'react-hot-toast';
 export const LicenseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const { user } = useAuthStore();  
   const {
     selectedLicense,
     fetchLicenseById,
@@ -268,12 +271,26 @@ export const LicenseDetails: React.FC = () => {
           <Button variant="secondary" icon={Download}>
             Export
           </Button>
-          <Button variant="secondary" icon={Edit}>
-            Edit
-          </Button>
-          <Button variant="danger" icon={Trash2} onClick={handleDelete}>
-            Delete
-          </Button>
+           {/* Show Edit for admin and super_user; hide for user */}
+           {user?.role !== 'user' && (
+              <Button
+                variant="secondary"
+                icon={Edit}
+                onClick={() => {
+                  if (!selectedLicense) return;
+                  navigate('/licenses', { state: { editLicenseId: selectedLicense.id } });
+                }}
+              >
+                Edit
+              </Button>
+            )}
+
+            {/* Show Delete for admin only; hide for super_user and user */}
+            {user?.role === 'admin' && (
+              <Button variant="danger" icon={Trash2} onClick={handleDelete}>
+                Delete
+              </Button>
+            )}
         </div>
       </motion.div>
 

@@ -39,6 +39,7 @@ export const AccountSettings: React.FC = () => {
   const handleProfileSave = async () => {
     try {
       await updateProfile({ name: profileData.name });
+      await useAuthStore.getState().getCurrentUser();
       toast.success('Profile updated successfully');
     } catch (e: any) {
       toast.error(e?.message || 'Failed to update profile');

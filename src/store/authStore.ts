@@ -68,7 +68,11 @@ export const useAuthStore = create<AuthState>()(
 
             const userData: User = {
               id: user.id,
-              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              name:
+              (profileRow?.name as string) ||
+              user.user_metadata?.name ||
+              user.email?.split('@')[0] ||
+              'User',
               email: user.email || '',
               role: roleFromProfile,
               isVerified: user.email_confirmed_at !== null,
@@ -187,7 +191,7 @@ export const useAuthStore = create<AuthState>()(
           const current = get().user;
           if (!current) throw new Error('No authenticated user');
 
-          // 1) Update name in Auth user_metadata (ignore email)
+          // 1) Update name in Auth user_metadata
           if (typeof updates.name === 'string' && updates.name && updates.name !== current.name) {
             const { error: nameErr } = await supabase.auth.updateUser({
               data: { name: updates.name }
@@ -195,33 +199,14 @@ export const useAuthStore = create<AuthState>()(
             if (nameErr) throw nameErr;
           }
 
-          // 2) Sync name to user_profiles table (DB)
-          try {
-            if (typeof updates.name === 'string' && updates.name) {
-              // Check if profile row exists
-              const { data: exists, error: checkErr } = await supabase
-                .from('user_profiles')
-                .select('user_id')
-                .eq('user_id', current.id)
-                .maybeSingle();
-              if (checkErr) throw checkErr;
-
-              if (exists) {
-                const { error: updErr } = await supabase
-                  .from('user_profiles')
-                  .update({ name: updates.name })
-                  .eq('user_id', current.id);
-                if (updErr) throw updErr;
-              } else {
-                const { error: insErr } = await supabase
-                  .from('user_profiles')
-                  .insert([{ user_id: current.id, name: updates.name, email: current.email }]);
-                if (insErr) throw insErr;
-              }
+          // 2) Sync name to user_profiles using UPSERT and surface errors
+          if (typeof updates.name === 'string' && updates.name) {
+            const { error: upsertErr } = await supabase
+              .from('user_profiles')
+              .upsert({ user_id: current.id, full_name: updates.name, email: current.email }, { onConflict: 'user_id' });
+            if (upsertErr) {
+              throw new Error(`Failed to sync profile to DB: ${upsertErr.message}`);
             }
-          } catch (dbErr) {
-            console.error('Failed to sync name to user_profiles:', dbErr);
-            // Continue; don't block UI
           }
 
           // 3) Refresh Auth user and update local store (email remains unchanged)
@@ -232,7 +217,7 @@ export const useAuthStore = create<AuthState>()(
             const updatedUser: User = {
               id: refreshed.id,
               name: refreshed.user_metadata?.name || current.name,
-              email: current.email, // do not change email here
+              email: current.email, 
               role: current.role,
               isVerified: refreshed.email_confirmed_at !== null,
               department: current.department,

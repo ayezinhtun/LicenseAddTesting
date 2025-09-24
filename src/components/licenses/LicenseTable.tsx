@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Eye, Calendar, MoreVertical, Copy } from 'lucide-react';
+import { Edit, Trash2, Eye, Calendar, Copy } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { License } from '../../store/licenseStore';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../../store/authStore';
 
 interface LicenseTableProps {
   licenses: License[];
@@ -27,7 +28,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
   onSelectAll
 }) => {
   const navigate = useNavigate();
-  const [selectedLicense, setSelectedLicense] = useState<string | null>(null);
+  const { user } = useAuthStore();
 
   const getExpiryStatus = (endDate: string) => {
     const daysUntilExpiry = differenceInDays(parseISO(endDate), new Date());
@@ -97,9 +98,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
     toast.success('Serial number copied to clipboard');
   };
 
-  const handleOpenUrl = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  // URL open action removed
 
   const handleSelectLicense = (licenseId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     event.stopPropagation();
@@ -296,31 +295,35 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
                     
                     {/* URL open action removed */}
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={Edit}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(license);
-                      }}
-                      className="text-gray-400 hover:text-blue-600"
-                      title="Edit License"
-                    />
+                    {user?.role !== 'user' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Edit}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(license);
+                        }}
+                        className="text-gray-400 hover:text-blue-600"
+                        title="Edit License"
+                      />
+                    )}
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={Trash2}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm('Are you sure you want to delete this license?')) {
-                          onDelete(license.id);
-                        }
-                      }}
-                      className="text-gray-400 hover:text-red-600"
-                      title="Delete License"
-                    />
+                    {user?.role === 'admin' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Are you sure you want to delete this license?')) {
+                            onDelete(license.id);
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-600"
+                        title="Delete License"
+                      />
+                    )}
                   </div>
                 </td>
               </tr>

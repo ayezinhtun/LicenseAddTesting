@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore';
 import { License } from '../../store/licenseStore';
 import toast from 'react-hot-toast';
 import { format, parseISO, addDays } from 'date-fns';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const LicenseManagement: React.FC = () => {
   const {
@@ -35,6 +36,8 @@ export const LicenseManagement: React.FC = () => {
 
   const { user } = useAuthStore();
 
+  const location = useLocation() as { state?: { editLicenseId?: string } };
+  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -241,6 +244,36 @@ export const LicenseManagement: React.FC = () => {
   const getActiveFiltersCount = () => {
     return Object.values(localFilters).filter(value => value !== '').length;
   };
+
+
+  useEffect(() => {
+    const openEditFromState = async () => {
+      const editId = location.state?.editLicenseId;
+      if (!editId) return;
+  
+      // Try to find the license from the already-fetched list
+      let lic = licenses.find(l => l.id === editId) || null;
+  
+      // If not found yet (e.g., first load), fetch it directly from the store
+      if (!lic && typeof useLicenseStore.getState().fetchLicenseById === 'function') {
+        try {
+          lic = await useLicenseStore.getState().fetchLicenseById(editId);
+        } catch {
+        }
+      }
+  
+      if (lic) {
+        setEditingLicense(lic);
+        setIsFormOpen(true);
+      }
+  
+      // Clear the navigation state so it doesn’t reopen on refresh/back
+      navigate('/licenses', { replace: true, state: {} });
+    };
+  
+    openEditFromState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, licenses]);
 
   return (
     <div className="space-y-6">
