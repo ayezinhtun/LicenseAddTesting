@@ -86,6 +86,11 @@ export const PendingApproval: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card>
@@ -119,8 +124,7 @@ export const PendingApproval: React.FC = () => {
           </div>
           
           <div className="mt-6">
-            <Button onClick={logout}>Sign out</Button>
-          </div>
+          <Button onClick={handleSignOut}>Sign out</Button>          </div>
         </div>
       </Card>
     </div>
