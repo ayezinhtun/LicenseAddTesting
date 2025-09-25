@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
-import { Save, X, Plus, Trash2 } from 'lucide-react';
+import { Save, X, Plus, Trash2, Paperclip, Download } from 'lucide-react';
 import { License } from '../../store/licenseStore';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
@@ -20,7 +20,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
   onSave,
   onCancel
 }) => {
-  const { validateLicense } = useLicenseStore();
+  const { validateLicense, addAttachment, deleteAttachment, downloadAttachment, fetchAttachments } = useLicenseStore();
   const { user, assignments } = useAuthStore();
 
   const [formData, setFormData] = useState({
@@ -137,6 +137,62 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     }
   }, [license]);
 
+  useEffect(() => {
+    if (!license) return;
+  
+    (async () => {
+      try {
+        const { data: attachRows } = await supabase
+          .from('license_attachments')
+          .select('id,file_name,file_url,file_size,uploaded_at')           
+          .eq('license_id', license.id)
+          .order('uploaded_at', { ascending: false });
+  
+        setExistingAttachments((attachRows || []).map((a: any) => ({
+          id: a.id,
+          file_name: a.file_name,
+          file_url: a.file_url,
+          file_size: a.file_size
+        })));
+      } catch (e) {
+        console.error('Failed to load existing attachments', e);
+      }
+    })();
+  }, [license]);
+
+  const addFileInputRef = useRef<HTMLInputElement>(null);
+
+const handleClickAddAttachment = () => {
+  addFileInputRef.current?.click();
+};
+
+const handleAddAttachmentFiles = async (files: FileList | null) => {
+  if (!license || !files || files.length === 0) return;
+  // Upload each file via store, then refresh the list
+  for (const file of Array.from(files)) {
+    await addAttachment(license.id, file);
+  }
+  const refreshed = await fetchAttachments(license.id);
+  setExistingAttachments(
+    (refreshed || []).map((a: any) => ({
+      id: a.id,
+      file_name: a.file_name,
+      file_url: a.file_url,
+      file_size: a.file_size,
+      uploaded_at: a.uploaded_at
+    }))
+  );
+};
+
+const handleDeleteExistingAttachment = async (id: string) => {
+  await deleteAttachment(id);
+  setExistingAttachments(prev => prev.filter(a => a.id !== id));
+};
+
+const handleDownloadExistingAttachment = async (att: { id: string; file_name: string; file_url: string; file_size: number }) => {
+  await downloadAttachment(att as any);
+};
+
   const handleChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
@@ -156,6 +212,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       ]
     }));
   };
+  
   const removeSerial = (index: number) => {
     setFormData(prev => ({ ...prev, serials: prev.serials.filter((_, i) => i !== index) }));
   };
@@ -292,6 +349,14 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     return opts;
   }, [user?.role, assignments, license]);
 
+  const [existingAttachments, setExistingAttachments] = useState<Array<{
+    id: string;
+    file_name: string;
+    file_url: string;
+    file_size: number;
+    uploaded_at?: string;
+  }>>([]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Error Display */}
@@ -401,21 +466,92 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         </div>
 
         {/* Attachments */}
-        <div className="mt-8">
-          <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
-          <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
-          {formData.attachments.length > 0 && (
-            <div className="mt-2 space-y-1 text-sm text-gray-600">
-              {formData.attachments.map((f, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <span>{f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB</span>
-                  <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
+       {/* Existing attachments (edit only) */}
+{/* Attachments */}
+{/* Edit mode: Existing list with Add Attachment button */}
+{license && (
+  <div className="mt-8">
+    <div className="flex items-center justify-between mb-3">
+      <h4 className="text-md font-semibold text-gray-900">
+        Attachments ({existingAttachments.length})
+      </h4>
+      <div>
+        <input
+          type="file"
+          ref={addFileInputRef}
+          className="hidden"
+          multiple
+          onChange={(e) => handleAddAttachmentFiles(e.target.files)}
+        />
+        <Button type="button" icon={Paperclip} onClick={handleClickAddAttachment}>
+          Add Attachment
+        </Button>
+      </div>
+    </div>
+
+    {existingAttachments.length === 0 ? (
+      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
+        No attachments yet.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {existingAttachments.map(att => (
+          <div key={att.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
+            <div className="flex items-center gap-3">
+              <Paperclip className="w-4 h-4 text-gray-500" />
+              <div>
+                <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {att.file_name}
+                </a>
+                <div className="text-xs text-gray-500">
+                  {(att.file_size / (1024 * 1024)).toFixed(2)} MB
+                  {att.uploaded_at ? ` · ${new Date(att.uploaded_at).toLocaleDateString()}` : ''}
                 </div>
-              ))}
-              <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
+              </div>
             </div>
-          )}
-        </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon={Download}
+                onClick={() => handleDownloadExistingAttachment(att)}
+                title="Download"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon={Trash2}
+                onClick={() => handleDeleteExistingAttachment(att.id)}
+                title="Delete"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+{/* Add mode: show uploader for new files as before */}
+{!license && (
+  <div className="mt-8">
+    <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
+    <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
+    {formData.attachments.length > 0 && (
+      <div className="mt-2 space-y-1 text-sm text-gray-600">
+        {formData.attachments.map((f, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <span>{f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB</span>
+            <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
+          </div>
+        ))}
+        <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
+      </div>
+    )}
+  </div>
+)}
       </div>
 
       {/* Customer Information (Multiple Optional) */}
