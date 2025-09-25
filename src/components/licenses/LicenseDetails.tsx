@@ -13,7 +13,12 @@ import {
   Clock,
   RefreshCw,
   Copy,
-  Upload
+  Upload,
+  Building2,
+  UserIcon,
+  Mail,
+  Phone,
+  MapIcon
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLicenseStore } from '../../store/licenseStore';
@@ -331,8 +336,7 @@ export const LicenseDetails: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* License Information */}
 
-           {/* Basic Information */}
-           <motion.div
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -340,62 +344,77 @@ export const LicenseDetails: React.FC = () => {
             <Card>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">License Information</h3>
-                
+
+                {/* Top summary: Vendor and Project */}
+                <div className="mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="text-base font-medium text-gray-900">
+                      {selectedLicense.vendor}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Project:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedLicense.project_name}
+                      </span>
+                      {(selectedLicense as any).project_assign && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                          {(selectedLicense as any).project_assign}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                  {/* Left column */}
+                  <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Vendor</label>
-                      <p className="text-gray-900">{selectedLicense.vendor}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Project</label>
-                      <p className="text-gray-900">{selectedLicense.project_name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Project Assign</label>
-                      <p className="text-gray-900">{(selectedLicense as any).project_assign || '-'}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">License Start Date</label>
-                      <p className="text-gray-900">
+                      <p className="text-xs text-gray-500">License Start Date</p>
+                      <p className="text-sm text-gray-900">
                         {format(parseISO(selectedLicense.license_start_date), 'MMM dd, yyyy')}
                       </p>
                     </div>
-                    
+
                     <div>
-                      <label className="text-sm font-medium text-gray-500">License End Date</label>
-                      <p className="text-gray-900">
+                      <p className="text-xs text-gray-500">License End Date</p>
+                      <p className="text-sm text-gray-900">
                         {format(parseISO(selectedLicense.license_end_date), 'MMM dd, yyyy')}
                       </p>
                     </div>
                   </div>
-                  
-                  <div className="space-y-4">
+
+                  {/* Right column */}
+                  <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Priority</label>
-                      <Badge 
-                        className={getPriorityColor(selectedLicense.priority)}
-                        size="sm"
-                      >
+                      <p className="text-xs text-gray-500">Priority</p>
+                      <Badge className={getPriorityColor(selectedLicense.priority)} size="sm">
                         {selectedLicense.priority.charAt(0).toUpperCase() + selectedLicense.priority.slice(1)}
                       </Badge>
                     </div>
                   </div>
                 </div>
-                
+
+                {/* Product and Remarks */}
                 {selectedLicense.item_description && (
                   <div className="mt-6">
-                    <label className="text-sm font-medium text-gray-500">Product</label>
-                    <p className="text-gray-900 mt-1">{selectedLicense.item_description}</p>
+                    <p className="text-xs text-gray-500 mb-1">Product</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm text-gray-900 flex-1">
+                        {selectedLicense.item_description}
+                      </p>
+                    
+                    </div>
                   </div>
                 )}
-                
+
                 {selectedLicense.remark && (
                   <div className="mt-4">
-                    <label className="text-sm font-medium text-gray-500">Remarks</label>
-                    <p className="text-gray-900 mt-1">{selectedLicense.remark}</p>
+                    <p className="text-xs text-gray-500 mb-1">Remarks</p>
+                    <p className="text-sm text-gray-900 whitespace-pre-line">
+                      {selectedLicense.remark}
+                    </p>
                   </div>
                 )}
               </div>
@@ -447,24 +466,25 @@ export const LicenseDetails: React.FC = () => {
                             </div>
                             <div>
                               <p className="text-xs text-gray-500">Total</p>
-                              <p className="text-gray-900 font-medium">{s.currency} {rowTotal.toLocaleString()}</p>
+                              <p className="text-gray-900 font-medium">{rowTotal.toLocaleString()} {s.currency} </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-500">PO No.</p>
                               <p className="text-gray-900">{s.po_no || '-'}</p>
                             </div>
+                          
                           </div>
                         </div>
                       );
                     })}
                     {/* Totals per currency */}
-                    <div className="mt-2 text-sm text-gray-700">
+                    {/* <div className="mt-2 text-sm text-gray-700">
                       {['MMK', 'USD'].map((cur) => {
                         const sum = serials.filter(s => s.currency === (cur as any)).reduce((acc, s) => acc + (s.unit_price || 0) * (s.qty || 0), 0);
                         if (!sum) return null;
                         return <div key={cur} className="font-medium">Total ({cur}): {sum.toLocaleString()}</div>;
                       })}
-                    </div>
+                    </div> */}
                   </div>
                 )}
               </div>
@@ -480,19 +500,100 @@ export const LicenseDetails: React.FC = () => {
             <Card>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
+
                 {customers.length === 0 ? (
                   <p className="text-sm text-gray-500">No customers added.</p>
                 ) : (
-                  <div className="space-y-3">
-                    {customers.map((c) => (
-                      <div key={c.id} className="p-4 border rounded-lg">
-                        <div className="font-medium text-gray-900">{c.company_name}</div>
-                        <div className="text-sm text-gray-600">
-                          {c.contact_person || '-'}
-                          {c.contact_email ? ` • ${c.contact_email}` : ''}
-                          {c.contact_number ? ` • ${c.contact_number}` : ''}
+                  <div className="space-y-4">
+                    {customers.map((c, idx) => (
+                      <div key={c.id} className="p-5 border rounded-lg hover:shadow-sm transition">
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-gray-500" />
+                            <span className="text-base font-medium text-gray-900">
+                              {c.company_name || '-'}
+                            </span>
+                          </div>
+                          {/* <div className="text-xs text-gray-500">Customer #{idx + 1}</div> */}
                         </div>
-                        {c.address && <div className="text-sm text-gray-600">{c.address}</div>}
+
+                        {/* Grid details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Contact Person */}
+                          <div className="flex items-start gap-3">
+                            <UserIcon className="h-4 w-4 text-gray-500 mt-1" />
+                            <div>
+                              <p className="text-xs text-gray-500">Contact Person</p>
+                              <p className="text-sm text-gray-900">{c.contact_person || '-'}</p>
+                            </div>
+                          </div>
+
+                          {/* Email */}
+                          <div className="flex items-start gap-3">
+                            <Mail className="h-4 w-4 text-gray-500 mt-1" />
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-500">Contact Email</p>
+                              {c.contact_email ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={`mailto:${c.contact_email}`}
+                                    className="text-sm text-blue-600 hover:underline break-all"
+                                  >
+                                    {c.contact_email}
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={Copy}
+                                    onClick={() => copyToClipboard(c.contact_email!)}
+                                    title="Copy email"
+                                  />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-900">-</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Phone */}
+                          <div className="flex items-start gap-3">
+                            <Phone className="h-4 w-4 text-gray-500 mt-1" />
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-500">Contact Number</p>
+                              {c.contact_number ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={`tel:${c.contact_number}`}
+                                    className="text-sm text-gray-900 hover:underline"
+                                  >
+                                    {c.contact_number}
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={Copy}
+                                    onClick={() => copyToClipboard(c.contact_number!)}
+                                    title="Copy phone"
+                                  />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-900">-</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Address */}
+                          <div className="flex items-start gap-3">
+                            <MapIcon className="h-4 w-4 text-gray-500 mt-1" />
+                            <div>
+                              <p className="text-xs text-gray-500">Address</p>
+                              <p className="text-sm text-gray-900 whitespace-pre-line break-words">
+                                {c.address || '-'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -501,7 +602,7 @@ export const LicenseDetails: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* Distributor Information */}
+         {/* Distributor Information */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -510,17 +611,88 @@ export const LicenseDetails: React.FC = () => {
             <Card>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Distributor Information</h3>
+
                 {distributors.length === 0 ? (
                   <p className="text-sm text-gray-500">No distributors added.</p>
                 ) : (
-                  <div className="space-y-3">
-                    {distributors.map((d) => (
-                      <div key={d.id} className="p-4 border rounded-lg">
-                        <div className="font-medium text-gray-900">{d.company_name}</div>
-                        <div className="text-sm text-gray-600">
-                          {d.contact_person || '-'}
-                          {d.contact_email ? ` • ${d.contact_email}` : ''}
-                          {d.contact_number ? ` • ${d.contact_number}` : ''}
+                  <div className="space-y-4">
+                    {distributors.map((d, idx) => (
+                      <div key={d.id} className="p-5 border rounded-lg hover:shadow-sm transition">
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-gray-500" />
+                            <span className="text-base font-medium text-gray-900">
+                              {d.company_name || '-'}
+                            </span>
+                          </div>
+                          {/* <div className="text-xs text-gray-500">Distributor #{idx + 1}</div> */}
+                        </div>
+
+                        {/* Grid details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Contact Person */}
+                          <div className="flex items-start gap-3">
+                            <UserIcon className="h-4 w-4 text-gray-500 mt-1" />
+                            <div>
+                              <p className="text-xs text-gray-500">Contact Person</p>
+                              <p className="text-sm text-gray-900">{d.contact_person || '-'}</p>
+                            </div>
+                          </div>
+
+                          {/* Email */}
+                          <div className="flex items-start gap-3">
+                            <Mail className="h-4 w-4 text-gray-500 mt-1" />
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-500">Contact Email</p>
+                              {d.contact_email ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={`mailto:${d.contact_email}`}
+                                    className="text-sm text-blue-600 hover:underline break-all"
+                                  >
+                                    {d.contact_email}
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={Copy}
+                                    onClick={() => copyToClipboard(d.contact_email!)}
+                                    title="Copy email"
+                                  />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-900">-</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Phone */}
+                          <div className="flex items-start gap-3">
+                            <Phone className="h-4 w-4 text-gray-500 mt-1" />
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-500">Contact Number</p>
+                              {d.contact_number ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={`tel:${d.contact_number}`}
+                                    className="text-sm text-gray-900 hover:underline"
+                                  >
+                                    {d.contact_number}
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={Copy}
+                                    onClick={() => copyToClipboard(d.contact_number!)}
+                                    title="Copy phone"
+                                  />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-900">-</p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -529,12 +701,6 @@ export const LicenseDetails: React.FC = () => {
               </div>
             </Card>
           </motion.div>
-
-         
-
-          {/* Custom Fields removed */}
-
-          {/* Comments removed */}
 
           {/* Attachments */}
           <motion.div

@@ -109,7 +109,7 @@ function App() {
   }
 
   // If authenticated and pending, show approval page WITHOUT layout/sidebar
-  if (profileStatus === 'pending') {
+  if (profileStatus === 'pending' || profileStatus === 'rejected') {
     return (
       <>
         <Router>

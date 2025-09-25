@@ -19,7 +19,8 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
-import { useLicenseStore } from '../../store/licenseStore';
+// import { useLicenseStore } from '../../store/licenseStore';
+import { useNotificationStore } from '../../store/notificationStore';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', badge: null },
@@ -41,9 +42,11 @@ export const Sidebar: React.FC = () => {
   // const [showQuickActions, setShowQuickActions] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { getLicensesNearExpiry } = useLicenseStore();
 
-  const notificationCount = getLicensesNearExpiry(30).length;
+  // const { getLicensesNearExpiry } = useLicenseStore();
+
+  const { notifications } = useNotificationStore();
+  const notificationCount = notifications.filter(n => !n.is_read).length;
 
   const handleLogout = () => {
     logout();
@@ -64,13 +67,13 @@ export const Sidebar: React.FC = () => {
   // };
 
   const getBadgeCount = (badgeType: string | null) => {
-    switch (badgeType) {
-      case 'notifications':
-        return notificationCount > 0 ? notificationCount : null;
-      default:
-        return null;
-    }
-  };
+  switch (badgeType) {
+    case 'notifications':
+      return notificationCount > 0 ? notificationCount : null;
+    default:
+      return null;
+  }
+};
 
   return (
     <motion.div

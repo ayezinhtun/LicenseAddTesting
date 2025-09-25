@@ -72,6 +72,7 @@ export const Notifications: React.FC = () => {
     ] : [])
   ].slice(0, 20);
 
+
   const unreadCount = allNotifications.filter(n => !n.is_read).length;
 
   const handleMarkAsRead = async (notificationId: string) => {

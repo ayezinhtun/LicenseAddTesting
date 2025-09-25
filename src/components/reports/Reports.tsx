@@ -100,7 +100,6 @@ export const Reports: React.FC = () => {
                 <th>Status</th>
                 <th>Project</th>
                 <th>End Date</th>
-                <th>Cost</th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +109,6 @@ export const Reports: React.FC = () => {
                   <td>${license.status}</td>
                   <td>${license.project_name}</td>
                   <td>${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}</td>
-                  <td>$0</td>
                 </tr>
                 `).join('')}
             </tbody>

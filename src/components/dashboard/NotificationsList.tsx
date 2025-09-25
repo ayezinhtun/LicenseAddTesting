@@ -73,42 +73,30 @@ export const NotificationsList: React.FC = () => {
   
   const licensesNearExpiry = getLicensesNearExpiry(30);
 
-  // Combine real notifications with license expiry alerts
-  const allNotifications = [
-    ...notifications.slice(0, 3), // Show first 3 real notifications
-    ...licensesNearExpiry.slice(0, 2).map(license => ({
-      id: `expiry-${license.id}`,
-      type: 'expiry' as const,
-      title: 'License Expiring Soon',
-      message: `${license.item} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
-      time: 'Today',
-      priority: 'high' as const,
-      isRead: false
-    })),
-    // Add some system notifications if no real notifications exist
-    ...(notifications.length === 0 ? [
-      {
-        id: 'welcome',
-        type: 'system' as const,
-        title: 'Welcome to License Manager',
-        message: 'Your license management system is ready to use',
-        time: '2 hours ago',
-        priority: 'medium' as const,
-        isRead: true
-      },
-      {
-        id: 'sync',
-        type: 'system' as const,
-        title: 'Data Synchronized',
-        message: 'All license data has been synchronized successfully',
-        time: '1 day ago',
-        priority: 'medium' as const,
-        isRead: false
-      }
-    ] : [])
-  ].slice(0, 5);
+ // Normalize real notifications to have `isRead`
+const normalizedNotifications = notifications.map(n => ({
+  ...n,
+  isRead: n.is_read, // map DB field to UI field
+}));
 
-  const unreadCount = allNotifications.filter(n => !n.isRead).length;
+const allNotifications = [
+  ...normalizedNotifications.slice(0, 3),
+  ...licensesNearExpiry.slice(0, 2).map(license => ({
+    id: `expiry-${license.id}`,
+    type: 'expiry' as const,
+    title: 'License Expiring Soon',
+    message: `${license.item} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
+    time: 'Today',
+    priority: 'high' as const,
+    isRead: false, // consistent flag name for synthetic
+  })),
+  ...(notifications.length === 0 ? [
+    { id: 'welcome', type: 'system' as const, title: 'Welcome to License Manager', message: 'Your license management system is ready to use', time: '2 hours ago', priority: 'medium' as const, isRead: true },
+    { id: 'sync', type: 'system' as const, title: 'Data Synchronized', message: 'All license data has been synchronized successfully', time: '1 day ago', priority: 'medium' as const, isRead: false },
+  ] : [])
+].slice(0, 5);
+
+const unreadCount = allNotifications.filter(n => !n.isRead).length;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">

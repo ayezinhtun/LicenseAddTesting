@@ -31,7 +31,8 @@ export const LicenseManagement: React.FC = () => {
     deleteLicense,
     setFilters,
     setSorting,
-    exportLicenses
+    exportLicenses,
+    clearFilters
   } = useLicenseStore();
 
   const { user } = useAuthStore();
@@ -191,7 +192,7 @@ export const LicenseManagement: React.FC = () => {
       project_name: '',
       project_assign: ''
     });
-    setFilters({});
+    clearFilters();
     setShowFilters(false);
   };
 
