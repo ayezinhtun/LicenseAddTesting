@@ -433,7 +433,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           await get().sendNotificationToUser(license.created_by, {
             type: 'expiry',
             title: 'License Expiring Soon',
-            message: `${license.item} license expires in ${daysUntilExpiry} days`,
+            message: `${license.item_description} license expires in ${daysUntilExpiry} days`,
             license_id: license.id,
             is_read: false,
             priority: daysUntilExpiry <= 7 ? 'high' : 'medium',

@@ -33,7 +33,7 @@ export const Notifications: React.FC = () => {
       id: `expiry-${license.id}`,
       type: 'expiry' as const,
       title: 'License Expiring Soon',
-      message: `${license.item} license for ${license.project_name} expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
+      message: `${license.item_description} license for ${license.project_name} expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
       time: 'Today',
       isRead: false,
       icon: AlertTriangle,
@@ -48,6 +48,7 @@ export const Notifications: React.FC = () => {
       license_id: license.id,
       expires_at: null
     })),
+
     // Add some system notifications if no real notifications exist
     ...(notifications.length === 0 ? [
       {
@@ -71,6 +72,8 @@ export const Notifications: React.FC = () => {
       }
     ] : [])
   ].slice(0, 20);
+
+      console.log('allNotifications', allNotifications);
 
 
   const unreadCount = allNotifications.filter(n => !n.is_read).length;

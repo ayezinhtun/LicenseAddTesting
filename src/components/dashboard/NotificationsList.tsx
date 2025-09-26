@@ -85,7 +85,7 @@ const allNotifications = [
     id: `expiry-${license.id}`,
     type: 'expiry' as const,
     title: 'License Expiring Soon',
-    message: `${license.item} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
+    message: `${license.item_description || 'This'} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
     time: 'Today',
     priority: 'high' as const,
     isRead: false, // consistent flag name for synthetic

@@ -549,7 +549,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: 'system',
           title: 'New License Added',
-          message: `${currentUser.name} added license for ${licenseData.item}`,
+          message: `${currentUser.name} added license for ${licenseData.item_description}`,
           license_id: data.id,
           user_id: currentUser.id,
           is_read: false,
@@ -650,7 +650,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: 'system',
           title: 'License Updated',
-          message: `${currentUser.name} updated ${currentLicense?.item || 'license'}`,
+          message: `${currentUser.name} updated ${currentLicense?.item_description || 'license'}`,
           license_id: id,
           user_id: currentUser.id,
           is_read: false,
@@ -680,7 +680,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       // Get license info for logging and notification before deletion
       const { data: licenseBeforeDelete } = await supabase
         .from('licenses')
-        .select('id, item')
+        .select('id, item_description')
         .eq('id', id)
         .single();
 
@@ -715,7 +715,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: 'system',
           title: 'License Deleted',
-          message: `${currentUser.name} deleted ${licenseBeforeDelete?.item || 'license'}`,
+          message: `${currentUser.name} deleted ${licenseBeforeDelete?.item_description || 'license'}`,
           license_id: null,
           user_id: currentUser.id,
           is_read: false,
