@@ -8,6 +8,10 @@ import { Select } from '../common/Select';
 import { useLicenseStore } from '../../store/licenseStore';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { useVendorStore } from '../../store/vendorStore';
+import { useProjectAssignStore } from '../../store/projectAssignStore';
+import { useCustomerStore } from '../../store/customerStore';
+import { useDistributorStore } from '../../store/useDistributorStore';
 
 interface LicenseFormProps {
   license?: License | null;
@@ -22,6 +26,59 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 }) => {
   const { validateLicense, addAttachment, deleteAttachment, downloadAttachment, fetchAttachments } = useLicenseStore();
   const { user, assignments } = useAuthStore();
+  const { vendors, fetchVendors } = useVendorStore();
+  const { assigns, fetchProjectAssigns } = useProjectAssignStore();
+
+
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]);
+
+  const vendorOptions = (vendors || []).map((v: any) => ({
+    value: v.name,
+    label: v.name
+  }));
+
+  useEffect(() => {
+    fetchProjectAssigns();
+  }, [fetchProjectAssigns]);
+
+  const [allProjectNames, setAllProjectNames] = useState<string[]>([]);
+  const [showProjectNameSuggestions, setShowProjectNameSuggestions] = useState(false);
+
+
+  // Load distinct project names from licenses once
+useEffect(() => {
+  const loadProjectNames = async () => {
+    const { data, error } = await supabase
+      .from('licenses')
+      .select('project_name');
+
+    if (error) {
+      console.error('Error loading project names:', error);
+      return;
+    }
+
+    const names = Array.from(
+      new Set(
+        (data || [])
+          .map((r: any) => (r.project_name || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    setAllProjectNames(names);
+  };
+
+  loadProjectNames();
+}, []);
+
+const selectProjectName = (name: string) => {
+  setFormData(prev => ({ ...prev, project_name: name }));
+  setShowProjectNameSuggestions(false);
+};
+
+const projectNameSuggestions = allProjectNames;
 
   const [formData, setFormData] = useState({
     // Core
@@ -31,7 +88,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     item_description: '', // Product
     remark: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
-    status: 'pending' as 'active' | 'expired' | 'suspended' | 'pending' | 'in_progress',
+    status: 'pending' as 'active' | 'expired' | 'suspended' | 'pending' | 'in_progress' | 'completed',
 
     // Dynamic arrays
     serials: [
@@ -46,6 +103,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       }
     ],
     customers: [] as Array<{
+      customer_id?: string; 
       company_name: string;
       contact_person?: string;
       contact_email?: string;
@@ -53,6 +111,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       address?: string;
     }>,
     distributors: [] as Array<{
+      distributor_id?: string; 
       company_name: string;
       contact_person?: string;
       contact_email?: string;
@@ -65,75 +124,131 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     customer_name: '',
     business_unit: '',
     user_name: '',
-    license_start_date: '',
-    license_end_date: '',
+    // license_start_date: '',
+    // license_end_date: '',
     
     
   });
+
+
+    const { customers, fetchCustomers } = useCustomerStore();
+    useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
+
+    const customerOptions = (customers || []).map(c => ({
+      value: c.id,
+      label: c.company_name
+    }));
+
+
+    const selectExistingCustomer = (rowIndex: number, customerId: string) => {
+      const c = customers.find(x => x.id === customerId);
+      setFormData(prev => {
+        const next = [...prev.customers];
+        next[rowIndex] = {
+          ...next[rowIndex],
+          customer_id: customerId,
+          company_name: c?.company_name || '',
+          contact_person: c?.contact_person || '',
+          contact_email: c?.contact_email || '',
+          contact_number: c?.contact_number || '',
+          address: c?.address || ''
+        };
+        return { ...prev, customers: next };
+      });
+    };
+
+
+    const { distributors, fetchDistributors } = useDistributorStore();
+    useEffect(() => { fetchDistributors(); }, [fetchDistributors]);
+
+    const distributorOptions = (distributors || []).map(d => ({
+      value: d.id,
+      label: d.company_name
+    }));
+
+    const selectExistingDistributor = (rowIndex: number, distributorId: string) => {
+      const d = distributors.find(x => x.id === distributorId);
+      setFormData(prev => {
+        const next = [...prev.distributors];
+        next[rowIndex] = {
+          ...next[rowIndex],
+          distributor_id: distributorId,
+          company_name: d?.company_name || '',
+          contact_person: d?.contact_person || '',
+          contact_email: d?.contact_email || '',
+          contact_number: d?.contact_number || ''
+        };
+        return { ...prev, distributors: next };
+      });
+    };
 
   // removed tags/custom fields
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (license) {
+    if (!license) return;
+  
+    // Set top-level fields
+    setFormData(prev => ({
+      ...prev,
+      company: license.company || '',
+      vendor: license.vendor || '',
+      item_description: license.item_description || '',
+      project_name: license.project_name || '',
+      project_assign: (license as any).project_assign || '',
+      customer_name: license.customer_name || '',
+      business_unit: license.business_unit || '',
+      user_name: license.user_name || '',
+      remark: license.remark || '',
+      priority: license.priority || 'medium',
+      status: (license.status as any) || 'active',
+    }));
+  
+    // Seed children ONLY from license if provided by parent (no DB calls here)
+    const l = license as any;
+  
+    if (Array.isArray(l.serials)) {
       setFormData(prev => ({
         ...prev,
-        company: license.company || '',
-        vendor: license.vendor || '',
-        item_description: license.item_description || '',
-        project_name: license.project_name || '',
-        project_assign: (license as any).project_assign || '',
-        customer_name: license.customer_name || '',
-        business_unit: license.business_unit || '',
-        license_start_date: license.license_start_date || '',
-        license_end_date: license.license_end_date || '',
-        
-        user_name: license.user_name || '',
-        remark: license.remark || '',
-        priority: license.priority || 'medium',
-        status: (license.status as any) || 'active',
-        
+        serials: l.serials.map((s: any) => ({
+          id: s.id,
+          serial_or_contract: s.serial_or_contract || '',
+          start_date: s.start_date || '',
+          end_date: s.end_date || '',
+          qty: s.qty ?? 1,
+          unit_price: s.unit_price ?? 0,
+          currency: s.currency || 'MMK',
+          po_no: s.po_no || ''
+        }))
       }));
-
-      // Load existing child rows into the form when editing
-      (async () => {
-        try {
-          const [serialRes, customerRes, distributorRes] = await Promise.all([
-            supabase.from('license_serials').select('*').eq('license_id', license.id).order('start_date', { ascending: true }),
-            supabase.from('license_customers').select('*').eq('license_id', license.id).order('company_name', { ascending: true }),
-            supabase.from('license_distributors').select('*').eq('license_id', license.id).order('company_name', { ascending: true })
-          ]);
-
-          setFormData(prev => ({
-            ...prev,
-            serials: (serialRes.data || []).map((s: any) => ({
-              serial_or_contract: s.serial_or_contract || '',
-              start_date: s.start_date || '',
-              end_date: s.end_date || '',
-              qty: s.qty || 1,
-              unit_price: s.unit_price || 0,
-              currency: s.currency || 'MMK',
-              po_no: s.po_no || ''
-            })),
-            customers: (customerRes.data || []).map((c: any) => ({
-              company_name: c.company_name || '',
-              contact_person: c.contact_person || '',
-              contact_email: c.contact_email || '',
-              contact_number: c.contact_number || '',
-              address: c.address || ''
-            })),
-            distributors: (distributorRes.data || []).map((d: any) => ({
-              company_name: d.company_name || '',
-              contact_person: d.contact_person || '',
-              contact_email: d.contact_email || '',
-              contact_number: d.contact_number || ''
-            }))
-          }));
-        } catch (e) {
-          console.error('Failed to preload child rows for edit', e);
-        }
-      })();
+    }
+  
+    if (Array.isArray(l.customers)) {
+      setFormData(prev => ({
+        ...prev,
+        customers: l.customers.map((c: any) => ({
+          customer_id: c.customer_id || undefined,
+          company_name: c.company_name || '',
+          contact_person: c.contact_person || '',
+          contact_email: c.contact_email || '',
+          contact_number: c.contact_number || '',
+          address: c.address || ''
+        }))
+      }));
+    }
+  
+    if (Array.isArray(l.distributors)) {
+      setFormData(prev => ({
+        ...prev,
+        distributors: l.distributors.map((d: any) => ({
+          distributor_id: d.distributor_id || undefined,
+          company_name: d.company_name || '',
+          contact_person: d.contact_person || '',
+          contact_email: d.contact_email || '',
+          contact_number: d.contact_number || ''
+        }))
+      }));
     }
   }, [license]);
 
@@ -293,8 +408,8 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
         customer_name: formData.customer_name,
         business_unit: formData.business_unit,
         user_name: formData.user_name,
-        license_start_date: formData.license_start_date,
-        license_end_date: formData.license_end_date,
+        // license_start_date: formData.license_start_date,
+        // license_end_date: formData.license_end_date,
         
         
       };
@@ -328,26 +443,36 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
     { value: 'in_progress', label: 'In Progress' },
     { value: 'active', label: 'Active' },
     { value: 'expired', label: 'Expired' },
-    { value: 'suspended', label: 'Suspended' }
+    { value: 'suspended', label: 'Suspended' },
+    { value: 'completed', label: 'Completed' }
   ];
 
-  // Role-aware project assignment options
-  const projectAssignOptions = useMemo(() => {
-    const all = [
-      { value: 'NPT', label: 'NPT' },
-      { value: 'YGN', label: 'YGN' },
-      { value: 'MPT', label: 'MPT' }
-    ];
-    if (user?.role === 'admin') return all;
-    const assigned = (assignments || []).filter(Boolean) as Array<'NPT'|'YGN'|'MPT'>;
-    const opts = assigned.map(a => ({ value: a, label: a }));
-    // If editing and current value is outside allowed list (legacy), include it to render
-    if (license && (license as any).project_assign && !opts.find(o => o.value === (license as any).project_assign)) {
-      const val = (license as any).project_assign as 'NPT'|'YGN'|'MPT';
-      opts.push({ value: val, label: val });
-    }
-    return opts;
-  }, [user?.role, assignments, license]);
+ // Permission-aware, dynamic project assignment options (super_user only sees assigned)
+const projectAssignOptions = useMemo(() => {
+  // All from DB
+  const all = (assigns || []).map(a => ({ value: a.name, label: a.name }));
+
+  // Admin can see all
+  if (user?.role === 'admin') {
+    return all;
+  }
+
+  // super_user and others: only assigned from authStore.assignments
+  const allowed = new Set((assignments || []).map(a => a.trim()).filter(Boolean));
+  const filtered = all.filter(o => allowed.has(o.value));
+
+  // If editing legacy data outside allowed list, include it so the form renders
+  if (
+    license &&
+    (license as any).project_assign &&
+    !filtered.find(o => o.value === (license as any).project_assign)
+  ) {
+    const val = String((license as any).project_assign);
+    filtered.push({ value: val, label: `${val} (not permitted)` });
+  }
+
+  return filtered;
+}, [assigns, user?.role, assignments, license]);
 
   const [existingAttachments, setExistingAttachments] = useState<Array<{
     id: string;
@@ -376,22 +501,69 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
         <h3 className="text-lg font-semibold text-gray-900">License Information</h3>
         <p className="text-sm text-gray-600 mb-4">Core details about this license</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Input
+          {/* <Input
             label="Vendor Name"
             value={formData.vendor}
             onChange={(value) => handleChange('vendor', value)}
             required
             placeholder="e.g., Cisco, Fortinet, Palo Alto"
             error={errors.find(e => e.includes('Vendor'))}
-          />
-          <Input
+          /> */}
+          <Select
+              label="Vendor Name"
+              value={formData.vendor}
+              onChange={(value) => handleChange('vendor', value)}
+              options={vendorOptions}
+              required
+            />
+          {/* <Input
             label="Project Name"
             value={formData.project_name}
             onChange={(value) => handleChange('project_name', value)}
             required
-            placeholder="Enter project name"
+            placeholder="FY25/Project Name"
             error={errors.find(e => e.includes('Project name is required'))}
-          />
+          /> */}
+
+<div className="relative">
+  <Input
+    label="Project Name"
+    value={formData.project_name}
+    onChange={(value) => handleChange('project_name', value)}
+    required
+    placeholder="FY25/Project Name"
+    error={errors.find(e => e.includes('Project name is required'))}
+    onFocus={() => setShowProjectNameSuggestions(true)}
+    onBlur={() => setTimeout(() => setShowProjectNameSuggestions(false), 150)}
+  />
+
+  {showProjectNameSuggestions && projectNameSuggestions.length > 0 && (
+    <div className="absolute left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto">
+      <ul className="py-1 text-sm text-gray-700">
+        {projectNameSuggestions.map((name) => (
+          <li key={name}>
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 hover:bg-gray-100"
+              onMouseDown={(e) => e.preventDefault()}  // keep dropdown open for click
+              onClick={() => selectProjectName(name)}
+            >
+              {name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>
+          {/* <Select
+            label="Project Assign"
+            value={formData.project_assign}
+            onChange={(value) => handleChange('project_assign', value)}
+            options={projectAssignOptions}
+            required
+          /> */}
+
           <Select
             label="Project Assign"
             value={formData.project_assign}
@@ -399,7 +571,7 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
             options={projectAssignOptions}
             required
           />
-          <Input
+          {/* <Input
             label="License Start Date"
             type="date"
             value={formData.license_start_date}
@@ -410,12 +582,12 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
             type="date"
             value={formData.license_end_date}
             onChange={(value) => handleChange('license_end_date', value)}
-          />
+          /> */}
           <Input
             label="Product"
             value={formData.item_description}
             onChange={(value) => handleChange('item_description', value)}
-            placeholder="Enter product name or description"
+            placeholder="Model Number"
           />
           <Select
             label="Priority"
@@ -436,7 +608,7 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
         {/* Serials list */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-md font-semibold text-gray-900">Serial Number / Contract No. (Multiple)</h4>
+            <h4 className="text-md font-semibold text-gray-900">Serial Number / Contract No.</h4>
             <Button type="button" size="sm" icon={Plus} onClick={addSerial}>Add</Button>
           </div>
           <div className="space-y-4">
@@ -445,12 +617,12 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
               return (
                 <div key={idx} className="p-4 bg-white rounded border">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="Serial/Contract No." value={s.serial_or_contract} onChange={(v) => updateSerial(idx, 'serial_or_contract', v)} required />
+                    <Input label="Serial/Contract No." value={s.serial_or_contract} onChange={(v) => updateSerial(idx, 'serial_or_contract', v)} placeholder='FY25/Project Name' required />
                     <Input label="Start Date" type="date" value={s.start_date} onChange={(v) => updateSerial(idx, 'start_date', v)} required />
                     <Input label="End Date" type="date" value={s.end_date} onChange={(v) => updateSerial(idx, 'end_date', v)} required />
                     <Input label="Qty" type="number" min={1} value={String(s.qty)} onChange={(v) => updateSerial(idx, 'qty', Math.max(1, parseInt(v || '1', 10)))} required />
                     <Select label="Currency" value={s.currency} onChange={(v) => updateSerial(idx, 'currency', v as any)} options={[{ value: 'MMK', label: 'MMK' }, { value: 'USD', label: 'USD' }]} />
-                    <Input label="Unit Price" type="number" min={0} step={0.01} value={String(s.unit_price)} onChange={(v) => updateSerial(idx, 'unit_price', parseFloat(v || '0') || 0)} required />
+                    <Input label="Unit Price" type="number" min={0} step={0.01} value={String(s.unit_price)} onChange={(v) => updateSerial(idx, 'unit_price', parseFloat(v || '0') || 0)} />
                     <Input label="PO No. to Distributor" value={s.po_no || ''} onChange={(v) => updateSerial(idx, 'po_no', v)} placeholder="Optional" />
                     <div className="flex items-end"><div className="text-sm text-gray-600">Total: {s.currency} {rowTotal.toLocaleString()}</div></div>
                   </div>
@@ -554,34 +726,42 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
 )}
       </div>
 
-      {/* Customer Information (Multiple Optional) */}
-      <div className="bg-gray-50 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-900">Customer Information</h3>
-        <p className="text-sm text-gray-600 mb-4">You can add multiple customers (optional)</p>
-        <div className="mb-2">
-          <Button type="button" size="sm" icon={Plus} onClick={addCustomer}>Add Customer</Button>
+{/* Customer Information (Multiple Optional) */}
+<div className="bg-gray-50 p-6 rounded-lg">
+  <h3 className="text-lg font-semibold text-gray-900">Customer Information</h3>
+  <p className="text-sm text-gray-600 mb-4">You can add multiple customers (optional)</p>
+  <div className="mb-2">
+    <Button type="button" size="sm" icon={Plus} onClick={addCustomer}>Add Customer</Button>
+  </div>
+  <div className="space-y-4">
+    {formData.customers.map((c, idx) => (
+      <div key={idx} className="p-4 bg-white rounded border">
+        {/* NEW: Master customer dropdown per row */}
+        <Select
+          label="Customer (from master)"
+          value={formData.customers[idx].customer_id || ''}
+          onChange={(val) => selectExistingCustomer(idx, val)}
+          options={customerOptions}
+          placeholder="Select existing customer (optional)"
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <Input label="Company Name" value={c.company_name} onChange={(v) => updateCustomer(idx, 'company_name', v)} />
+          <Input label="Contact Person" value={c.contact_person || ''} onChange={(v) => updateCustomer(idx, 'contact_person', v)} />
+          <Input label="Contact Email" type="email" value={c.contact_email || ''} onChange={(v) => updateCustomer(idx, 'contact_email', v)} />
+          <Input label="Contact Number" value={c.contact_number || ''} onChange={(v) => updateCustomer(idx, 'contact_number', v)} />
+          <Input label="Address" value={c.address || ''} onChange={(v) => updateCustomer(idx, 'address', v)} />
         </div>
-        <div className="space-y-4">
-          {formData.customers.map((c, idx) => (
-            <div key={idx} className="p-4 bg-white rounded border">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Company Name" value={c.company_name} onChange={(v) => updateCustomer(idx, 'company_name', v)} />
-                <Input label="Contact Person" value={c.contact_person || ''} onChange={(v) => updateCustomer(idx, 'contact_person', v)} />
-                <Input label="Contact Email" type="email" value={c.contact_email || ''} onChange={(v) => updateCustomer(idx, 'contact_email', v)} />
-                <Input label="Contact Number" value={c.contact_number || ''} onChange={(v) => updateCustomer(idx, 'contact_number', v)} />
-                <Input label="Address" value={c.address || ''} onChange={(v) => updateCustomer(idx, 'address', v)} />
-              </div>
-              <div className="mt-3 flex justify-end">
-                <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeCustomer(idx)}>Remove</Button>
-              </div>
-            </div>
-          ))}
-          {formData.customers.length === 0 && (
-            <p className="text-sm text-gray-500">No customers added.</p>
-          )}
+        <div className="mt-3 flex justify-end">
+          <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeCustomer(idx)}>Remove</Button>
         </div>
       </div>
-
+    ))}
+    {formData.customers.length === 0 && (
+      <p className="text-sm text-gray-500">No customers added.</p>
+    )}
+  </div>
+</div>
       {/* Distributor Information (Multiple Optional) */}
       <div className="bg-gray-50 p-6 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-900">Distributor Information</h3>
@@ -590,9 +770,16 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
           <Button type="button" size="sm" icon={Plus} onClick={addDistributor}>Add Distributor</Button>
         </div>
         <div className="space-y-4">
-          {formData.distributors.map((d, idx) => (
+        {formData.distributors.map((d, idx) => (
             <div key={idx} className="p-4 bg-white rounded border">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Distributor (from master)"
+                value={formData.distributors[idx].distributor_id || ''}
+                onChange={(val) => selectExistingDistributor(idx, val)}
+                options={distributorOptions}
+                placeholder="Select existing distributor (optional)"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <Input label="Company Name" value={d.company_name} onChange={(v) => updateDistributor(idx, 'company_name', v)} />
                 <Input label="Contact Person" value={d.contact_person || ''} onChange={(v) => updateDistributor(idx, 'contact_person', v)} />
                 <Input label="Contact Email" type="email" value={d.contact_email || ''} onChange={(v) => updateDistributor(idx, 'contact_email', v)} />

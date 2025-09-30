@@ -34,6 +34,7 @@ interface NotificationState {
   subscribeToRealtime: () => void;
   unsubscribeFromRealtime: () => void;
   checkLicenseExpiries: () => Promise<void>;
+  checkSerialExpiries: () => Promise<void>;
   sendEmailNotification: (notification: Notification, userEmail: string) => Promise<void>;
   getCurrentUser: () => Promise<{ id: string; name: string; email: string } | null>;
   
@@ -452,6 +453,168 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error checking license expiries:', error);
+    }
+  },
+
+  checkSerialExpiries: async () => {
+    try {
+      // Helpers for yyyy-MM-dd (date columns in license_serials)
+      const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+      const toYMD = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  
+      const today = new Date();
+      const todayStr = toYMD(today);
+  
+      const end = new Date(today);
+      end.setDate(today.getDate() + 30);
+      const endStr = toYMD(end);
+  
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(today.getDate() - 7);
+      const sevenDaysAgoStr = toYMD(sevenDaysAgo);
+  
+      const dedupeSinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  
+      // Common select with join to get license info and created_by
+      const selectCols = `
+        id,
+        license_id,
+        serial_or_contract,
+        end_date,
+        licenses!inner(
+          id,
+          item_description,
+          project_name,
+          created_by
+        )
+      `;
+  
+      // 1) Serial Expired (in the last 7 days)
+      const { data: expired, error: expErr } = await supabase
+        .from('license_serials')
+        .select(selectCols)
+        .lt('end_date', todayStr)
+        .gte('end_date', sevenDaysAgoStr)
+        .order('end_date', { ascending: true });
+  
+      if (expErr) throw expErr;
+  
+      for (const row of expired || []) {
+        const serialId = row.id;
+        const serialNo = row.serial_or_contract;
+        const license = row.licenses;
+        const daysOverdue = Math.ceil((Date.now() - new Date(row.end_date).getTime()) / (1000 * 60 * 60 * 24));
+        const titleExpired = `Serial ${serialNo} Expired`;
+  
+        // Dedupe exact title in last 24h
+        const { data: existsExpired } = await supabase
+          .from('notifications')
+          .select('id, is_read, created_at')
+          .eq('type', 'expiry')
+          .eq('license_id', license.id)
+          .eq('title', titleExpired)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+  
+          if (!existsExpired) {
+            await get().sendNotificationToUser(license.created_by, {
+              type: 'expiry',
+              title: titleExpired,
+              message: `${serialNo} for ${license.item_description} expired ${daysOverdue} day(s) ago`,
+              license_id: license.id,
+              is_read: false,
+              priority: 'high',
+              action_required: true,
+              action_url: `/licenses/${license.id}?serial=${serialId}`,
+              expires_at: null
+            });
+          } else {
+            const { error: updErr } = await supabase
+              .from('notifications')
+              .update({
+                message: `${serialNo} for ${license.item_description} expired ${daysOverdue} day(s) ago`,
+                priority: 'high',
+                action_url: `/licenses/${license.id}?serial=${serialId}`,
+              })
+              .eq('id', existsExpired.id);
+            if (updErr) console.error('Failed to update expired notification:', updErr);
+          }
+      }
+  
+      // 2) Serial Expiring Soon (today .. +30 days)
+      const { data: upcoming, error: upErr } = await supabase
+        .from('license_serials')
+        .select(selectCols)
+        .gte('end_date', todayStr)
+        .lte('end_date', endStr)
+        .order('end_date', { ascending: true });
+  
+      if (upErr) throw upErr;
+  
+      for (const row of upcoming || []) {
+        const serialId = row.id;
+        const serialNo = row.serial_or_contract;
+        const endDateStr = row.end_date;
+        const license = row.licenses;
+  
+        const daysUntil = Math.ceil((new Date(endDateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        const titleSoon = `Serial ${serialNo} Expiring Soon`;
+  
+        // Dedupe exact title in last 24h
+        let { data: existsSoon } = await supabase
+        .from('notifications')
+        .select('id, is_read, created_at')
+        .eq('type', 'expiry')
+        .eq('license_id', license.id)
+        .eq('title', titleSoon)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+  
+        if (!existsSoon) {
+          // legacy title fallback
+          const { data: legacy } = await supabase
+            .from('notifications')
+            .select('id, is_read, created_at')
+            .eq('type', 'expiry')
+            .eq('license_id', license.id)
+            .eq('title', 'Serial Expiring Soon')
+            .ilike('message', `%${serialNo}%`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (legacy) existsSoon = legacy;
+        }
+        
+        if (!existsSoon) {
+          await get().sendNotificationToUser(license.created_by, {
+            type: 'expiry',
+            title: titleSoon,
+            message: `${serialNo} for ${license.item_description} expires soon in ${daysUntil} day(s)`,
+            license_id: license.id,
+            is_read: false,
+            priority: daysUntil <= 7 ? 'high' : 'medium',
+            action_required: true,
+            action_url: `/licenses/${license.id}?serial=${serialId}`,
+            expires_at: null
+          });
+        } else {
+          const { error: updErr } = await supabase
+            .from('notifications')
+            .update({
+              title: titleSoon, // migrate legacy to new per-serial title
+              message: `${serialNo} for ${license.item_description} expires soon in ${daysUntil} day(s)`,
+              priority: daysUntil <= 7 ? 'high' : 'medium',
+              action_url: `/licenses/${license.id}?serial=${serialId}`,
+            })
+            .eq('id', existsSoon.id);
+          if (updErr) console.error('Failed to update soon notification:', updErr);
+        }
+
+      }
+    } catch (err) {
+      console.error('Error checking serial expiries:', err);
     }
   },
 

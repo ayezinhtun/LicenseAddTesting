@@ -6,6 +6,8 @@ import { Button } from '../common/Button';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
+import { Input } from '../common/Input';
+import { Search, RefreshCw, Users, UserCheck, UserX, Save as SaveIcon, Trash2 } from 'lucide-react';
 
 // Expected schema in public.user_profiles:
 // - id (uuid, pk)
@@ -45,8 +47,6 @@ export const UserManagement: React.FC = () => {
     { value: 'super_user', label: 'Super User' },
     { value: 'user', label: 'User' },
   ]), []);
-
-  // Note: assignments are managed via checkboxes; no need for a select options array
 
   const statusOptions = useMemo(() => ([
     { value: 'pending', label: 'Pending' },
@@ -89,7 +89,7 @@ export const UserManagement: React.FC = () => {
           role: roleNorm,
           status: statusNorm,
           assignments: map.get(p.user_id) || [],
-        };
+        } as ProfileRow;
       });
 
       setRows(merged as any);
@@ -213,8 +213,24 @@ export const UserManagement: React.FC = () => {
     );
   }
 
+  // UI-only client-side search (does not change your data logic)
+  const [search, setSearch] = useState('');
+  const filteredRows = useMemo(() => {
+    if (!search.trim()) return rows;
+    const s = search.toLowerCase();
+    return rows.filter(r =>
+      (r.full_name || '').toLowerCase().includes(s) ||
+      (r.email || '').toLowerCase().includes(s)
+    );
+  }, [rows, search]);
+
+  const total = rows.length;
+  const totalApproved = rows.filter(r => r.status === 'approved').length;
+  const totalPending = rows.filter(r => r.status === 'pending').length;
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -225,11 +241,76 @@ export const UserManagement: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">Manage roles, project assignment and approval status</p>
         </div>
-        <div>
-          <Button variant="secondary" onClick={fetchProfiles}>Refresh</Button>
+        <div className="flex gap-3">
+          <Button variant="secondary" icon={RefreshCw} onClick={fetchProfiles}>
+            Refresh
+          </Button>
         </div>
       </motion.div>
 
+      {/* Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.05 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              <p className="text-2xl font-bold text-gray-900">{total}</p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Approved</p>
+              <p className="text-2xl font-bold text-gray-900">{totalApproved}</p>
+            </div>
+            <div className="bg-green-50 p-3 rounded-lg">
+              <UserCheck className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Pending</p>
+              <p className="text-2xl font-bold text-gray-900">{totalPending}</p>
+            </div>
+            <div className="bg-orange-50 p-3 rounded-lg">
+              <UserX className="h-6 w-6 text-orange-600" />
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <Card>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Search by name or email..."
+                value={search}
+                onChange={setSearch}
+                icon={Search}
+              />
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Table */}
       <Card padding="none">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -248,13 +329,13 @@ export const UserManagement: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="px-6 py-6 text-center text-gray-500">Loading users...</td>
                 </tr>
-              ) : rows.length === 0 ? (
+              ) : filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-6 text-center text-gray-500">No users found.</td>
                 </tr>
               ) : (
-                rows.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
+                filteredRows.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{u.full_name || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{u.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -268,13 +349,14 @@ export const UserManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-3">
                         {(['NPT','YGN','MPT'] as Assign[]).map((a) => (
-                          <label key={a} className="inline-flex items-center gap-1">
+                          <label key={a} className="inline-flex items-center gap-2 text-gray-700">
                             <input
                               type="checkbox"
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                               checked={u.assignments?.includes(a as any) || false}
                               onChange={() => toggleAssign(u, a as any)}
                             />
-                            <span>{a}</span>
+                            <span className="text-sm">{a}</span>
                           </label>
                         ))}
                       </div>
@@ -287,18 +369,26 @@ export const UserManagement: React.FC = () => {
                         className="w-40"
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm flex items-center justify-end gap-2">
-                      <Button size="sm" onClick={() => handleSave(u)} disabled={savingId === u.id}>
-                        {savingId === u.id ? 'Saving...' : 'Save'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(u)}
-                        disabled={savingId === u.id}
-                      >
-                        Delete
-                      </Button>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end space-x-1">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSave(u)}
+                          disabled={savingId === u.id}
+                          icon={SaveIcon}
+                        >
+                          {savingId === u.id ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={Trash2}
+                          onClick={() => handleDelete(u)}
+                          disabled={savingId === u.id}
+                          className="text-gray-400 hover:text-red-600"
+                          title="Delete user"
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -307,8 +397,6 @@ export const UserManagement: React.FC = () => {
           </table>
         </div>
       </Card>
-
-     
     </div>
   );
 };

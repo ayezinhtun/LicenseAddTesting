@@ -6,7 +6,7 @@ import { Badge } from '../common/Badge';
 import { useLicenseStore } from '../../store/licenseStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useAuthStore } from '../../store/authStore';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export const Notifications: React.FC = () => {

@@ -14,7 +14,8 @@ import {
   Shield,
   Activity,
   HelpCircle,
-  Zap
+  Zap,
+  Building2
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../common/Button';
@@ -24,6 +25,10 @@ import { useNotificationStore } from '../../store/notificationStore';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', badge: null },
+  { icon: Building2, label: 'Vendor Manager', path: '/vendors', badge: null },
+  { icon: Activity, label: 'Project Assign', path: '/project-assign', badge: null },
+  { icon: User, label: 'Customer Manager', path: '/customers', badge: null },
+  { icon: Building2, label: 'Distributor Manager', path: '/distributors', badge: null },
   { icon: FileText, label: 'License Manager', path: '/licenses', badge: null },
   { icon: BarChart3, label: 'Reports & Analytics', path: '/reports', badge: null },
   { icon: Bell, label: 'Notifications', path: '/notifications', badge: 'notifications' },

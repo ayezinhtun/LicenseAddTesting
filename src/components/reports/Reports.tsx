@@ -23,12 +23,12 @@ export const Reports: React.FC = () => {
     if (filters.project && !license.project_name.toLowerCase().includes(filters.project.toLowerCase())) {
       return false;
     }
-    if (filters.dateFrom && license.license_end_date < filters.dateFrom) {
-      return false;
-    }
-    if (filters.dateTo && license.license_end_date > filters.dateTo) {
-      return false;
-    }
+    // if (filters.dateFrom && license.license_end_date < filters.dateFrom) {
+    //   return false;
+    // }
+    // if (filters.dateTo && license.license_end_date > filters.dateTo) {
+    //   return false;
+    // }
     return true;
   });
 
@@ -39,9 +39,9 @@ export const Reports: React.FC = () => {
 
   const handleExportCSV = () => {
     const csvContent = [
-      'Vendor,Item,Description,Serial Number,Project,Start Date,End Date,Status,Priority,Remark',
+      'Vendor,Item,Description,Serial Number,Project,Status,Priority,Remark',
       ...filteredLicenses.map(license => 
-        `"${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.license_start_date}","${license.license_end_date}","${license.status}","${license.priority}","${license.remark || ''}"`
+        `"${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.status}","${license.priority}","${license.remark || ''}"`
       )
     ].join('\n');
     
@@ -99,7 +99,6 @@ export const Reports: React.FC = () => {
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Project</th>
-                <th>End Date</th>
               </tr>
             </thead>
             <tbody>
@@ -108,7 +107,6 @@ export const Reports: React.FC = () => {
                   <td>${license.priority}</td>
                   <td>${license.status}</td>
                   <td>${license.project_name}</td>
-                  <td>${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}</td>
                 </tr>
                 `).join('')}
             </tbody>
@@ -238,9 +236,7 @@ export const Reports: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Project
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  End Date
-                </th>
+               
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Priority
                 </th>
@@ -264,9 +260,7 @@ export const Reports: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {license.project_name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {format(parseISO(license.license_end_date), 'MMM dd, yyyy')}
-                  </td>
+                 
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {license.priority}
                   </td>

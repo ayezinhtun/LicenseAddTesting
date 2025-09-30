@@ -21,6 +21,9 @@ interface InputProps {
   step?: number;
   showPasswordToggle?: boolean;
   animate?: boolean;
+
+  onFocus?: React.FocusEventHandler<HTMLInputElement>;
+  onBlur?: React.FocusEventHandler<HTMLInputElement>;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -41,7 +44,10 @@ export const Input: React.FC<InputProps> = ({
   max,
   step,
   showPasswordToggle = true,
-  animate = true
+  animate = true,
+
+  onFocus,
+  onBlur
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -81,8 +87,9 @@ export const Input: React.FC<InputProps> = ({
           type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={(e) => { setIsFocused(true); onFocus?.(e); }}
+          onBlur={(e) => { setIsFocused(false); onBlur?.(e); }}
+         
           placeholder={placeholder}
           disabled={disabled}
           required={required}

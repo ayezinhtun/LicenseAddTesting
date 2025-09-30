@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, AlertTriangle, CheckCircle, MessageSquare, Calendar, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { useLicenseStore } from '../../store/licenseStore';
 import { useNotificationStore } from '../../store/notificationStore';
-import { format, parseISO } from 'date-fns';
+import { parseISO, differenceInDays } from 'date-fns';
 import type { Notification } from '../../store/notificationStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -67,29 +67,70 @@ const getNotificationColor = (type: Notification['type'], priority: Notification
 export const NotificationsList: React.FC = () => {
 
   const navigate = useNavigate();
-
-  const { getLicensesNearExpiry } = useLicenseStore();
-  const { notifications } = useNotificationStore();
   
-  const licensesNearExpiry = getLicensesNearExpiry(30);
+
+  const { getSerialsNearExpiry } = useLicenseStore();  
+
+
+
+  const { notifications } = useNotificationStore();
+
+  const [nearSerials, setNearSerials] = useState<Array<{ license: any; serial: any }>>([]);
+
+
+  useEffect(() => {
+      let mounted = true;
+        (async () => {
+          const rows = await getSerialsNearExpiry(30);
+          console.debug('nearSerials count:', rows.length, rows); // debug
+        if (mounted) setNearSerials(rows);
+        })();
+        return () => { mounted = false; };
+     }, [getSerialsNearExpiry]);
 
  // Normalize real notifications to have `isRead`
 const normalizedNotifications = notifications.map(n => ({
   ...n,
-  isRead: n.is_read, // map DB field to UI field
+  isRead: n.is_read, 
 }));
+
+// const allNotifications = [
+//   ...normalizedNotifications.slice(0, 3),
+//   ...licensesNearExpiry.slice(0, 2).map(license => ({
+//     id: `expiry-${license.id}`,
+//     type: 'expiry' as const,
+//     title: 'License Expiring Soon',
+//     message: `${license.item_description || 'This'} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
+//     time: 'Today',
+//     priority: 'high' as const,
+//     isRead: false, // consistent flag name for synthetic
+//   })),
+//   ...(notifications.length === 0 ? [
+//     { id: 'welcome', type: 'system' as const, title: 'Welcome to License Manager', message: 'Your license management system is ready to use', time: '2 hours ago', priority: 'medium' as const, isRead: true },
+//     { id: 'sync', type: 'system' as const, title: 'Data Synchronized', message: 'All license data has been synchronized successfully', time: '1 day ago', priority: 'medium' as const, isRead: false },
+//   ] : [])
+// ].slice(0, 5);
+
+const serialExpiryNotifications = nearSerials.slice(0, 2).map(({ license, serial }) => {
+  const days = differenceInDays(parseISO(serial.end_date), new Date());
+  const daysText = days <= 0 ? 'Expired' : (days === 1 ? '1 day' : `${days} days`);
+
+  return {
+    id: `serial-expiry-${serial.id}`,
+    type: 'expiry' as const,
+    title: 'Serial Expiring Soon',
+    message: `${serial.serial_or_contract} expires in ${daysText}`,
+    time: 'Today',
+    priority: 'high' as const,
+    isRead: false,
+  };
+});
+
+
 
 const allNotifications = [
   ...normalizedNotifications.slice(0, 3),
-  ...licensesNearExpiry.slice(0, 2).map(license => ({
-    id: `expiry-${license.id}`,
-    type: 'expiry' as const,
-    title: 'License Expiring Soon',
-    message: `${license.item_description || 'This'} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
-    time: 'Today',
-    priority: 'high' as const,
-    isRead: false, // consistent flag name for synthetic
-  })),
+  ...serialExpiryNotifications,
   ...(notifications.length === 0 ? [
     { id: 'welcome', type: 'system' as const, title: 'Welcome to License Manager', message: 'Your license management system is ready to use', time: '2 hours ago', priority: 'medium' as const, isRead: true },
     { id: 'sync', type: 'system' as const, title: 'Data Synchronized', message: 'All license data has been synchronized successfully', time: '1 day ago', priority: 'medium' as const, isRead: false },

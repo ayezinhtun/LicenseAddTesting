@@ -14,6 +14,7 @@ import { License } from '../../store/licenseStore';
 import toast from 'react-hot-toast';
 import { format, parseISO, addDays } from 'date-fns';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 export const LicenseManagement: React.FC = () => {
   const {
@@ -65,6 +66,8 @@ export const LicenseManagement: React.FC = () => {
     }
   });
 
+  
+
   useEffect(() => {
     fetchLicenses();
   }, [fetchLicenses]);
@@ -74,10 +77,36 @@ export const LicenseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleEditLicense = (license: License) => {
-    setEditingLicense(license);
-    setIsFormOpen(true);
+const handleEditLicense = async (license: License) => {
+  // Preload child rows and attach to the license object
+  const [serialRes, customerRes, distributorRes] = await Promise.all([
+    supabase
+      .from('license_serials')
+      .select('*')
+      .eq('license_id', license.id)
+      .order('start_date', { ascending: true }),
+    supabase
+      .from('license_customers')
+      .select('*')
+      .eq('license_id', license.id)
+      .order('company_name', { ascending: true }),
+    supabase
+      .from('license_distributors')
+      .select('*')
+      .eq('license_id', license.id)
+      .order('company_name', { ascending: true }),
+  ]);
+
+  const licWithChildren = {
+    ...license,
+    serials: serialRes.data || [],
+    customers: customerRes.data || [],
+    distributors: distributorRes.data || [],
   };
+
+  setEditingLicense(licWithChildren);
+  setIsFormOpen(true);
+};
 
   const handleDeleteLicense = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this license? This action cannot be undone.')) {
@@ -223,7 +252,8 @@ export const LicenseManagement: React.FC = () => {
     { value: 'in_progress', label: 'In Progress' },
     { value: 'active', label: 'Active' },
     { value: 'expired', label: 'Expired' },
-    { value: 'suspended', label: 'Suspended' }
+    { value: 'suspended', label: 'Suspended' },
+    { value: 'completed', label: 'Completed' }
   ];
 
   const priorityOptions = [
@@ -251,23 +281,36 @@ export const LicenseManagement: React.FC = () => {
     const openEditFromState = async () => {
       const editId = location.state?.editLicenseId;
       if (!editId) return;
-  
+    
       // Try to find the license from the already-fetched list
       let lic = licenses.find(l => l.id === editId) || null;
-  
+    
       // If not found yet (e.g., first load), fetch it directly from the store
       if (!lic && typeof useLicenseStore.getState().fetchLicenseById === 'function') {
         try {
           lic = await useLicenseStore.getState().fetchLicenseById(editId);
-        } catch {
-        }
+        } catch {}
       }
-  
+    
       if (lic) {
-        setEditingLicense(lic);
+        // Preload child rows and attach to the license object
+        const [serialRes, customerRes, distributorRes] = await Promise.all([
+          supabase.from('license_serials').select('*').eq('license_id', lic.id).order('start_date', { ascending: true }),
+          supabase.from('license_customers').select('*').eq('license_id', lic.id).order('company_name', { ascending: true }),
+          supabase.from('license_distributors').select('*').eq('license_id', lic.id).order('company_name', { ascending: true })
+        ]);
+    
+        const licWithChildren = {
+          ...lic,
+          serials: serialRes.data || [],
+          customers: customerRes.data || [],
+          distributors: distributorRes.data || []
+        };
+    
+        setEditingLicense(licWithChildren);
         setIsFormOpen(true);
       }
-  
+    
       // Clear the navigation state so it doesn’t reopen on refresh/back
       navigate('/licenses', { replace: true, state: {} });
     };

@@ -16,10 +16,14 @@ import { Notifications } from './components/notifications/Notifications';
 import { AccountSettings } from './components/account/AccountSettings';
 import { AuditLogs } from './components/audit/AuditLogs';
 import { PendingApproval } from './components/auth/PendingApproval';
+import { VendorPage } from './components/vendors/VendorPage';
+import { ProjectAssignPage } from './components/projectAssign/ProjectAssignPage';
+import { CustomerPage } from './components/customers/CustomerPage';
+import { DistributorPage } from './components/distributors/DistributorPage';
 
 function App() {
   const { isAuthenticated, getCurrentUser, user, profileStatus } = useAuthStore();
-  const { subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchNotifications } = useNotificationStore();
+  const { subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchNotifications,  checkSerialExpiries } = useNotificationStore();
   const { fetchLicenses } = useLicenseStore();
 
   useEffect(() => {
@@ -51,9 +55,16 @@ function App() {
           
           // Check for license expiries on app load
           checkLicenseExpiries();
+
+          checkSerialExpiries();
           
           // Set up periodic checks for license expiries (every hour)
-          const interval = setInterval(checkLicenseExpiries, 60 * 60 * 1000);
+          // const interval = setInterval(checkLicenseExpiries, 60 * 60 * 1000);
+
+          const interval = setInterval(() => {
+            checkLicenseExpiries();
+            checkSerialExpiries();
+          }, 60 * 60 * 1000);
           
           return () => {
             clearInterval(interval);
@@ -66,7 +77,7 @@ function App() {
 
       initializeData();
     }
-  }, [isAuthenticated, subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchLicenses, fetchNotifications]);
+  }, [isAuthenticated, subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchLicenses, fetchNotifications, checkSerialExpiries]);
 
   if (!isAuthenticated) {
     return (
@@ -156,6 +167,10 @@ function App() {
 
             {/* Protected routes */}
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/vendors" element={<VendorPage />} />
+            <Route path="/project-assign" element={<ProjectAssignPage />} />
+            <Route path="/customers" element={<CustomerPage />} />
+            <Route path="/distributors" element={<DistributorPage />} />
             <Route path="/licenses" element={<LicenseManagement />} />
             <Route path="/licenses/:id" element={<LicenseDetails />} />
             <Route path="/users" element={user?.role === 'admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />} />
