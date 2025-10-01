@@ -629,7 +629,7 @@ const projectAssignOptions = useMemo(() => {
               return (
                 <div key={idx} className="p-4 bg-white rounded border">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="Serial/Contract No." value={s.serial_or_contract} onChange={(v) => updateSerial(idx, 'serial_or_contract', v)} placeholder='FY25/Project Name' required />
+                    <Input label="Serial/Contract No." value={s.serial_or_contract} onChange={(v) => updateSerial(idx, 'serial_or_contract', v)} required />
                     <Input label="Start Date" type="date" value={s.start_date} onChange={(v) => updateSerial(idx, 'start_date', v)} required />
                     <Input label="End Date" type="date" value={s.end_date} onChange={(v) => updateSerial(idx, 'end_date', v)} required />
                     <Input label="Qty" type="number" min={1} value={String(s.qty)} onChange={(v) => updateSerial(idx, 'qty', Math.max(1, parseInt(v || '1', 10)))} required />
