@@ -127,6 +127,173 @@ export const LicenseDetails: React.FC = () => {
     }
   };
 
+  // Build an HTML document for the current license
+const buildLicenseDetailHtml = () => {
+  if (!selectedLicense) return '';
+
+  // Tables
+  const serialRows = (serials || [])
+    .map(s => `
+      <tr>
+        <td>${s.serial_or_contract || ''}</td>
+        <td>${s.start_date || ''}</td>
+        <td>${s.end_date || ''}</td>
+        <td style="text-align:right">${s.qty ?? ''}</td>
+        <td>${s.currency || ''}</td>
+        <td style="text-align:right">${s.unit_price?.toLocaleString?.() || s.unit_price || ''}</td>
+        <td style="text-align:right">${((s.unit_price || 0) * (s.qty || 0)).toLocaleString?.() || ((s.unit_price || 0) * (s.qty || 0))}</td>
+        <td>${s.po_no || ''}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="8" style="text-align:center;color:#777">No serials added</td></tr>`;
+
+  const customerRows = (customers || [])
+    .map(c => `
+      <tr>
+        <td>${c.company_name || ''}</td>
+        <td>${c.contact_person || ''}</td>
+        <td>${c.contact_email || ''}</td>
+        <td>${c.contact_number || ''}</td>
+        <td>${c.address || ''}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="5" style="text-align:center;color:#777">No customers added</td></tr>`;
+
+  const distributorRows = (distributors || [])
+    .map(d => `
+      <tr>
+        <td>${d.company_name || ''}</td>
+        <td>${d.contact_person || ''}</td>
+        <td>${d.contact_email || ''}</td>
+        <td>${d.contact_number || ''}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="4" style="text-align:center;color:#777">No distributors added</td></tr>`;
+
+  const product = selectedLicense.item_description?.trim() ? selectedLicense.item_description : selectedLicense.item;
+
+  return `
+    <html>
+      <head>
+        <title>License Detail - ${selectedLicense.vendor || ''}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+          h1,h2 { margin: 0; }
+          .header { text-align: center; }
+          .meta { margin-top: 6px; text-align: center; color: #555; font-size: 12px; }
+          .section { margin-top: 20px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
+          th { background: #f7f7f7; text-align: left; }
+          .label { color: #666; font-size: 12px; }
+          .val { font-size: 14px; font-weight: 600; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>License Detail</h1>
+          <div class="meta">Generated on ${new Date().toLocaleDateString()}</div>
+        </div>
+
+        <div class="section">
+          <h2>License Information</h2>
+          <div class="grid">
+            <div>
+              <div class="label">Vendor</div>
+              <div class="val">${selectedLicense.vendor || '-'}</div>
+            </div>
+            <div>
+              <div class="label">Project</div>
+              <div class="val">${selectedLicense.project_name || '-'} ${(selectedLicense as any).project_assign ? `(${(selectedLicense as any).project_assign})` : ''}</div>
+            </div>
+            <div>
+              <div class="label">Product</div>
+              <div class="val">${product || '-'}</div>
+            </div>
+            <div>
+              <div class="label">Priority</div>
+              <div class="val">${selectedLicense.priority || '-'}</div>
+            </div>
+          </div>
+          ${selectedLicense.remark ? `
+            <div style="margin-top:10px">
+              <div class="label">Remarks</div>
+              <div class="val" style="white-space:pre-line">${selectedLicense.remark}</div>
+            </div>` : ''}
+        </div>
+
+        <div class="section">
+          <h2>Serials</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Serial/Contract</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th style="text-align:right">Qty</th>
+                <th>Currency</th>
+                <th style="text-align:right">Unit Price</th>
+                <th style="text-align:right">Total</th>
+                <th>PO No.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${serialRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>Customers</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${customerRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>Distributors</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${distributorRows}
+            </tbody>
+          </table>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+const handleExportPDFDetail = () => {
+  const html = buildLicenseDetailHtml();
+  if (!html) return;
+
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  } else {
+    toast.error('Popup blocked. Please allow popups for this site.');
+  }
+};
+
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (!window.confirm('Are you sure you want to delete this attachment?')) return;
     
@@ -339,33 +506,33 @@ export const LicenseDetails: React.FC = () => {
         </div>
         
         <div className="flex space-x-3">
-          <Button variant="secondary" icon={Download}>
-            Export
-          </Button>
+        <Button variant="secondary" icon={Download} onClick={handleExportPDFDetail}>
+          Export PDF
+        </Button>
 
           {user?.role !== 'user' && (
               // in header actions
-// Renew button in header
-<Button
-  variant="primary"
-  icon={RefreshCw}
-  onClick={() => {
-    setRenewalData({
-      // prefer item_description, fallback to item
-      productName: selectedLicense?.item_description || selectedLicense?.item || '',
-      serialNo: '',
-      serialStartDate: '',
-      newEndDate: '',
-      cost: 0,
-      // prefill remark into notes textarea
-      notes: selectedLicense?.remark || ''
-    });
-    setSelectedSerialId('');
-    setShowRenewalModal(true);
-  }}
->
-  Renew
-</Button>
+        // Renew button in header
+        <Button
+          variant="primary"
+          icon={RefreshCw}
+          onClick={() => {
+            setRenewalData({
+              // prefer item_description, fallback to item
+              productName: selectedLicense?.item_description || selectedLicense?.item || '',
+              serialNo: '',
+              serialStartDate: '',
+              newEndDate: '',
+              cost: 0,
+              // prefill remark into notes textarea
+              notes: selectedLicense?.remark || ''
+            });
+            setSelectedSerialId('');
+            setShowRenewalModal(true);
+          }}
+        >
+          Renew
+        </Button>
             )}
 
            {/* Show Edit for admin and super_user; hide for user */}

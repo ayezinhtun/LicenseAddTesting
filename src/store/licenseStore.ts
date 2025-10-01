@@ -186,6 +186,7 @@ interface LicenseState {
     // Serial-based expiry helpers
     getSerialsNearExpiry: (days: number) => Promise<Array<{ license: License; serial: LicenseSerial }>>;
     getNearSerialExpiryCount: (days: number) => Promise<number>;
+    getExpiredSerialsCount: () => Promise<number>;
 
   // Global metrics (queried directly from DB, ignoring current pagination/filters)
   getNearExpiryCount: (days: number) => Promise<number>;
@@ -1500,26 +1501,73 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       }
     },
   
-    // Direct DB count of serials near expiry
-    getNearSerialExpiryCount: async (days) => {
-      try {
-        const start = new Date();
-        const end = addDays(start, days);
-        const startStr = format(start, 'yyyy-MM-dd');
-        const endStr = format(end, 'yyyy-MM-dd');
-  
+  getNearSerialExpiryCount: async (days) => {
+    try {
+      const { user, assignments } = useAuthStore.getState();
+      const start = new Date();
+      const end = addDays(start, days);
+      const startStr = format(start, 'yyyy-MM-dd');
+      const endStr = format(end, 'yyyy-MM-dd');
+
+      // Admin: global count
+      if (user?.role === 'admin') {
         const { count, error } = await supabase
           .from('license_serials')
           .select('id', { count: 'exact', head: true })
           .gte('end_date', startStr)
           .lte('end_date', endStr);
-  
         if (error) throw error;
         return count || 0;
-      } catch (e) {
-        console.error('Error counting near-expiry serials:', e);
-        return 0;
       }
+
+      // Non-admin: restrict by assignments via join to licenses
+      const assignList = assignments && assignments.length > 0 ? assignments : [];
+      if (assignList.length === 0) return 0;
+
+      const { count, error } = await supabase
+        .from('license_serials')
+        .select('id, licenses!inner(project_assign)', { count: 'exact', head: true })
+        .gte('end_date', startStr)
+        .lte('end_date', endStr)
+        .in('licenses.project_assign', assignList as any);
+
+      if (error) throw error;
+      return count || 0;
+    } catch (e) {
+      console.error('Error counting near-expiry serials:', e);
+      return 0;
+    }
+  },
+
+    getExpiredSerialsCount: async () => {
+        try {
+          const { user, assignments } = useAuthStore.getState();
+          const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+          if (user?.role === 'admin') {
+            const { count, error } = await supabase
+              .from('license_serials')
+              .select('id', { count: 'exact', head: true })
+              .lt('end_date', todayStr);
+            if (error) throw error;
+            return count || 0;
+          }
+
+          const assignList = assignments && assignments.length > 0 ? assignments : [];
+          if (assignList.length === 0) return 0;
+
+          const { count, error } = await supabase
+            .from('license_serials')
+            .select('id, licenses!inner(project_assign)', { count: 'exact', head: true })
+            .lt('end_date', todayStr)
+            .in('licenses.project_assign', assignList as any);
+
+          if (error) throw error;
+          return count || 0;
+        } catch (e) {
+          console.error('Error counting expired serials:', e);
+          return 0;
+        }
     },
 
   getExpiredLicenses: () => {

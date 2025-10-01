@@ -15,19 +15,31 @@ import { Card } from '../common/Card';
  
 
 export const OverviewCards: React.FC = () => {
-  const { licenses, getExpiredLicenses, getNearExpiryCount } = useLicenseStore();
+  const { licenses, getNearSerialExpiryCount, getExpiredSerialsCount } = useLicenseStore(); 
   const [nearExpiryCount, setNearExpiryCount] = useState<number>(0);
+
+
+  const [expiredSerialsCount, setExpiredSerialsCount] = useState<number>(0);
+
+      useEffect(() => {
+        let mounted = true;
+        (async () => {
+          const n = await getExpiredSerialsCount();
+          if (mounted) setExpiredSerialsCount(n);
+        })();
+        return () => { mounted = false; };
+      }, [getExpiredSerialsCount]);
 
   // Fetch global count for licenses expiring within next 30 days
   useEffect(() => {
     let isMounted = true;
     (async () => {
-      const count = await getNearExpiryCount(30);
+      const count = await getNearSerialExpiryCount(30);
       if (isMounted) setNearExpiryCount(count);
     })();
     return () => { isMounted = false; };
-  }, [getNearExpiryCount]);
-  const expiredLicenses = getExpiredLicenses();
+  }, [getNearSerialExpiryCount]);
+  // const expiredLicenses = getExpiredLicenses();
   const activeLicenses = licenses.filter(l => l.status === 'active');
   const uniqueVendors = new Set(licenses.map(license => license.vendor)).size;
   const uniqueProjects = new Set(licenses.map(license => license.project_name)).size;
@@ -74,7 +86,7 @@ export const OverviewCards: React.FC = () => {
       description: 'All licenses in system'
     },
     {
-      title: 'Expiring Soon',
+      title: 'Serial Expiring Soon',
       value: nearExpiryCount.toString(),
       subtitle: 'Next 30 days',
       change: nearExpiryCount > 5 ? 'High Alert' : 'Normal',
@@ -108,16 +120,17 @@ export const OverviewCards: React.FC = () => {
       description: 'Currently active'
     },
     {
-      title: 'Expired Licenses',
-      value: expiredLicenses.length.toString(),
-      change: expiredLicenses.length > 0 ? 'Action needed' : 'All good',
-      changeType: expiredLicenses.length > 0 ? 'negative' : 'positive' as const,
+      title: 'Expired Serials',
+      value: expiredSerialsCount.toString(),
+      change: expiredSerialsCount > 0 ? 'Action needed' : 'All good',
+      changeType: expiredSerialsCount > 0 ? 'negative' : 'positive' as const,
       icon: XCircle,
       color: 'bg-red-500',
       textColor: 'text-red-600',
       bgColor: 'bg-red-50',
       description: 'Need renewal'
     },
+    
     // {
     //   title: 'Auto Renewals',
     //   value: autoRenewCount.toString(),
