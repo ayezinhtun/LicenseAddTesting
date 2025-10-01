@@ -5,7 +5,7 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Modal } from '../common/Modal';
 import { Card } from '../common/Card';
-import { Plus, Search, Filter, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, SortAsc, SortDesc } from 'lucide-react';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -25,6 +25,12 @@ export const DistributorPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'company_name' | 'created_at'>('company_name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  const renderSortIcon = (field: 'company_name' | 'created_at') => {
+    if (sortBy !== field) return undefined;
+    return sortOrder === 'asc' ? SortAsc : SortDesc;
+  };
+
 
   useEffect(() => { fetchDistributors(); }, [fetchDistributors]);
 
@@ -96,7 +102,7 @@ export const DistributorPage: React.FC = () => {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Distributor Management</h1>
-          <p className="text-gray-600 mt-1">Manage your global distributor list</p>
+          <p className="text-gray-600 mt-1">Manage your distributor list</p>
         </div>
         <div className="flex space-x-3">
           <Button icon={Plus} onClick={openCreate}>Add Distributor</Button>
@@ -112,6 +118,28 @@ export const DistributorPage: React.FC = () => {
             <Button variant="secondary" icon={Filter} onClick={() => setShowFilters(!showFilters)}>
               Filters
             </Button>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <div className="flex space-x-2">
+                {[
+                  { field: 'company_name' as const, label: 'Name' },
+                  { field: 'created_at' as const, label: 'Created' },
+                ].map(({ field, label }) => (
+                  <Button
+                    key={field}
+                    variant={sortBy === field ? 'primary' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleSort(field)}
+                    icon={sortBy === field ? renderSortIcon(field) : undefined}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {showFilters && (
