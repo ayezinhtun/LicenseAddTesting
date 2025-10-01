@@ -320,15 +320,24 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
   };
 
   // Dynamic arrays handlers
-  const addSerial = () => {
-    setFormData(prev => ({
-      ...prev,
-      serials: [
-        ...prev.serials,
-        { serial_or_contract: '', start_date: '', end_date: '', qty: 1, unit_price: 0, currency: 'MMK' as const, po_no: '' }
-      ]
-    }));
-  };
+const addSerial = () => {
+  setFormData(prev => ({
+    ...prev,
+    serials: [
+      ...prev.serials,
+      {
+        serial_or_contract: '',
+        start_date: '',
+        end_date: '',
+        qty: 1,
+        unit_price: 0,
+        currency: 'MMK' as 'MMK' | 'USD',
+        po_no: '',
+        notify_before_days: 30, // add this to satisfy inferred type
+      }
+    ]
+  }));
+};
   
   const removeSerial = (index: number) => {
     setFormData(prev => ({ ...prev, serials: prev.serials.filter((_, i) => i !== index) }));

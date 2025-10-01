@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -44,8 +44,13 @@ const menuItems = [
 //   { icon: HelpCircle, label: 'Help & Support', action: 'help' }
 // ];
 
-export const Sidebar: React.FC = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export const Sidebar: React.FC<{
+  isCollapsed: boolean;
+  onToggle: () => void;
+  isHidden?: boolean;
+  onHideToggle?: () => void;
+}> = ({ isCollapsed, onToggle, isHidden = false, onHideToggle }) => {
+
   // const [showQuickActions, setShowQuickActions] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuthStore();
@@ -86,12 +91,12 @@ export const Sidebar: React.FC = () => {
 
   return (
     <motion.div
-      initial={{ x: -280 }}
-      animate={{ x: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${
-        isCollapsed ? 'w-20' : 'w-72'
-      } flex flex-col min-h-0`}
+    initial={{ x: -280 }}
+    animate={{ x: isHidden ? -280 : 0 }}
+    transition={{ duration: 0.3, ease: 'easeOut' }}
+    className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${
+      isHidden ? 'w-0 overflow-hidden' : (isCollapsed ? 'w-20' : 'w-72')
+    } flex flex-col min-h-0`}
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
@@ -122,7 +127,7 @@ export const Sidebar: React.FC = () => {
             variant="ghost"
             size="sm"
             icon={isCollapsed ? ChevronRight : ChevronLeft}
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={onToggle}
             className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             animate={false}
           />
