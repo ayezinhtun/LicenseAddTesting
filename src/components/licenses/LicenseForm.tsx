@@ -99,7 +99,8 @@ const projectNameSuggestions = allProjectNames;
         qty: 1,
         unit_price: 0,
         currency: 'MMK' as 'MMK' | 'USD',
-        po_no: ''
+        po_no: '',
+        notify_before_days: 30,
       }
     ],
     customers: [] as Array<{
@@ -219,7 +220,8 @@ const projectNameSuggestions = allProjectNames;
           qty: s.qty ?? 1,
           unit_price: s.unit_price ?? 0,
           currency: s.currency || 'MMK',
-          po_no: s.po_no || ''
+          po_no: s.po_no || '',
+          notify_before_days: s.notify_before_days ?? 30,
         }))
       }));
     }
@@ -331,7 +333,7 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
   const removeSerial = (index: number) => {
     setFormData(prev => ({ ...prev, serials: prev.serials.filter((_, i) => i !== index) }));
   };
-  const updateSerial = (index: number, key: 'serial_or_contract' | 'start_date' | 'end_date' | 'qty' | 'unit_price' | 'currency' | 'po_no', value: any) => {
+  const updateSerial = (index: number, key: 'serial_or_contract' | 'start_date' | 'end_date' | 'qty' | 'unit_price' | 'currency' | 'po_no' | 'notify_before_days', value: any) => {
     setFormData(prev => {
       const serials = [...prev.serials];
       (serials[index] as any)[key] = value;
@@ -571,6 +573,7 @@ const projectAssignOptions = useMemo(() => {
             options={projectAssignOptions}
             required
           />
+          
           {/* <Input
             label="License Start Date"
             type="date"
@@ -623,6 +626,18 @@ const projectAssignOptions = useMemo(() => {
                     <Input label="Qty" type="number" min={1} value={String(s.qty)} onChange={(v) => updateSerial(idx, 'qty', Math.max(1, parseInt(v || '1', 10)))} required />
                     <Select label="Currency" value={s.currency} onChange={(v) => updateSerial(idx, 'currency', v as any)} options={[{ value: 'MMK', label: 'MMK' }, { value: 'USD', label: 'USD' }]} />
                     <Input label="Unit Price" type="number" min={0} step={0.01} value={String(s.unit_price)} onChange={(v) => updateSerial(idx, 'unit_price', parseFloat(v || '0') || 0)} />
+                    <Select
+                      label="Notify Before"
+                      value={String(s.notify_before_days ?? 30)}
+                      onChange={(v) => updateSerial(idx, 'notify_before_days', v ? parseInt(v, 10) : 30)}
+                      options={[
+                        { value: '7', label: '7 days' },
+                        { value: '14', label: '14 days' },
+                        { value: '30', label: '1 month (30 days)' },
+                        { value: '60', label: '2 months (60 days)' },
+                        { value: '90', label: '3 months (90 days)' },
+                      ]}
+                    />
                     <Input label="PO No. to Distributor" value={s.po_no || ''} onChange={(v) => updateSerial(idx, 'po_no', v)} placeholder="Optional" />
                     <div className="flex items-end"><div className="text-sm text-gray-600">Total: {s.currency} {rowTotal.toLocaleString()}</div></div>
                   </div>

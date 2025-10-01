@@ -25,6 +25,7 @@ function App() {
   const { isAuthenticated, getCurrentUser, user, profileStatus } = useAuthStore();
   const { subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchNotifications,  checkSerialExpiries } = useNotificationStore();
   const { fetchLicenses } = useLicenseStore();
+  const checkSerials = useLicenseStore(s => s.checkSerialExpiryNotifications);
 
   useEffect(() => {
     // Check authentication status on app load
@@ -38,6 +39,14 @@ function App() {
 
     checkAuth();
   }, [getCurrentUser]);
+
+  useEffect(() => {
+    checkSerials(); // run at startup
+
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const id = setInterval(() => checkSerials(), oneDayMs);
+    return () => clearInterval(id);
+  }, [checkSerials]);
 
   useEffect(() => {
     if (isAuthenticated) {

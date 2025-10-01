@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Download, Upload, RefreshCw, Grid, List, SortAsc, SortDesc } from 'lucide-react';
+import { Plus, Search, Filter, Download, FileText, Upload, RefreshCw, Grid, List, SortAsc, SortDesc } from 'lucide-react';
 import { LicenseTable } from './LicenseTable';
 import { LicenseForm } from './LicenseForm';
 import { Button } from '../common/Button';
@@ -43,28 +43,34 @@ export const LicenseManagement: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
+  // const [showExportModal, setShowExportModal] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [selectedLicenses, setSelectedLicenses] = useState<string[]>([]);
   
   const [localFilters, setLocalFilters] = useState({
     search: '',
     vendor: '',
+    serialNumber: '',
     status: '',
     priority: '',
     project_name: '',
     project_assign: '' as '' | 'NPT' | 'YGN' | 'MPT'
   });
 
-  const [exportOptions, setExportOptions] = useState({
-    format: 'csv' as 'csv' | 'xlsx' | 'pdf',
-    includeComments: false,
-    includeAttachments: false,
-    dateRange: {
-      start: '',
-      end: ''
-    }
-  });
+  const getUniqueVendors = () => {
+    const vendors = new Set(licenses.map(license => license.vendor).filter(Boolean));
+    return Array.from(vendors).map(vendor => ({ value: vendor, label: vendor }));
+  };
+
+  // const [exportOptions, setExportOptions] = useState({
+  //   format: 'csv' as 'csv' | 'xlsx' | 'pdf',
+  //   includeComments: false,
+  //   includeAttachments: false,
+  //   dateRange: {
+  //     start: '',
+  //     end: ''
+  //   }
+  // });
 
   
 
@@ -156,53 +162,54 @@ const handleEditLicense = async (license: License) => {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const exportFilters = { ...filters };
+  // const handleExport = async () => {
+  //   try {
+  //     const exportFilters = { ...filters };
       
-      // Add date range filter if specified
-      if (exportOptions.dateRange.start && exportOptions.dateRange.end) {
-        exportFilters.date_range = {
-          start: exportOptions.dateRange.start,
-          end: exportOptions.dateRange.end
-        };
-      }
+  //     // Add date range filter if specified
+  //     if (exportOptions.dateRange.start && exportOptions.dateRange.end) {
+  //       exportFilters.date_range = {
+  //         start: exportOptions.dateRange.start,
+  //         end: exportOptions.dateRange.end
+  //       };
+  //     }
 
-      await exportLicenses(exportOptions.format, exportFilters);
-      toast.success(`Licenses exported as ${exportOptions.format.toUpperCase()} successfully`);
-      setShowExportModal(false);
-    } catch (error) {
-      toast.error('Failed to export licenses');
-    }
-  };
+  //     await exportLicenses(exportOptions.format, exportFilters);
+  //     toast.success(`Licenses exported as ${exportOptions.format.toUpperCase()} successfully`);
+  //     setShowExportModal(false);
+  //   } catch (error) {
+  //     toast.error('Failed to export licenses');
+  //   }
+  // };
 
-  const handleBulkExport = async () => {
-    if (selectedLicenses.length === 0) {
-      toast.error('Please select licenses to export');
-      return;
-    }
+  // const handleBulkExport = async () => {
+  //   if (selectedLicenses.length === 0) {
+  //     toast.error('Please select licenses to export');
+  //     return;
+  //   }
 
-    try {
-      // Create a filter that includes only selected licenses
-      const bulkFilters = {
-        ...filters,
-        license_ids: selectedLicenses
-      };
+  //   try {
+  //     // Create a filter that includes only selected licenses
+  //     const bulkFilters = {
+  //       ...filters,
+  //       license_ids: selectedLicenses
+  //     };
 
-      await exportLicenses(exportOptions.format, bulkFilters);
-      toast.success(`${selectedLicenses.length} licenses exported successfully`);
-      setSelectedLicenses([]);
-      setShowExportModal(false);
-    } catch (error) {
-      toast.error('Failed to export selected licenses');
-    }
-  };
+  //     await exportLicenses(exportOptions.format, bulkFilters);
+  //     toast.success(`${selectedLicenses.length} licenses exported successfully`);
+  //     setSelectedLicenses([]);
+  //     setShowExportModal(false);
+  //   } catch (error) {
+  //     toast.error('Failed to export selected licenses');
+  //   }
+  // };
 
   const handleApplyFilters = () => {
     const appliedFilters: any = {};
     
     if (localFilters.search) appliedFilters.search = localFilters.search;
     if (localFilters.vendor) appliedFilters.vendor = localFilters.vendor;
+    if (localFilters.serialNumber) appliedFilters.serial_number = localFilters.serialNumber;
     if (localFilters.status) appliedFilters.status = [localFilters.status];
     if (localFilters.priority) appliedFilters.priority = [localFilters.priority];
     if (localFilters.project_name) appliedFilters.project_name = localFilters.project_name;
@@ -216,6 +223,7 @@ const handleEditLicense = async (license: License) => {
     setLocalFilters({
       search: '',
       vendor: '',
+      serialNumber: '',
       status: '',
       priority: '',
       project_name: '',
@@ -229,6 +237,205 @@ const handleEditLicense = async (license: License) => {
     const newOrder = sortBy === field && sortOrder === 'asc' ? 'desc' : 'asc';
     setSorting(field, newOrder);
   };
+
+  // Helper: build flat rows per serial with joined distributor/customer names
+const buildExportRows = async () => {
+  try {
+    const licenseIds = licenses.map(l => l.id);
+    if (licenseIds.length === 0) return [];
+
+    // Fetch all child rows for licenses currently visible
+    const [serialRes, custRes, distRes] = await Promise.all([
+      supabase.from('license_serials')
+        .select('license_id, serial_or_contract, start_date, end_date, qty')
+        .in('license_id', licenseIds),
+      supabase.from('license_customers')
+        .select('license_id, company_name')
+        .in('license_id', licenseIds),
+      supabase.from('license_distributors')
+        .select('license_id, company_name')
+        .in('license_id', licenseIds),
+    ]);
+
+    const serials = serialRes.data || [];
+    const customers = custRes.data || [];
+    const distributors = distRes.data || [];
+
+    const customersByLicense = customers.reduce<Record<string, string[]>>((acc, c: any) => {
+      acc[c.license_id] = acc[c.license_id] || [];
+      if (c.company_name) acc[c.license_id].push(c.company_name);
+      return acc;
+    }, {});
+
+    const distributorsByLicense = distributors.reduce<Record<string, string[]>>((acc, d: any) => {
+      acc[d.license_id] = acc[d.license_id] || [];
+      if (d.company_name) acc[d.license_id].push(d.company_name);
+      return acc;
+    }, {});
+
+    // Build one row per serial for the export
+    const rows = serials.map((s: any) => {
+      const lic = licenses.find(l => l.id === s.license_id);
+      if (!lic) return null;
+
+      // Product: prefer item_description, fallback to item
+      const product = lic.item_description?.trim() ? lic.item_description : lic.item;
+
+      return {
+        vendorName: lic.vendor || '',
+        distributorName: (distributorsByLicense[lic.id] || []).join(', '),
+        customerName: (customersByLicense[lic.id] || []).join(', '),
+        projectName: lic.project_name || '',
+        product: product || '',
+        serialContractNumber: s.serial_or_contract || lic.serial_number || '',
+        quantity: String(s.qty ?? ''),
+        startDate: s.start_date || '',
+        endDate: s.end_date || '',
+        status: lic.status || '',
+      };
+    }).filter(Boolean) as Array<{
+      vendorName: string;
+      distributorName: string;
+      customerName: string;
+      projectName: string;
+      product: string;
+      serialContractNumber: string;
+      quantity: string;
+      startDate: string;
+      endDate: string;
+      status: string;
+    }>;
+
+    return rows;
+  } catch (e) {
+    console.error('buildExportRows error:', e);
+    toast.error('Failed to prepare export data');
+    return [];
+  }
+};
+
+// CSV export
+const handleExportCSV = async () => {
+  const rows = await buildExportRows();
+  if (rows.length === 0) {
+    toast.error('No data to export');
+    return;
+  }
+
+  const header = [
+    'Vendor Name',
+    'Distributor Name',
+    'Customer Name',
+    'Project Name',
+    'Product',
+    'Serial/Contract Number',
+    'Quantity',
+    'Start Date',
+    'End Date',
+    'Status',
+  ];
+
+  const escapeCSV = (val: string) => `"${(val ?? '').replace(/"/g, '""')}"`;
+
+  const csvContent = [
+    header.join(','),
+    ...rows.map(r => [
+      escapeCSV(r.vendorName),
+      escapeCSV(r.distributorName),
+      escapeCSV(r.customerName),
+      escapeCSV(r.projectName),
+      escapeCSV(r.product),
+      escapeCSV(r.serialContractNumber),
+      escapeCSV(r.quantity),
+      escapeCSV(r.startDate),
+      escapeCSV(r.endDate),
+      escapeCSV(r.status),
+    ].join(',')),
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `licenses-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+
+  toast.success('Exported CSV successfully');
+};
+
+// PDF export (print-to-PDF)
+const handleExportPDF = async () => {
+  const rows = await buildExportRows();
+  if (rows.length === 0) {
+    toast.error('No data to export');
+    return;
+  }
+
+  const tableRows = rows.map(r => `
+    <tr>
+      <td>${r.vendorName}</td>
+      <td>${r.distributorName}</td>
+      <td>${r.customerName}</td>
+      <td>${r.projectName}</td>
+      <td>${r.product}</td>
+      <td>${r.serialContractNumber}</td>
+      <td style="text-align:right">${r.quantity}</td>
+      <td>${r.startDate}</td>
+      <td>${r.endDate}</td>
+      <td>${r.status}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <html>
+      <head>
+        <title>Licenses Export</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f5f5f5; }
+          .meta { margin-top: 8px; text-align: center; color: #555; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>License Export</h1>
+        <div class="meta">Generated on ${new Date().toLocaleDateString()}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Vendor Name</th>
+              <th>Distributor Name</th>
+              <th>Customer Name</th>
+              <th>Project Name</th>
+              <th>Product</th>
+              <th>Serial/Contract Number</th>
+              <th>Quantity</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `;
+
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.print();
+    toast.success('Opened Print dialog for PDF');
+  } else {
+    toast.error('Popup blocked. Please allow popups for this site.');
+  }
+};
 
   const handleSelectLicense = (licenseId: string, selected: boolean) => {
     if (selected) {
@@ -266,11 +473,11 @@ const handleEditLicense = async (license: License) => {
 
   // autoRenewOptions removed
 
-  const exportFormatOptions = [
-    { value: 'csv', label: 'CSV (Comma Separated Values)' },
-    { value: 'xlsx', label: 'Excel Spreadsheet' },
-    { value: 'pdf', label: 'PDF Document' }
-  ];
+  // const exportFormatOptions = [
+  //   { value: 'csv', label: 'CSV (Comma Separated Values)' },
+  //   { value: 'xlsx', label: 'Excel Spreadsheet' },
+  //   { value: 'pdf', label: 'PDF Document' }
+  // ];
 
   const getActiveFiltersCount = () => {
     return Object.values(localFilters).filter(value => value !== '').length;
@@ -335,7 +542,7 @@ const handleEditLicense = async (license: License) => {
           </p>
         </div>
         <div className="flex space-x-3">
-          {selectedLicenses.length > 0 && (
+          {/* {selectedLicenses.length > 0 && (
             <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg">
               <span className="text-sm text-blue-700 font-medium">
                 {selectedLicenses.length} selected
@@ -349,8 +556,8 @@ const handleEditLicense = async (license: License) => {
                 Export Selected
               </Button>
             </div>
-          )}
-          <Button
+          )} */}
+          {/* <Button
             variant="secondary"
             icon={Upload}
             onClick={() => toast('Import feature coming soon!')}
@@ -363,7 +570,21 @@ const handleEditLicense = async (license: License) => {
             onClick={() => setShowExportModal(true)}
           >
             Export
-          </Button>
+          </Button> */}
+
+        <Button
+          variant="secondary"
+          icon={FileText}
+          onClick={handleExportPDF}
+        >
+          Export PDF
+        </Button>
+        <Button
+          icon={Download}
+          onClick={handleExportCSV}
+        >
+          Export CSV
+        </Button>
           {user?.role !== 'user' && (
             <Button
               icon={Plus}
@@ -474,12 +695,28 @@ const handleEditLicense = async (license: License) => {
                 className="border-t border-gray-200 pt-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  <Input
+                  {/* <Input
                     label="Vendor"
                     value={localFilters.vendor}
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, vendor: value }))}
                     placeholder="Filter by vendor"
+                  /> */}
+                  <Select
+                    label="Vendor"
+                    value={localFilters.vendor}
+                    onChange={(value) => setLocalFilters(prev => ({ ...prev, vendor: value }))}
+                    options={[
+                      {value: '', label: 'All Vendor'},
+                      ...getUniqueVendors()
+                    ]}
                   />
+
+                  <Input
+                      label="Serial Number"
+                      value={localFilters.serialNumber}
+                      onChange={(value) => setLocalFilters(prev => ({ ...prev, serialNumber: value }))}
+                      placeholder="Filter by serial number"
+                    />
                   
                   <Input
                     label="Project Name"
@@ -601,7 +838,7 @@ const handleEditLicense = async (license: License) => {
       </Modal>
 
       {/* Export Modal */}
-      <Modal
+      {/* <Modal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         title="Export Licenses"
@@ -708,7 +945,8 @@ const handleEditLicense = async (license: License) => {
             )}
           </div>
         </div>
-      </Modal>
+      </Modal> */}
     </div>
   );
 };
+

@@ -194,13 +194,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
-
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const actionUrl = notificationData.action_url || 'null';
+      const licId = notificationData.license_id ?? 'null';
+      const dedupeKey = `${licId}|${notificationData.type}|${actionUrl}|${todayStr}`;
+      
       const { data, error } = await supabase
         .from('notifications')
-        .insert([{
+        .upsert([{
           ...notificationData,
-          user_id: currentUser.id
-        }])
+          user_id: currentUser.id, 
+          dedupe_key: dedupeKey
+        }], {
+          onConflict: 'dedupe_key'
+        })
         .select()
         .single();
 
@@ -211,10 +218,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         await get().sendEmailNotification(data, currentUser.email);
       }
 
-      set(state => ({
-        notifications: [data, ...state.notifications],
-        unreadCount: state.unreadCount + 1
-      }));
+      set(state => {
+        if (state.notifications.some(n => n.id === data.id)) return state;
+        return {
+          notifications: [data, ...state.notifications],
+          unreadCount: state.unreadCount + 1
+        };
+      });
 
       return data;
     } catch (error) {
@@ -245,10 +255,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // Update local state if this is for the current user
       const currentUser = await get().getCurrentUser();
       if (currentUser && currentUser.id === userId) {
-        set(state => ({
-          notifications: [data, ...state.notifications],
-          unreadCount: state.unreadCount + 1
-        }));
+        set(state => {
+          if (state.notifications.some(n => n.id === data.id)) return state;
+          return {
+            notifications: [data, ...state.notifications],
+            unreadCount: state.unreadCount + 1
+          };
+        });
       }
     } catch (error) {
       console.error('Error sending notification to user:', error);
@@ -351,10 +364,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             await get().sendEmailNotification(newNotification, currentUser.email);
           }
 
-          set(state => ({
-            notifications: [newNotification, ...state.notifications],
-            unreadCount: state.unreadCount + 1
-          }));
+          set(state => {
+            if (state.notifications.some(n => n.id === newNotification.id)) return state;
+            return {
+              notifications: [newNotification, ...state.notifications],
+              unreadCount: state.unreadCount + 1
+            };
+          });
         }
       )
       .on('postgres_changes',

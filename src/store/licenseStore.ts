@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuditStore } from './auditStore';
 import { useAuthStore } from './authStore';
 import { useNotificationStore } from './notificationStore';
-import { addDays, format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
+import { addDays, format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval, parseISO, subDays } from 'date-fns';
 
 // Storage bucket name for attachments, configurable via env
 const ATTACHMENTS_BUCKET = (import.meta as any).env?.VITE_SUPABASE_ATTACHMENTS_BUCKET || 'attachments';
@@ -42,6 +42,7 @@ export interface LicenseSerial {
   unit_price: number;
   currency: 'MMK' | 'USD';
   po_no?: string | null;
+  notify_before_days?: number | null;
 }
 
 export interface LicenseCustomer {
@@ -142,6 +143,7 @@ interface LicenseState {
   setFilters: (filters: LicenseFilters) => void;
   setSorting: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
   setSelectedLicense: (license: License | null) => void;
+  checkSerialExpiryNotifications: () => Promise<void>;
   
   // Comments
   addComment: (licenseId: string, content: string, authorId: string, authorName: string) => Promise<LicenseComment>;
@@ -204,6 +206,23 @@ interface LicenseState {
   getCurrentUser: () => Promise<{ id: string; name: string; email: string } | null>;
   validateLicense: (license: Partial<License> & { serials?: LicenseSerial[] }) => { isValid: boolean; errors: string[] };
 }
+
+type SerialWithLicense = {
+  id: string;
+  license_id: string;
+  serial_or_contract: string;
+  end_date: string; // 'YYYY-MM-DD'
+  notify_before_days: number | null;
+  last_notified_on?: string | null;
+  licenses: {
+    id: string;
+    item_description: string | null;
+    project_name: string | null;
+    vendor: string | null;
+    status: string;
+    created_by: string;
+  };
+};
 
 export const useLicenseStore = create<LicenseState>((set, get) => ({
   licenses: [],
@@ -302,6 +321,10 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       
       if (filters.user_name) {
         query = query.ilike('user_name', `%${filters.user_name}%`);
+      }
+      
+      if (filters.serial_number) {  
+        query = query.ilike('serial_number', `%${filters.serial_number}%`);
       }
       
       if (filters.project_name) {
@@ -518,7 +541,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
           qty: s.qty,
           unit_price: s.unit_price,
           currency: s.currency,
-          po_no: s.po_no || null
+          po_no: s.po_no || null,
+          notify_before_days: s.notify_before_days ?? 30, 
         }));
         const { error: serialErr } = await supabase.from('license_serials').insert(serialRows);
         if (serialErr) throw serialErr;
@@ -627,8 +651,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         if (allowedUpdateKeys.has(k)) sanitized[k] = (updates as any)[k];
       });
 
-      
-
       const { data, error } = await supabase
         .from('licenses')
         .update({
@@ -699,7 +721,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
                 qty: s.qty,
                 unit_price: s.unit_price,
                 currency: s.currency,
-                po_no: s.po_no || null
+                po_no: s.po_no || null,
+                notify_before_days: s.notify_before_days ?? 30, 
               })
               .eq('id', s.id);
             if (upErr) throw upErr;
@@ -715,7 +738,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
               qty: s.qty,
               unit_price: s.unit_price,
               currency: s.currency,
-              po_no: s.po_no || null
+              po_no: s.po_no || null,
+              notify_before_days: s.notify_before_days ?? 30, 
             }));
             const { error: insErr } = await supabase.from('license_serials').insert(rows);
             if (insErr) throw insErr;
@@ -756,6 +780,77 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     } catch (error) {
       console.error('Error updating license:', error);
       throw error;
+    }
+  },
+
+
+  checkSerialExpiryNotifications: async () => {
+    
+    try {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+  
+      const { data, error } = await supabase
+        .from('license_serials')
+        .select(`
+          id, license_id, serial_or_contract, end_date, notify_before_days, last_notified_on,
+          licenses!inner(id, item_description, project_name, vendor, status, created_by)
+        `)
+        .not('notify_before_days', 'is', null);
+      if (error) throw error;
+
+      const rows: SerialWithLicense[] = (data ?? []) as any[];
+  
+      const due = rows.filter(r => {
+        if (!r.notify_before_days || !r.end_date) return false;
+        const end = parseISO(r.end_date);
+        const target = subDays(end, r.notify_before_days);
+        return format(target, 'yyyy-MM-dd') <= todayStr;
+      });
+  
+      if (due.length === 0) return;
+  
+      const notificationStore = useNotificationStore.getState();
+      const currentUser = await get().getCurrentUser();
+      const actorUserId = currentUser?.id || 'system';
+  
+      for (const r of due) {
+        const lic = r.licenses;
+
+        const actionUrl = `/licenses/${r.license_id}?serial=${r.id}`;
+
+          const { data: exists } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('type', 'expiry')
+            .eq('license_id', lic.id)
+            .eq('action_url', actionUrl)
+            .limit(1)
+            .maybeSingle();
+
+          if (exists) {
+            continue; // A reminder exists; do not create another
+          }
+              
+
+        await notificationStore.createNotification({
+          type: 'expiry',
+          title: 'Serial approaching expiry',
+          message: `${lic.item_description || 'Product'} (${r.serial_or_contract}) will expire on ${format(parseISO(r.end_date), 'MMM dd, yyyy')} — reminder ${r.notify_before_days} days before`,          license_id: r.license_id,
+          user_id: actorUserId,
+          is_read: false,
+          priority: 'high',
+          action_required: false,
+          action_url: actionUrl,
+          expires_at: null,
+        });
+
+        await supabase
+          .from('license_serials')
+          .update({ last_notified_on: todayStr })
+          .eq('id', r.id);
+            }
+    } catch (e) {
+      console.error('checkSerialExpiryNotifications failed:', e);
     }
   },
 
