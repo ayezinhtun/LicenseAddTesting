@@ -482,16 +482,16 @@ const projectAssignOptions = useMemo(() => {
     filtered.push({ value: val, label: `${val} (not permitted)` });
   }
 
-  return filtered;
-}, [assigns, user?.role, assignments, license]);
+    return filtered;
+  }, [assigns, user?.role, assignments, license]);
 
-  const [existingAttachments, setExistingAttachments] = useState<Array<{
-    id: string;
-    file_name: string;
-    file_url: string;
-    file_size: number;
-    uploaded_at?: string;
-  }>>([]);
+    const [existingAttachments, setExistingAttachments] = useState<Array<{
+      id: string;
+      file_name: string;
+      file_url: string;
+      file_size: number;
+      uploaded_at?: string;
+    }>>([]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -536,37 +536,37 @@ const projectAssignOptions = useMemo(() => {
             error={errors.find(e => e.includes('Project name is required'))}
           /> */}
 
-<div className="relative">
-  <Input
-    label="Project Name"
-    value={formData.project_name}
-    onChange={(value) => handleChange('project_name', value)}
-    required
-    placeholder="FY25/Project Name"
-    error={errors.find(e => e.includes('Project name is required'))}
-    onFocus={() => setShowProjectNameSuggestions(true)}
-    onBlur={() => setTimeout(() => setShowProjectNameSuggestions(false), 150)}
-  />
+          <div className="relative">
+            <Input
+              label="Project Name"
+              value={formData.project_name}
+              onChange={(value) => handleChange('project_name', value)}
+              required
+              placeholder="FY25/Project Name"
+              error={errors.find(e => e.includes('Project name is required'))}
+              onFocus={() => setShowProjectNameSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowProjectNameSuggestions(false), 150)}
+            />
 
-  {showProjectNameSuggestions && projectNameSuggestions.length > 0 && (
-    <div className="absolute left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto">
-      <ul className="py-1 text-sm text-gray-700">
-        {projectNameSuggestions.map((name) => (
-          <li key={name}>
-            <button
-              type="button"
-              className="w-full text-left px-3 py-2 hover:bg-gray-100"
-              onMouseDown={(e) => e.preventDefault()}  // keep dropdown open for click
-              onClick={() => selectProjectName(name)}
-            >
-              {name}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )}
-</div>
+            {showProjectNameSuggestions && projectNameSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto">
+                <ul className="py-1 text-sm text-gray-700">
+                  {projectNameSuggestions.map((name) => (
+                    <li key={name}>
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                        onMouseDown={(e) => e.preventDefault()}  // keep dropdown open for click
+                        onClick={() => selectProjectName(name)}
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
           {/* <Select
             label="Project Assign"
             value={formData.project_assign}
@@ -834,7 +834,7 @@ const projectAssignOptions = useMemo(() => {
               value={formData.remark}
               onChange={(e) => handleChange('remark', e.target.value)}
               rows={3}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3"
               placeholder="Additional notes or remarks..."
             />
           </div>
