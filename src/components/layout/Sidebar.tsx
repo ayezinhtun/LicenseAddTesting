@@ -25,10 +25,10 @@ import { useNotificationStore } from '../../store/notificationStore';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', badge: null },
-  { icon: Building2, label: 'Vendor Manager', path: '/vendors', badge: null },
-  { icon: Activity, label: 'Project Assign', path: '/project-assign', badge: null },
-  { icon: User, label: 'Customer Manager', path: '/customers', badge: null },
-  { icon: Building2, label: 'Distributor Manager', path: '/distributors', badge: null },
+  { icon: Building2, label: 'Vendor Manager', path: '/vendors', badge: null, adminOnly: true },
+  { icon: Activity, label: 'Project Assign', path: '/project-assign', badge: null, adminOnly: true },
+  { icon: User, label: 'Customer Manager', path: '/customers', badge: null, adminOnly: true },
+  { icon: Building2, label: 'Distributor Manager', path: '/distributors', badge: null, adminOnly: true },
   { icon: FileText, label: 'License Manager', path: '/licenses', badge: null },
   { icon: BarChart3, label: 'Reports & Analytics', path: '/reports', badge: null },
   { icon: Bell, label: 'Notifications', path: '/notifications', badge: 'notifications' },
@@ -47,6 +47,8 @@ export const Sidebar: React.FC = () => {
   // const [showQuickActions, setShowQuickActions] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuthStore();
+
+  const visibleItems = menuItems.filter(item => !('adminOnly' in item) || !item.adminOnly || user?.role === 'admin');
 
   // const { getLicensesNearExpiry } = useLicenseStore();
 
@@ -164,9 +166,11 @@ export const Sidebar: React.FC = () => {
         )}
       </AnimatePresence>
 
+
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item, index) => {
+        
+        {visibleItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const badgeCount = getBadgeCount(item.badge);
           
