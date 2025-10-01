@@ -79,38 +79,151 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   fetchNotifications: async () => {
-    set({ isLoading: true });
+    // set({ isLoading: true });
     
+    // try {
+    //   const currentUser = await get().getCurrentUser();
+    //   if (!currentUser) {
+    //     set({ notifications: [], unreadCount: 0, isLoading: false });
+    //     return;
+    //   }
+    //   const role = useAuthStore.getState().user?.role;
+
+    //   let query = supabase
+    //     .from('notifications')
+    //     .select('*')
+    //     .order('created_at', { ascending: false })
+    //     .limit(200);
+
+    //   // Admin sees all notifications, others only their own
+    //   if (role !== 'admin') {
+    //     query = query.eq('user_id', currentUser.id);
+    //   }
+
+    //   const { data, error } = await query;
+
+    //   if (error) throw error;
+
+    //   const unreadCount = data?.filter(n => !n.is_read).length || 0;
+      
+    //   set({
+    //     notifications: data || [],
+    //     unreadCount,
+    //     isLoading: false
+    //   });
+    // } catch (error) {
+    //   console.error('Error fetching notifications:', error);
+    //   set({ isLoading: false });
+    // }
+
     try {
       const currentUser = await get().getCurrentUser();
       if (!currentUser) {
         set({ notifications: [], unreadCount: 0, isLoading: false });
         return;
       }
-      const role = useAuthStore.getState().user?.role;
-
-      let query = supabase
+    
+      const { user, assignments } = useAuthStore.getState();
+      const role = user?.role;
+    
+      // Admin: all notifications
+      if (role === 'admin') {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (error) throw error;
+    
+        const unreadCount = data?.filter(n => !n.is_read).length || 0;
+        set({ notifications: data || [], unreadCount, isLoading: false });
+        return;
+      } 
+    
+      // Super user: expiry for assigned projects + non-expiry for self
+      else {
+        const assignList = assignments && assignments.length > 0 ? assignments : [];
+    
+        // 1) Expiry notifications in assigned projects
+        let expiryRows: any[] = [];
+        if (assignList.length > 0) {
+          // Try relational join (requires notifications.license_id -> licenses.id in Supabase)
+          const { data: joined, error: joinErr } = await supabase
+            .from('notifications')
+            .select(`
+              *,
+              licenses!inner(
+                id,
+                project_assign
+              )
+            `)
+            .eq('type', 'expiry')
+            .in('licenses.project_assign', assignList as any)
+            .order('created_at', { ascending: false })
+            .limit(200);
+    
+          if (joinErr) {
+            // Fallback: two-step if relationship not configured
+            const { data: expOnly, error: expErr } = await supabase
+              .from('notifications')
+              .select('*')
+              .eq('type', 'expiry')
+              .not('license_id', 'is', null)
+              .order('created_at', { ascending: false })
+              .limit(500);
+            if (expErr) throw expErr;
+    
+            const licIds = Array.from(new Set((expOnly || []).map((n: any) => n.license_id)));
+            let allowedSet = new Set<string>();
+            if (licIds.length > 0) {
+              const { data: licRows, error: licErr } = await supabase
+                .from('licenses')
+                .select('id, project_assign')
+                .in('id', licIds as any);
+              if (licErr) throw licErr;
+              allowedSet = new Set(
+                (licRows || [])
+                  .filter((l: any) => assignList.includes(l.project_assign))
+                  .map((l: any) => l.id)
+              );
+            }
+            expiryRows = (expOnly || []).filter((n: any) => allowedSet.has(n.license_id));
+          } else {
+            expiryRows = joined || [];
+          }
+        }
+    
+        // 2) Non-expiry only for the current user
+        const { data: ownRows, error: ownErr } = await supabase
+          .from('notifications')
+          .select('*')
+          .neq('type', 'expiry')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (ownErr) throw ownErr;
+    
+        // Merge, sort and set
+        const merged = [...expiryRows, ...(ownRows || [])]
+          .sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
+          .slice(0, 200);
+    
+        const unreadCount = merged.filter(n => !n.is_read).length;
+        set({ notifications: merged, unreadCount, isLoading: false });
+        return;
+      }
+    
+      // user/viewer: only own notifications
+      const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false })
         .limit(200);
-
-      // Admin sees all notifications, others only their own
-      if (role !== 'admin') {
-        query = query.eq('user_id', currentUser.id);
-      }
-
-      const { data, error } = await query;
-
       if (error) throw error;
-
+    
       const unreadCount = data?.filter(n => !n.is_read).length || 0;
-      
-      set({
-        notifications: data || [],
-        unreadCount,
-        isLoading: false
-      });
+      set({ notifications: data || [], unreadCount, isLoading: false });
     } catch (error) {
       console.error('Error fetching notifications:', error);
       set({ isLoading: false });
