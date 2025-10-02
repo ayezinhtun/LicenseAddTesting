@@ -29,7 +29,6 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
   const { vendors, fetchVendors } = useVendorStore();
   const { assigns, fetchProjectAssigns } = useProjectAssignStore();
 
-
   useEffect(() => {
     fetchVendors();
   }, [fetchVendors]);
@@ -48,37 +47,37 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
 
   // Load distinct project names from licenses once
-useEffect(() => {
-  const loadProjectNames = async () => {
-    const { data, error } = await supabase
-      .from('licenses')
-      .select('project_name');
+  useEffect(() => {
+    const loadProjectNames = async () => {
+      const { data, error } = await supabase
+        .from('licenses')
+        .select('project_name');
 
-    if (error) {
-      console.error('Error loading project names:', error);
-      return;
-    }
+      if (error) {
+        console.error('Error loading project names:', error);
+        return;
+      }
 
-    const names = Array.from(
-      new Set(
-        (data || [])
-          .map((r: any) => (r.project_name || '').trim())
-          .filter(Boolean)
-      )
-    ).sort((a, b) => a.localeCompare(b));
+      const names = Array.from(
+        new Set(
+          (data || [])
+            .map((r: any) => (r.project_name || '').trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b));
 
-    setAllProjectNames(names);
+      setAllProjectNames(names);
+    };
+
+    loadProjectNames();
+  }, []);
+
+  const selectProjectName = (name: string) => {
+    setFormData(prev => ({ ...prev, project_name: name }));
+    setShowProjectNameSuggestions(false);
   };
 
-  loadProjectNames();
-}, []);
-
-const selectProjectName = (name: string) => {
-  setFormData(prev => ({ ...prev, project_name: name }));
-  setShowProjectNameSuggestions(false);
-};
-
-const projectNameSuggestions = allProjectNames;
+  const projectNameSuggestions = allProjectNames;
 
   const [formData, setFormData] = useState({
     // Core
@@ -661,131 +660,128 @@ const projectAssignOptions = useMemo(() => {
           </div>
         </div>
 
-        {/* Attachments */}
-       {/* Existing attachments (edit only) */}
-{/* Attachments */}
-{/* Edit mode: Existing list with Add Attachment button */}
-{license && (
-  <div className="mt-8">
-    <div className="flex items-center justify-between mb-3">
-      <h4 className="text-md font-semibold text-gray-900">
-        Attachments ({existingAttachments.length})
-      </h4>
-      <div>
-        <input
-          type="file"
-          ref={addFileInputRef}
-          className="hidden"
-          multiple
-          onChange={(e) => handleAddAttachmentFiles(e.target.files)}
-        />
-        <Button type="button" icon={Paperclip} onClick={handleClickAddAttachment}>
-          Add Attachment
-        </Button>
-      </div>
-    </div>
+    {/* Attachments */}
+    {license && (
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-md font-semibold text-gray-900">
+            Attachments ({existingAttachments.length})
+          </h4>
+          <div>
+            <input
+              type="file"
+              ref={addFileInputRef}
+              className="hidden"
+              multiple
+              onChange={(e) => handleAddAttachmentFiles(e.target.files)}
+            />
+            <Button type="button" icon={Paperclip} onClick={handleClickAddAttachment}>
+              Add Attachment
+            </Button>
+          </div>
+        </div>
 
-    {existingAttachments.length === 0 ? (
-      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
-        No attachments yet.
-      </div>
-    ) : (
-      <div className="space-y-3">
-        {existingAttachments.map(att => (
-          <div key={att.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
-            <div className="flex items-center gap-3">
-              <Paperclip className="w-4 h-4 text-gray-500" />
-              <div>
-                <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  {att.file_name}
-                </a>
-                <div className="text-xs text-gray-500">
-                  {(att.file_size / (1024 * 1024)).toFixed(2)} MB
-                  {att.uploaded_at ? ` · ${new Date(att.uploaded_at).toLocaleDateString()}` : ''}
+        {existingAttachments.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
+            No attachments yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {existingAttachments.map(att => (
+              <div key={att.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-center gap-3">
+                  <Paperclip className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {att.file_name}
+                    </a>
+                    <div className="text-xs text-gray-500">
+                      {(att.file_size / (1024 * 1024)).toFixed(2)} MB
+                      {att.uploaded_at ? ` · ${new Date(att.uploaded_at).toLocaleDateString()}` : ''}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={Download}
+                    onClick={() => handleDownloadExistingAttachment(att)}
+                    title="Download"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={Trash2}
+                    onClick={() => handleDeleteExistingAttachment(att.id)}
+                    title="Delete"
+                  />
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Add mode: show uploader for new files as before */}
+    {!license && (
+      <div className="mt-8">
+        <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
+        <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
+        {formData.attachments.length > 0 && (
+          <div className="mt-2 space-y-1 text-sm text-gray-600">
+            {formData.attachments.map((f, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <span>{f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB</span>
+                <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
+              </div>
+            ))}
+            <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
+          </div>
+        )}
+      </div>
+    )}
+    </div>
+
+    {/* Customer Information (Multiple Optional) */}
+    <div className="bg-gray-50 p-6 rounded-lg">
+      <h3 className="text-lg font-semibold text-gray-900">Customer Information</h3>
+      <p className="text-sm text-gray-600 mb-4">You can add multiple customers (optional)</p>
+      <div className="mb-2">
+        <Button type="button" size="sm" icon={Plus} onClick={addCustomer}>Add Customer</Button>
+      </div>
+      <div className="space-y-4">
+        {formData.customers.map((c, idx) => (
+          <div key={idx} className="p-4 bg-white rounded border">
+            {/* NEW: Master customer dropdown per row */}
+            <Select
+              label="Customer (from master)"
+              value={formData.customers[idx].customer_id || ''}
+              onChange={(val) => selectExistingCustomer(idx, val)}
+              options={customerOptions}
+              placeholder="Select existing customer (optional)"
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <Input label="Company Name" value={c.company_name} onChange={(v) => updateCustomer(idx, 'company_name', v)} />
+              <Input label="Contact Person" value={c.contact_person || ''} onChange={(v) => updateCustomer(idx, 'contact_person', v)} />
+              <Input label="Contact Email" type="email" value={c.contact_email || ''} onChange={(v) => updateCustomer(idx, 'contact_email', v)} />
+              <Input label="Contact Number" value={c.contact_number || ''} onChange={(v) => updateCustomer(idx, 'contact_number', v)} />
+              <Input label="Address" value={c.address || ''} onChange={(v) => updateCustomer(idx, 'address', v)} />
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                icon={Download}
-                onClick={() => handleDownloadExistingAttachment(att)}
-                title="Download"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                icon={Trash2}
-                onClick={() => handleDeleteExistingAttachment(att.id)}
-                title="Delete"
-              />
+            <div className="mt-3 flex justify-end">
+              <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeCustomer(idx)}>Remove</Button>
             </div>
           </div>
         ))}
+        {formData.customers.length === 0 && (
+          <p className="text-sm text-gray-500">No customers added.</p>
+        )}
       </div>
-    )}
-  </div>
-)}
-
-{/* Add mode: show uploader for new files as before */}
-{!license && (
-  <div className="mt-8">
-    <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
-    <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
-    {formData.attachments.length > 0 && (
-      <div className="mt-2 space-y-1 text-sm text-gray-600">
-        {formData.attachments.map((f, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <span>{f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB</span>
-            <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
-          </div>
-        ))}
-        <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
-      </div>
-    )}
-  </div>
-)}
-      </div>
-
-{/* Customer Information (Multiple Optional) */}
-<div className="bg-gray-50 p-6 rounded-lg">
-  <h3 className="text-lg font-semibold text-gray-900">Customer Information</h3>
-  <p className="text-sm text-gray-600 mb-4">You can add multiple customers (optional)</p>
-  <div className="mb-2">
-    <Button type="button" size="sm" icon={Plus} onClick={addCustomer}>Add Customer</Button>
-  </div>
-  <div className="space-y-4">
-    {formData.customers.map((c, idx) => (
-      <div key={idx} className="p-4 bg-white rounded border">
-        {/* NEW: Master customer dropdown per row */}
-        <Select
-          label="Customer (from master)"
-          value={formData.customers[idx].customer_id || ''}
-          onChange={(val) => selectExistingCustomer(idx, val)}
-          options={customerOptions}
-          placeholder="Select existing customer (optional)"
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <Input label="Company Name" value={c.company_name} onChange={(v) => updateCustomer(idx, 'company_name', v)} />
-          <Input label="Contact Person" value={c.contact_person || ''} onChange={(v) => updateCustomer(idx, 'contact_person', v)} />
-          <Input label="Contact Email" type="email" value={c.contact_email || ''} onChange={(v) => updateCustomer(idx, 'contact_email', v)} />
-          <Input label="Contact Number" value={c.contact_number || ''} onChange={(v) => updateCustomer(idx, 'contact_number', v)} />
-          <Input label="Address" value={c.address || ''} onChange={(v) => updateCustomer(idx, 'address', v)} />
-        </div>
-        <div className="mt-3 flex justify-end">
-          <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeCustomer(idx)}>Remove</Button>
-        </div>
-      </div>
-    ))}
-    {formData.customers.length === 0 && (
-      <p className="text-sm text-gray-500">No customers added.</p>
-    )}
-  </div>
-</div>
+    </div>
       {/* Distributor Information (Multiple Optional) */}
       <div className="bg-gray-50 p-6 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-900">Distributor Information</h3>
@@ -819,8 +815,6 @@ const projectAssignOptions = useMemo(() => {
           )}
         </div>
       </div>
-
-      {/* URLs/Tags/Custom Fields removed as requested */}
 
       {/* Additional Information */}
       <div className="bg-gray-50 p-6 rounded-lg">

@@ -46,6 +46,19 @@ export const LicenseManagement: React.FC = () => {
   // const [showExportModal, setShowExportModal] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [selectedLicenses, setSelectedLicenses] = useState<string[]>([]);
+
+  const { getNearSerialExpiryCount } = useLicenseStore();
+  const [nearExpiryCount, setNearExpiryCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const n = await getNearSerialExpiryCount(30);
+      if (mounted) setNearExpiryCount(n);
+    })();
+    return () => { mounted = false; };
+  }, [getNearSerialExpiryCount]);
+
   
   const [localFilters, setLocalFilters] = useState({
     search: '',
@@ -632,14 +645,15 @@ const handleExportPDF = async () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
+              <p className="text-sm font-medium text-gray-600">Serial Expiring Soon</p>
               <p className="text-2xl font-bold text-gray-900">
-                {licenses.filter(l => {
+                {/* {licenses.filter(l => {
                   const daysUntilExpiry = Math.ceil(
                     (new Date(l.license_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
                   );
                   return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-                }).length}
+                }).length} */}
+                {nearExpiryCount}
               </p>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg">
