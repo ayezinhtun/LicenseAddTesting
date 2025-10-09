@@ -107,6 +107,7 @@ export const VendorPage: React.FC = () => {
         className="flex items-center justify-between"
       >
         <div>
+        <h1>vendor page test</h1>
           <h1 className="text-3xl font-bold text-gray-900">Vendor Management</h1>
           <p className="text-gray-600 mt-1">
             Manage your approved vendor list used in licenses
