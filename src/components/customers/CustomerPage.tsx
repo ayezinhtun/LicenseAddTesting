@@ -125,28 +125,28 @@ export const CustomerPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-  <div className="flex items-center space-x-2">
-    <span className="text-sm font-medium text-gray-700">Sort by:</span>
-    <div className="flex space-x-2">
-      {[
-        { field: 'company_name' as const, label: 'Name' },
-        { field: 'created_at' as const, label: 'Created' },
-      ].map(({ field, label }) => (
-        <Button
-          key={field}
-          variant={sortBy === field ? 'primary' : 'ghost'}
-          size="sm"
-          onClick={() => handleSort(field)}
-          icon={sortBy === field ? renderSortIcon(field) : undefined}
-        >
-          {label}
-        </Button>
-      ))}
-    </div>
-  </div>
-  {/* Optional right-side info */}
-  {/* <div className="text-sm text-gray-500">Showing {filtered.length} customers</div> */}
-</div>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Sort by:</span>
+            <div className="flex space-x-2">
+              {[
+                { field: 'company_name' as const, label: 'Name' },
+                { field: 'created_at' as const, label: 'Created' },
+              ].map(({ field, label }) => (
+                <Button
+                  key={field}
+                  variant={sortBy === field ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleSort(field)}
+                  icon={sortBy === field ? renderSortIcon(field) : undefined}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {/* Optional right-side info */}
+          {/* <div className="text-sm text-gray-500">Showing {filtered.length} customers</div> */}
+        </div>
 
           {showFilters && (
             <div className="border-t border-gray-200 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
