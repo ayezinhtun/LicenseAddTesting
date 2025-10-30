@@ -14,9 +14,10 @@ export interface License {
   vendor: string;
   item: string;
   item_description: string;
-  serial_number: string;
+  // serial_number: string;
   project_name: string;
-  project_assign?: 'NPT' | 'YGN' | 'MPT' | null;
+  // project_assign?: 'NPT' | 'YGN' | 'MPT' | null;
+  project_assign?: string | null;
   customer_name: string;
   business_unit: string;
   license_start_date: string;
@@ -111,7 +112,8 @@ export interface LicenseFilters {
   vendor?: string;
   user_name?: string;
   project_name?: string;
-  project_assign?: 'NPT' | 'YGN' | 'MPT' | '';
+  // project_assign?: 'NPT' | 'YGN' | 'MPT' | '';
+  project_assign?: string | '';
   company?: string;
   serial_number?: string;
   status?: string[];
@@ -133,6 +135,8 @@ interface LicenseState {
   currentPage: number;
   pageSize: number;
   totalCount: number;
+  vendors: string[];
+  currentRequestId: number;
   
   // Actions
   fetchLicenses: (page?: number) => Promise<void>;
@@ -143,6 +147,8 @@ interface LicenseState {
   setFilters: (filters: LicenseFilters) => void;
   setSorting: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
   setSelectedLicense: (license: License | null) => void;
+  getAllVendors: () => Promise<string[]>;   // add
+  loadVendors: () => Promise<void>; 
   checkSerialExpiryNotifications: () => Promise<void>;
   
   // Comments
@@ -227,6 +233,7 @@ type SerialWithLicense = {
 
 export const useLicenseStore = create<LicenseState>((set, get) => ({
   licenses: [],
+  
   selectedLicense: null,
   isLoading: false,
   filters: {},
@@ -235,6 +242,11 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
   currentPage: 1,
   pageSize: 20,
   totalCount: 0,
+
+  vendors: [],              
+  currentRequestId: 0, 
+
+  
 
   getCurrentUser: async () => {
     try {
@@ -265,16 +277,21 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     }
 
     if (!license.status) errors.push('Status is required');
-    // Require project_assign and validate
-    const pa = (license as any).project_assign as string | undefined;
-    if (!pa || pa.trim() === '') {
-      errors.push('Project assign is required');
-    } else {
-      const allowedAssign = new Set(['NPT', 'YGN', 'MPT']);
-      if (!allowedAssign.has(pa)) {
-        errors.push('Project assign must be one of: NPT, YGN, MPT');
+    // const pa = (license as any).project_assign as string | undefined;
+    // if (!pa || pa.trim() === '') {
+    //   errors.push('Project assign is required');
+    // } else {
+    //   const allowedAssign = new Set(['NPT', 'YGN', 'MPT']);
+    //   if (!allowedAssign.has(pa)) {
+    //     errors.push('Project assign must be one of: NPT, YGN, MPT');
+    //   }
+    // }
+
+    // Require project_assign (dynamic values are enforced by DB via FK/RLS)
+      const pa = (license as any).project_assign as string | undefined;
+      if (!pa || pa.trim() === '') {
+        errors.push('Project assign is required');
       }
-    }
 
     // Validate serials (multi)
     const serials: LicenseSerial[] = license.serials || [];
@@ -301,7 +318,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
   },
 
   fetchLicenses: async (page = 1) => {
-    set({ isLoading: true });
+    const thisReq = Date.now();                       // add
+set({ isLoading: true, currentRequestId: thisReq });  // replacetrue });
     
     try {
       const { filters, sortBy, sortOrder, pageSize } = get();
@@ -310,10 +328,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const offset = (page - 1) * pageSize;
       
       let query = supabase
-        .from('licenses')
-        .select('*', { count: 'exact' })
-        .order(sortBy, { ascending: sortOrder === 'asc' })
-        .range(offset, offset + pageSize - 1);
+      .from('licenses')
+      .select('*', { count: 'exact' });
 
       // Apply filters
       if (filters.vendor) {
@@ -324,9 +340,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         query = query.ilike('user_name', `%${filters.user_name}%`);
       }
       
-      if (filters.serial_number) {  
-        query = query.ilike('serial_number', `%${filters.serial_number}%`);
-      }
       
       if (filters.project_name) {
         query = query.ilike('project_name', `%${filters.project_name}%`);
@@ -351,9 +364,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         query = query.ilike('company', `%${filters.company}%`);
       }
       
-      if (filters.serial_number) {
-        query = query.ilike('serial_number', `%${filters.serial_number}%`);
-      }
       
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
@@ -365,8 +375,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       
       
       if (filters.search) {
-        query = query.or(`item.ilike.%${filters.search}%,vendor.ilike.%${filters.search}%,project_name.ilike.%${filters.search}%,serial_number.ilike.%${filters.search}%`);
-      }
+        query = query.or(`item.ilike.%${filters.search}%,vendor.ilike.%${filters.search}%,project_name.ilike.%${filters.search}%`);      }
       
       if (filters.date_range) {
         query = query
@@ -376,18 +385,74 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       
       // cost_range removed
 
+ // Serial filter (via child table) — supports both new filters.serial and legacy filters.serial_number
+const serialFilterRaw =
+(filters as any).serial ?? (filters as any).serial_number;
+
+if (serialFilterRaw && String(serialFilterRaw).trim()) {
+const serialQuery = String(serialFilterRaw).trim();
+
+const { data: serialMatches, error: smErr } = await supabase
+  .from('license_serials')
+  .select('license_id')
+  .ilike('serial_or_contract', `%${serialQuery}%`);
+
+if (!smErr) {
+  const licenseIds = Array.from(new Set((serialMatches || []).map(r => r.license_id)));
+  if (licenseIds.length === 0) {
+    // No matches: short-circuit
+    set({ licenses: [], totalCount: 0, currentPage: page, isLoading: false });
+    return;
+  }
+  query = query.in('id', licenseIds);
+}
+}
+
+query = query
+.order(sortBy, { ascending: sortOrder === 'asc' })
+.range(offset, offset + pageSize - 1);
       
 
       const { data, error, count } = await query;
 
       if (error) throw error;
 
-      set({
-        licenses: data || [],
-        totalCount: count || 0,
-        currentPage: page,
-        isLoading: false
-      });
+      // set({
+      //   licenses: data || [],
+      //   totalCount: count || 0,
+      //   currentPage: page,
+      //   isLoading: false
+      // });
+
+      // Attach serials array to each license (for table display)
+const licensesRaw = data || [];
+const ids = licensesRaw.map((l: any) => l.id);
+let licensesWithSerials = licensesRaw;
+
+if (ids.length > 0) {
+  const { data: serialRows, error: sErr } = await supabase
+    .from('license_serials')
+    .select('license_id, serial_or_contract')
+    .in('license_id', ids);
+
+  if (!sErr) {
+    const byLicense: Record<string, string[]> = {};
+    (serialRows || []).forEach((row: any) => {
+      (byLicense[row.license_id] ||= []).push(row.serial_or_contract);
+    });
+    licensesWithSerials = licensesRaw.map((l: any) => ({
+      ...l,
+      serials: byLicense[l.id] || [],
+    }));
+  }
+}
+
+set({
+  licenses: licensesWithSerials,
+  totalCount: count || 0,
+  currentPage: page,
+  isLoading: false,
+});
 
       // Log the view action
       try {
@@ -442,6 +507,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     }
   },
 
+
+  
   
 
   addLicense: async (licenseData) => {
@@ -496,10 +563,10 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         'item_description',
         'remark',
         'priority',
-        'status',
+        'status'
         // 'license_start_date',
         // 'license_end_date',
-        'serial_number'
+        // 'serial_number'
       ]);
       const coreInsert: any = {};
       Object.keys(licenseCore || {}).forEach((k) => {
@@ -509,7 +576,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const insertPayload: any = {
         ...coreInsert,
         // satisfy existing schema with derived data
-        serial_number: coreInsert.serial_number || firstSerial?.serial_or_contract || 'N/A',
+        // serial_number: coreInsert.serial_number || firstSerial?.serial_or_contract || 'N/A',
         // license_start_date: coreInsert.license_start_date || firstSerial?.start_date || new Date().toISOString().slice(0,10),
         // license_end_date: coreInsert.license_end_date || firstSerial?.end_date || new Date().toISOString().slice(0,10),
         user_id: currentUser.id,
@@ -545,8 +612,16 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
           po_no: s.po_no || null,
           notify_before_days: s.notify_before_days ?? 30, 
         }));
+        // const { error: serialErr } = await supabase.from('license_serials').insert(serialRows);
+        // if (serialErr) throw serialErr;
+
         const { error: serialErr } = await supabase.from('license_serials').insert(serialRows);
-        if (serialErr) throw serialErr;
+if (serialErr) {
+  if ((serialErr as any).code === '23505') {
+    throw new Error('Serial number already exists. It must be unique.');
+  }
+  throw serialErr;
+}
       }
 
       if (customers.length > 0) {
@@ -663,100 +738,151 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .select()
         .single();
 
-      if (error) throw error;
+        if (error) {
+          const code = (error as any)?.code;
+          const message = ((error as any)?.message || '').toLowerCase();
+          if (code === '23505' && message.includes('serial_number')) {
+            const sn = (updates as any)?.serial_number ?? '(unknown)';
+            throw new Error(`Serial number "${sn}" already exists on another license.`);
+          }
+          throw error;
+        }
 
       // Refresh the licenses list
       await get().fetchLicenses(get().currentPage);
 
-      // Log the action with detailed field changes
-      try {
-        const auditStore = useAuditStore.getState();
-        const changes: Record<string, { old: any; new: any }> = {};
-        if (currentLicense) {
-          Object.keys(sanitized).forEach(key => {
-            if ((currentLicense as any)[key] !== (sanitized as any)[key]) {
-              changes[key] = {
-                old: (currentLicense as any)[key],
-                new: (sanitized as any)[key]
-              };
-            }
-          });
-        }
-
-        //for serial
-        const serialsIncoming = (updates as any).serials as LicenseSerial[] | undefined;
-
-        if (serialsIncoming) {
-          // 1) Load existing serial ids for this license
-          const { data: existingSerials, error: exErr } = await supabase
-            .from('license_serials')
-            .select('id')
-            .eq('license_id', id);
-          if (exErr) throw exErr;
-
-          const existingIds = new Set((existingSerials || []).map((r: any) => r.id));
-          const incomingIds = new Set(serialsIncoming.filter(s => s.id).map(s => s.id as string));
-
-          // 2) Compute operations
-          const toInsert = serialsIncoming.filter(s => !s.id);
-          const toUpdate = serialsIncoming.filter(s => s.id && existingIds.has(s.id));
-          const toDeleteIds = [...existingIds].filter(oldId => !incomingIds.has(oldId));
-
-          // 3) Apply deletes
-          if (toDeleteIds.length > 0) {
-            const { error: delErr } = await supabase
-              .from('license_serials')
-              .delete()
-              .in('id', toDeleteIds);
-            if (delErr) throw delErr;
-          }
-
-          // 4) Apply updates
-          for (const s of toUpdate) {
-            const { error: upErr } = await supabase
-              .from('license_serials')
-              .update({
-                serial_or_contract: s.serial_or_contract,
-                start_date: s.start_date,
-                end_date: s.end_date,
-                qty: s.qty,
-                unit_price: s.unit_price,
-                currency: s.currency,
-                po_no: s.po_no || null,
-                notify_before_days: s.notify_before_days ?? 30, 
-              })
-              .eq('id', s.id);
-            if (upErr) throw upErr;
-          }
-
-          // 5) Apply inserts
-          if (toInsert.length > 0) {
-            const rows = toInsert.map(s => ({
-              license_id: id,
-              serial_or_contract: s.serial_or_contract,
-              start_date: s.start_date,
-              end_date: s.end_date,
-              qty: s.qty,
-              unit_price: s.unit_price,
-              currency: s.currency,
-              po_no: s.po_no || null,
-              notify_before_days: s.notify_before_days ?? 30, 
-            }));
-            const { error: insErr } = await supabase.from('license_serials').insert(rows);
-            if (insErr) throw insErr;
-          }
-        }
-        await auditStore.logAction({
-          action: 'update',
-          entity_type: 'license',
-          entity_id: id,
-          changes,
-          ip_address: null,
-          user_agent: null
-        });
-      } catch (auditError) {
-        console.log('Audit logging failed:', auditError);
+     // Build change set for audit (compute diffs; no try/catch)
+  const auditStore = useAuditStore.getState();
+  const changes: Record<string, { old: any; new: any }> = {};
+  if (currentLicense) {
+    Object.keys(sanitized).forEach(key => {
+      if ((currentLicense as any)[key] !== (sanitized as any)[key]) {
+        changes[key] = { old: (currentLicense as any)[key], new: (sanitized as any)[key] };
       }
+    });
+  }
+
+  // Apply serial changes — DO NOT wrap in try/catch so errors bubble up
+  const serialsIncoming = (updates as any).serials as LicenseSerial[] | undefined;
+  if (serialsIncoming) {
+    // 1) existing ids
+    const { data: existingSerials, error: exErr } = await supabase
+      .from('license_serials')
+      .select('id')
+      .eq('license_id', id);
+    if (exErr) throw exErr;
+
+    const existingIds = new Set((existingSerials || []).map((r: any) => r.id));
+    const incomingIds = new Set(serialsIncoming.filter(s => s.id).map(s => s.id as string));
+
+    // 2) ops
+    const toInsert = serialsIncoming.filter(s => !s.id);
+    const toUpdate = serialsIncoming.filter(s => s.id && existingIds.has(s.id));
+    const toDeleteIds = [...existingIds].filter(oldId => !incomingIds.has(oldId));
+
+    // 3) deletes
+    if (toDeleteIds.length > 0) {
+      const { error: delErr } = await supabase.from('license_serials').delete().in('id', toDeleteIds);
+      if (delErr) throw delErr;
+    }
+
+  // 4) Apply updates (ONLY serial_or_contract; do NOT touch dates/cost/etc.)
+  for (const s of toUpdate) {
+    // Load old values first for legacy text-based fallback
+    const { data: oldRow, error: oldErr } = await supabase
+      .from('license_serials')
+      .select('serial_or_contract')
+      .eq('id', s.id)
+      .single();
+    if (oldErr) throw oldErr;
+
+    // Update ONLY the serial/contract text
+    const { error: upErr } = await supabase
+      .from('license_serials')
+      .update({
+        serial_or_contract: s.serial_or_contract,
+      })
+      .eq('id', s.id as string);
+    if (upErr) {
+      if ((upErr as any).code === '23505') {
+        throw new Error(`Serial/Contract "${s.serial_or_contract}" already exists. It must be unique.`);
+      }
+      throw upErr;
+    }
+
+    // A) Sync renewal_history rows linked by FK (update only the serial text)
+    const { data: rhUpdated, error: rhErr1 } = await supabase
+      .from('renewal_history')
+      .update({
+        prev_serial_no: s.serial_or_contract ?? null,
+        // Do NOT update prev_serial_start_date or prev_serial_end_date here
+      })
+      .eq('prev_selected_serial_id', s.id)
+      .select('id');
+    if (rhErr1) throw rhErr1;
+
+    // B) If none updated (legacy rows without FK), update by matching previous text (serial only)
+    if (!rhUpdated || rhUpdated.length === 0) {
+      if (oldRow?.serial_or_contract) {
+        const { error: rhErr2 } = await supabase
+          .from('renewal_history')
+          .update({
+            prev_serial_no: s.serial_or_contract ?? null,
+            // Do NOT update prev_serial_start_date or prev_serial_end_date here either
+          })
+          .eq('license_id', id)
+          .is('prev_selected_serial_id', null)
+          .eq('prev_serial_no', oldRow.serial_or_contract)
+          .select('id'); // optional: to observe affected rows during debugging
+        if (rhErr2) throw rhErr2;
+      }
+    }
+  }
+
+  // 5) inserts — validate required fields
+  if (toInsert.length > 0) {
+    for (const s of toInsert) {
+      if (!s.serial_or_contract?.trim() || !s.start_date || !s.end_date || typeof s.qty !== 'number' || typeof s.unit_price !== 'number' || !s.currency) {
+        throw new Error('Serial row is missing required fields (serial, dates, qty, unit price, currency).');
+      }
+    }
+    const rows = toInsert.map(s => ({
+      license_id: id,
+      serial_or_contract: s.serial_or_contract,
+      start_date: s.start_date,
+      end_date: s.end_date,
+      qty: s.qty,
+      unit_price: s.unit_price,
+      currency: s.currency,
+      po_no: s.po_no ?? null,
+      notify_before_days: s.notify_before_days ?? 30,
+    }));
+
+    
+    const { error: insErr } = await supabase.from('license_serials').insert(rows);
+    if (insErr) {
+      if ((insErr as any).code === '23505') {
+        const first = toInsert[0]?.serial_or_contract ?? '(unknown)';
+        throw new Error(`Serial/Contract "${first}" already exists. It must be unique.`);
+      }
+      throw insErr;
+    }
+  }
+}
+
+// Audit log — best-effort only
+try {
+  await auditStore.logAction({
+    action: 'update',
+    entity_type: 'license',
+    entity_id: id,
+    changes,
+    ip_address: null,
+    user_agent: null
+  });
+} catch (auditError) {
+  console.log('Audit logging failed:', auditError);
+}
 
       // Create notification for update (admins will see all; others will see their own via store rules)
       try {
@@ -782,6 +908,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       console.error('Error updating license:', error);
       throw error;
     }
+
   },
 
 
@@ -918,13 +1045,55 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     }
   },
 
+  // setFilters: (filters) => {
+  //   set({ filters: { ...get().filters, ...filters } });
+  //   get().fetchLicenses(1);
+  // },
+
   setFilters: (filters) => {
-    set({ filters: { ...get().filters, ...filters } });
-    get().fetchLicenses(1);
-  },
+  const current = get().filters;
+  const next: any = { ...current, ...filters };
+
+  // Normalize "All" to empty for vendor (and any stringy "All")
+  if ('vendor' in filters) {
+    const v = (filters as any).vendor;
+    next.vendor = !v || String(v).trim().toLowerCase() === 'all' ? '' : String(v).trim();
+  }
+  // Optional: normalize serial keys too if your UI ever sends "All"
+  if ('serial' in filters) {
+    const s = (filters as any).serial;
+    next.serial = !s || String(s).trim().toLowerCase() === 'all' ? '' : String(s).trim();
+  }
+  if ('serial_number' in filters) {
+    const s2 = (filters as any).serial_number;
+    next.serial_number = !s2 || String(s2).trim().toLowerCase() === 'all' ? '' : String(s2).trim();
+  }
+
+  set({ filters: next });
+  get().fetchLicenses(1);
+},
+
+  // clearFilters: () => {
+  //   set({ filters: {} });
+  //   get().fetchLicenses(1);
+  // },
 
   clearFilters: () => {
-    set({ filters: {} });
+    set({
+      filters: {
+        vendor: '',
+        project_name: '',
+        company: '',
+        user_name: '',
+        search: '',
+        serial: '',
+        serial_number: '', // legacy key, keep empty to avoid stray server params
+        status: [],
+        priority: [],
+        project_assign: undefined,
+        date_range: undefined,
+      }
+    });
     get().fetchLicenses(1);
   },
 
@@ -935,6 +1104,34 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
   setSelectedLicense: (license) => {
     set({ selectedLicense: license });
+  },
+
+  getAllVendors: async () => {
+    const { data, error } = await supabase
+      .from('licenses')
+      .select('vendor')
+      .not('vendor', 'is', null)
+      .order('vendor', { ascending: true });
+  
+    if (error) {
+      console.error('Error fetching vendors:', error);
+      return [];
+    }
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const row of data || []) {
+      const v = (row as any).vendor?.trim();
+      if (v && !seen.has(v)) {
+        seen.add(v);
+        unique.push(v);
+      }
+    }
+    return unique;
+  },
+  
+  loadVendors: async () => {
+    const list = await get().getAllVendors();
+    set({ vendors: list });
   },
 
   // Comments
@@ -1166,6 +1363,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       if (licErr) throw licErr;
       if (!license) throw new Error('License not found');
   
+      
       // Load the SELECTED serial (the one being renewed)
       const { data: serial, error: serialErr } = await supabase
         .from('license_serials')
@@ -1175,6 +1373,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       if (serialErr) throw serialErr;
       if (!serial) throw new Error('Selected serial not found');
   
+      const prevCost = Number(serial.unit_price ?? 0);
+
       // Insert into renewal_history: save OLD (prev_*) and NEW
       // Insert into renewal_history: OLD snapshot only
       const { data: renewalData, error: renewalError } = await supabase
@@ -1192,8 +1392,9 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         prev_selected_serial_id: serial.id,
         previous_end_date:       serial.end_date || license.license_end_date,
 
+        
         // Meta
-        cost:       payload.cost,
+        cost:       prevCost,
         renewed_by: currentUser.id,
         notes:      payload.notes || null
       }])
@@ -1207,7 +1408,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .update({
           item_description: payload.productName,
           remark: payload.remark ?? license.remark,
-          serial_number: payload.serialNo,
+          // serial_number: payload.serialNo,
           last_modified_by: currentUser.id,
           updated_at: new Date().toISOString()
         })
@@ -1220,7 +1421,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .update({
           serial_or_contract: payload.serialNo,
           start_date: payload.serialStartDate,
-          end_date: payload.newEndDate
+          end_date: payload.newEndDate,
+          unit_price: payload.cost,
         })
         .eq('id', payload.selectedSerialId);
       if (sUpErr) throw sUpErr;
@@ -1281,23 +1483,152 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
       if (error) throw error;
 
-      // Refresh the licenses list
-      await get().fetchLicenses(get().currentPage);
+     // Refresh the licenses list
+  await get().fetchLicenses(get().currentPage);
 
-      // Log the bulk action
-      try {
-        const auditStore = useAuditStore.getState();
-        await auditStore.logAction({
-          action: 'update',
-          entity_type: 'license',
-          entity_id: 'bulk',
-          changes: { licenseIds, updates, count: licenseIds.length },
-          ip_address: null,
-          user_agent: null
-        });
-      } catch (auditError) {
-        console.log('Audit logging failed:', auditError);
+  // Build change set for audit (just compute diffs; no try/catch here)
+  const auditStore = useAuditStore.getState();
+  const changes: Record<string, { old: any; new: any }> = {};
+  if (currentLicense) {
+    Object.keys(sanitized).forEach(key => {
+      if ((currentLicense as any)[key] !== (sanitized as any)[key]) {
+        changes[key] = {
+          old: (currentLicense as any)[key],
+          new: (sanitized as any)[key]
+        };
       }
+    });
+  }
+
+  // Apply serial changes — LET ERRORS BUBBLE UP
+  const serialsIncoming = (updates as any).serials as LicenseSerial[] | undefined;
+  if (serialsIncoming) {
+  // 1) existing ids
+  const { data: existingSerials, error: exErr } = await supabase
+    .from('license_serials')
+    .select('id')
+    .eq('license_id', id);
+  if (exErr) throw exErr;
+
+  const existingIds = new Set((existingSerials || []).map((r: any) => r.id));
+  const incomingIds = new Set(serialsIncoming.filter(s => s.id).map(s => s.id as string));
+
+  // 2) ops
+  const toInsert = serialsIncoming.filter(s => !s.id);
+  const toUpdate = serialsIncoming.filter(s => s.id && existingIds.has(s.id));
+  const toDeleteIds = [...existingIds].filter(oldId => !incomingIds.has(oldId));
+
+  // 3) deletes
+  if (toDeleteIds.length > 0) {
+    const { error: delErr } = await supabase
+      .from('license_serials')
+      .delete()
+      .in('id', toDeleteIds);
+    if (delErr) throw delErr;
+  }
+
+// 4) updates — partial payload to avoid 400 on undefined -> null
+for (const s of toUpdate) {
+  // 4.0) Load old serial row first (for legacy backfill by text)
+  const { data: oldRow, error: oldErr } = await supabase
+    .from('license_serials')
+    .select('serial_or_contract, start_date, end_date')
+    .eq('id', s.id)
+    .single();
+  if (oldErr) throw oldErr;
+
+  // Prepare partial update
+  const payload: any = {};
+  if (typeof s.serial_or_contract === 'string') payload.serial_or_contract = s.serial_or_contract;
+  if (typeof s.start_date === 'string') payload.start_date = s.start_date;        // YYYY-MM-DD
+  if (typeof s.end_date === 'string') payload.end_date = s.end_date;              // YYYY-MM-DD
+  if (typeof s.qty === 'number') payload.qty = s.qty;
+  if (typeof s.unit_price === 'number') payload.unit_price = s.unit_price;
+  if (typeof s.currency === 'string') payload.currency = s.currency;
+  if ('po_no' in s) payload.po_no = s.po_no ?? null;
+  if (typeof s.notify_before_days === 'number') payload.notify_before_days = s.notify_before_days;
+
+  // Update serial
+  const { error: updErr } = await supabase
+    .from('license_serials')
+    .update(payload)
+    .eq('id', s.id);
+  if (updErr) {
+    if ((updErr as any).code === '23505') {
+      throw new Error(`Serial/Contract "${s.serial_or_contract}" already exists. It must be unique.`);
+    }
+    throw updErr;
+  }
+
+  // A) Sync history by FK (preferred)
+  const { data: rh1, error: rhErr1 } = await supabase
+  .from('renewal_history')
+  .update({
+    prev_serial_no: s.serial_or_contract ?? null,
+    prev_serial_start_date: s.start_date ?? null,
+    prev_serial_end_date: s.end_date ?? null,
+  })
+  .eq('prev_selected_serial_id', s.id)
+  .select('id'); // see rows affected
+if (rhErr1) throw rhErr1;
+
+
+  // B) If 0 rows updated, also try legacy rows that have NULL FK but match old serial text
+  if (!rh1 || rh1.length === 0) {
+    if (oldRow?.serial_or_contract) {
+      const { error: rhErr2 } = await supabase
+        .from('renewal_history')
+        .update({
+          prev_serial_no: s.serial_or_contract ?? null,
+          prev_serial_start_date: s.start_date ?? null,
+          prev_serial_end_date: s.end_date ?? null,
+        })
+        .eq('license_id', id)
+        .is('prev_selected_serial_id', null)
+        .eq('prev_serial_no', oldRow.serial_or_contract)
+        .select('id'); // optional, for visibility
+
+      if (rhErr2) throw rhErr2;
+    }
+  }
+}
+
+  // 5) inserts — validate required fields
+  if (toInsert.length > 0) {
+    for (const s of toInsert) {
+      if (!s.serial_or_contract?.trim() || !s.start_date || !s.end_date || typeof s.qty !== 'number' || typeof s.unit_price !== 'number' || !s.currency) {
+        throw new Error('Serial row is missing required fields (serial, dates, qty, unit price, currency).');
+      }
+    }
+    const rows = toInsert.map(s => ({
+      license_id: id,
+      serial_or_contract: s.serial_or_contract,
+      start_date: s.start_date,
+      end_date: s.end_date,
+      qty: s.qty,
+      unit_price: s.unit_price,
+      currency: s.currency,
+      po_no: s.po_no ?? null,
+      notify_before_days: s.notify_before_days ?? 30,
+    }));
+    const { error: insErr } = await supabase.from('license_serials').insert(rows);
+    if (insErr) throw insErr;
+  }
+}
+
+// Audit log — best effort only
+try {
+  await auditStore.logAction({
+    action: 'update',
+    entity_type: 'license',
+    entity_id: id,
+    changes,
+    ip_address: null,
+    user_agent: null
+  });
+} catch (auditError) {
+  console.log('Audit logging failed:', auditError);
+}
     } catch (error) {
       console.error('Error bulk updating licenses:', error);
       throw error;
@@ -1343,7 +1674,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
       const duplicateData = {
         ...original,
-        serial_number: `${original.serial_number}-COPY-${Date.now()}`,
+        // serial_number: `${original.serial_number}-COPY-${Date.now()}`,
         item: `${original.item} (Copy)`,
         status: 'pending' as const
       };
@@ -1366,7 +1697,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       const { data, error } = await supabase
         .from('licenses')
         .select('*')
-        .or(`item.ilike.%${query}%,vendor.ilike.%${query}%,project_name.ilike.%${query}%,serial_number.ilike.%${query}%,customer_name.ilike.%${query}%`)
+        .or(`item.ilike.%${query}%,vendor.ilike.%${query}%,project_name.ilike.%${query}%,customer_name.ilike.%${query}%`)
         .limit(50);
 
       if (error) throw error;
@@ -1656,8 +1987,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         if (filters.vendor) query = query.ilike('vendor', `%${filters.vendor}%`);
         if (filters.status) query = query.in('status', filters.status);
         if (filters.search) {
-          query = query.or(`item.ilike.%${filters.search}%,vendor.ilike.%${filters.search}%,project_name.ilike.%${filters.search}%`);
-        }
+          query = query.or(`item.ilike.%${filters.search}%,vendor.ilike.%${filters.search}%,project_name.ilike.%${filters.search}%`);        }
       }
 
       const { data, error } = await query;

@@ -227,7 +227,7 @@ useEffect(() => {
                         {license.item}
                       </div>
                       <div className="text-sm text-gray-500">{license.vendor}</div>
-                      <div className="flex items-center space-x-2">
+                      {/* <div className="flex items-center space-x-2">
                         <span className="text-xs text-gray-400 font-mono">
                           {license.serial_number}
                         </span>
@@ -241,7 +241,21 @@ useEffect(() => {
                           }}
                           className="text-gray-400 hover:text-gray-600 p-1"
                         />
-                      </div>
+                      </div> */}
+
+{(license as any).serials?.length ? (
+  <div className="flex flex-wrap gap-1 mt-1">
+    {(license as any).serials.map((sn: string, i: number) => (
+      <span
+        key={i}
+        className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-1 py-0.5"
+        title={sn}
+      >
+        {sn}
+      </span>
+    ))}
+  </div>
+) : null}
                     </div>
                   </td>
 

@@ -20,7 +20,8 @@ import { Search, RefreshCw, Users, UserCheck, UserX, Save as SaveIcon, Trash2 } 
 // - created_at, updated_at
 
 type Role = 'admin' | 'super_user' | 'user';
-type Assign = '' | 'NPT' | 'YGN' | 'MPT';
+// type Assign = '' | 'NPT' | 'YGN' | 'MPT';
+type Assign = string;
 type Status = 'approved' | 'rejected' | 'pending';
 
 interface ProfileRow {
@@ -53,6 +54,23 @@ export const UserManagement: React.FC = () => {
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
   ]), []);
+
+    // Dynamic project assign options from DB
+  const [projectOptions, setProjectOptions] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('project_assigns')
+          .select('name')
+          .order('name', { ascending: true });
+        if (error) throw error;
+        setProjectOptions((data || []).map((r: any) => r.name as string));
+      } catch {
+        setProjectOptions(['NPT', 'YGN', 'MPT']); // fallback if needed
+      }
+    })();
+  }, []);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -175,7 +193,8 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const toggleAssign = async (row: ProfileRow, assign: Exclude<Assign, ''>) => {
+  // const toggleAssign = async (row: ProfileRow, assign: Exclude<Assign, ''>) => {
+  const toggleAssign = async (row: ProfileRow, assign: string) => {
     if (!row.user_id) return;
     try {
       setSavingId(row.id);
@@ -348,13 +367,25 @@ export const UserManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-3">
-                        {(['NPT','YGN','MPT'] as Assign[]).map((a) => (
+                        {/* {(['NPT','YGN','MPT'] as Assign[]).map((a) => (
                           <label key={a} className="inline-flex items-center gap-2 text-gray-700">
                             <input
                               type="checkbox"
                               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                               checked={u.assignments?.includes(a as any) || false}
                               onChange={() => toggleAssign(u, a as any)}
+                            />
+                            <span className="text-sm">{a}</span>
+                          </label>
+                        ))} */}
+
+                        {projectOptions.map((a) => (
+                          <label key={a} className="inline-flex items-center gap-2 text-gray-700">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              checked={u.assignments?.includes(a) || false}
+                              onChange={() => toggleAssign(u, a)}
                             />
                             <span className="text-sm">{a}</span>
                           </label>

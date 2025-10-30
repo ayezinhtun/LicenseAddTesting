@@ -197,11 +197,17 @@ export const DistributorPage: React.FC = () => {
                 <div className="col-span-3">
                   <div className="flex items-center justify-end space-x-1">
                     <Button variant="ghost" size="sm" icon={Edit} onClick={() => openEdit(c)} title="Edit" className="text-gray-400 hover:text-blue-600" />
-                    <Button
+                    {/* <Button
                       variant="ghost" size="sm" icon={Trash2}
                       onClick={async () => { if (window.confirm('Delete this customer?')) await deleteCustomer(c.id); }}
                       title="Delete" className="text-gray-400 hover:text-red-600"
-                    />
+                    /> */}
+
+                  <Button
+                    variant="ghost" size="sm" icon={Trash2}
+                    onClick={async () => { if (window.confirm('Delete this distributor?')) await deleteDistributor(c.id); }}
+                    title="Delete" className="text-gray-400 hover:text-red-600"
+                  />
                   </div>
                 </div>
               </div>

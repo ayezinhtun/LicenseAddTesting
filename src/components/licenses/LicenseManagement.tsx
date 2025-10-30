@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore';
 import { License } from '../../store/licenseStore';
 import toast from 'react-hot-toast';
 import { format, parseISO, addDays } from 'date-fns';
+import { useProjectAssignStore } from '../../store/projectAssignStore';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
@@ -37,6 +38,11 @@ export const LicenseManagement: React.FC = () => {
   } = useLicenseStore();
 
   const { user } = useAuthStore();
+
+  const { assigns, fetchProjectAssigns } = useProjectAssignStore();
+  useEffect(() => {
+    fetchProjectAssigns();
+  }, [fetchProjectAssigns]);
 
   const location = useLocation() as { state?: { editLicenseId?: string } };
   const navigate = useNavigate();
@@ -67,7 +73,8 @@ export const LicenseManagement: React.FC = () => {
     status: '',
     priority: '',
     project_name: '',
-    project_assign: '' as '' | 'NPT' | 'YGN' | 'MPT'
+    // project_assign: '' as '' | 'NPT' | 'YGN' | 'MPT'
+    project_assign: '' as string
   });
 
   const getUniqueVendors = () => {
@@ -165,13 +172,17 @@ const handleEditLicense = async (license: License) => {
       }
       setIsFormOpen(false);
       setEditingLicense(null);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : (editingLicense ? 'Failed to update license' : 'Failed to add license');
-      if (msg.includes('duplicate serial number')) {
-        toast.error('A license with this serial number already exists');
-      } else {
-        toast.error(msg);
-      }
+    } catch (err) {
+      let msg = editingLicense ? 'Failed to update license' : 'Failed to add license';
+      const e = err as any;
+    
+      if (e?.message && typeof e.message === 'string') msg = e.message;
+      else if (typeof e === 'string') msg = e;
+      else if (e?.error?.message) msg = e.error.message;
+      else if (e?.data?.message) msg = e.data.message;
+      else if (e?.details) msg = `${msg} — ${e.details}`;
+    
+      toast.error(msg);
     }
   };
 
@@ -466,6 +477,19 @@ const handleExportPDF = async () => {
     }
   };
 
+  const { assignments } = useAuthStore.getState();
+  const projectAssignFilterOptions = React.useMemo(() => {
+    const all = (assigns || []).map(a => ({ value: a.name, label: a.name }));
+    const base = [{ value: '', label: 'All Assigns' }];
+
+    if (user?.role === 'admin') return base.concat(all);
+
+    const allowed = new Set((assignments || []).map(a => a.trim()).filter(Boolean));
+    const filtered = all.filter(o => allowed.has(o.value));
+
+    return base.concat(filtered);
+  }, [assigns, user?.role, assignments]);
+
   const statusOptions = [
     { value: '', label: 'All Statuses' },
     { value: 'pending', label: 'Pending' },
@@ -739,11 +763,18 @@ const handleExportPDF = async () => {
                     placeholder="Filter by project name"
                   />
 
-                  <Select
+                  {/* <Select
                     label="Project Assign"
                     value={localFilters.project_assign}
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, project_assign: value as any }))}
                     options={[{ value: '', label: 'All Assigns' }, { value: 'NPT', label: 'NPT' }, { value: 'YGN', label: 'YGN' }, { value: 'MPT', label: 'MPT' }]}
+                  /> */}
+
+                  <Select
+                    label="Project Assign"
+                    value={localFilters.project_assign}
+                    onChange={(value) => setLocalFilters(prev => ({ ...prev, project_assign: value as any }))}
+                    options={projectAssignFilterOptions}
                   />
                   
                   <Select
