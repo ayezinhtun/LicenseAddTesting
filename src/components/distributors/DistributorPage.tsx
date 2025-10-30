@@ -203,11 +203,11 @@ export const DistributorPage: React.FC = () => {
                       title="Delete" className="text-gray-400 hover:text-red-600"
                     /> */}
 
-                  <Button
-                    variant="ghost" size="sm" icon={Trash2}
-                    onClick={async () => { if (window.confirm('Delete this distributor?')) await deleteDistributor(c.id); }}
-                    title="Delete" className="text-gray-400 hover:text-red-600"
-                  />
+                    <Button
+                      variant="ghost" size="sm" icon={Trash2}
+                      onClick={async () => { if (window.confirm('Delete this distributor?')) await deleteDistributor(c.id); }}
+                      title="Delete" className="text-gray-400 hover:text-red-600"
+                    />
                   </div>
                 </div>
               </div>

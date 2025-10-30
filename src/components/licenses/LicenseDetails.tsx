@@ -36,12 +36,12 @@ export const LicenseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { user } = useAuthStore();  
+  const { user } = useAuthStore();
   const {
     selectedLicense,
     fetchLicenseById,
     setSelectedLicense,
-    
+
     addAttachment,
     deleteAttachment,
     fetchAttachments,
@@ -62,7 +62,7 @@ export const LicenseDetails: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [attachmentDescription, setAttachmentDescription] = useState('');
   const [selectedSerialId, setSelectedSerialId] = useState<string>('');
-  
+
   const [renewalData, setRenewalData] = useState({
     productName: '',
     serialNo: '',
@@ -113,7 +113,7 @@ export const LicenseDetails: React.FC = () => {
 
   const handleAddAttachment = async () => {
     if (!selectedFile || !selectedLicense) return;
-    
+
     try {
       await addAttachment(selectedLicense.id, selectedFile, attachmentDescription);
       const updatedAttachments = await fetchAttachments(selectedLicense.id);
@@ -128,12 +128,12 @@ export const LicenseDetails: React.FC = () => {
   };
 
   // Build an HTML document for the current license
-const buildLicenseDetailHtml = () => {
-  if (!selectedLicense) return '';
+  const buildLicenseDetailHtml = () => {
+    if (!selectedLicense) return '';
 
-  // Tables
-  const serialRows = (serials || [])
-    .map(s => `
+    // Tables
+    const serialRows = (serials || [])
+      .map(s => `
       <tr>
         <td>${s.serial_or_contract || ''}</td>
         <td>${s.start_date || ''}</td>
@@ -146,8 +146,8 @@ const buildLicenseDetailHtml = () => {
       </tr>
     `).join('') || `<tr><td colspan="8" style="text-align:center;color:#777">No serials added</td></tr>`;
 
-  const customerRows = (customers || [])
-    .map(c => `
+    const customerRows = (customers || [])
+      .map(c => `
       <tr>
         <td>${c.company_name || ''}</td>
         <td>${c.contact_person || ''}</td>
@@ -157,8 +157,8 @@ const buildLicenseDetailHtml = () => {
       </tr>
     `).join('') || `<tr><td colspan="5" style="text-align:center;color:#777">No customers added</td></tr>`;
 
-  const distributorRows = (distributors || [])
-    .map(d => `
+    const distributorRows = (distributors || [])
+      .map(d => `
       <tr>
         <td>${d.company_name || ''}</td>
         <td>${d.contact_person || ''}</td>
@@ -167,9 +167,9 @@ const buildLicenseDetailHtml = () => {
       </tr>
     `).join('') || `<tr><td colspan="4" style="text-align:center;color:#777">No distributors added</td></tr>`;
 
-  const product = selectedLicense.item_description?.trim() ? selectedLicense.item_description : selectedLicense.item;
+    const product = selectedLicense.item_description?.trim() ? selectedLicense.item_description : selectedLicense.item;
 
-  return `
+    return `
     <html>
       <head>
         <title>License Detail - ${selectedLicense.vendor || ''}</title>
@@ -278,25 +278,25 @@ const buildLicenseDetailHtml = () => {
       </body>
     </html>
   `;
-};
+  };
 
-const handleExportPDFDetail = () => {
-  const html = buildLicenseDetailHtml();
-  if (!html) return;
+  const handleExportPDFDetail = () => {
+    const html = buildLicenseDetailHtml();
+    if (!html) return;
 
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.print();
-  } else {
-    toast.error('Popup blocked. Please allow popups for this site.');
-  }
-};
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      w.print();
+    } else {
+      toast.error('Popup blocked. Please allow popups for this site.');
+    }
+  };
 
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (!window.confirm('Are you sure you want to delete this attachment?')) return;
-    
+
     try {
       await deleteAttachment(attachmentId);
       const updatedAttachments = await fetchAttachments(selectedLicense!.id);
@@ -325,7 +325,7 @@ const handleExportPDFDetail = () => {
       !renewalData.newEndDate ||
       !renewalData.cost
     ) return;
-  
+
     try {
       await renewLicense(selectedLicense.id, {
         selectedSerialId,
@@ -356,7 +356,7 @@ const handleExportPDFDetail = () => {
 
   const handleDelete = async () => {
     if (!selectedLicense) return;
-    
+
     if (window.confirm('Are you sure you want to delete this license? This action cannot be undone.')) {
       try {
         await deleteLicense(selectedLicense.id);
@@ -373,80 +373,46 @@ const handleExportPDFDetail = () => {
     toast.success('Copied to clipboard');
   };
 
-   // const getExpiryStatus = (endDate: string) => {
-  //   const daysUntilExpiry = differenceInDays(parseISO(endDate), new Date());
-    
-  //   if (daysUntilExpiry < 0) {
-  //     return { 
-  //       status: 'Expired', 
-  //       color: 'text-red-600 bg-red-50 border-red-200', 
-  //       icon: AlertTriangle,
-  //       days: Math.abs(daysUntilExpiry) 
-  //     };
-  //   } else if (daysUntilExpiry <= 7) {
-  //     return { 
-  //       status: 'Critical', 
-  //       color: 'text-red-600 bg-red-50 border-red-200', 
-  //       icon: AlertTriangle,
-  //       days: daysUntilExpiry 
-  //     };
-  //   } else if (daysUntilExpiry <= 30) {
-  //     return { 
-  //       status: 'Warning', 
-  //       color: 'text-orange-600 bg-orange-50 border-orange-200', 
-  //       icon: Clock,
-  //       days: daysUntilExpiry 
-  //     };
-  //   } else {
-  //     return { 
-  //       status: 'Active', 
-  //       color: 'text-green-600 bg-green-50 border-green-200', 
-  //       icon: CheckCircle,
-  //       days: daysUntilExpiry 
-  //     };
-  //   }
-  // };
-
 
   // Add this helper for a single serial end date
-    const getSerialExpiryStatus = (endDate?: string | null) => {
-      if (!endDate) {
-        return {
-          status: 'Active',
-          color: 'text-green-600 bg-green-50 border-green-200',
-          icon: CheckCircle,
-          days: 0
-        };
-      }
+  const getSerialExpiryStatus = (endDate?: string | null) => {
+    if (!endDate) {
+      return {
+        status: 'Active',
+        color: 'text-green-600 bg-green-50 border-green-200',
+        icon: CheckCircle,
+        days: 0
+      };
+    }
 
-      let dateObj: Date | null = null;
-      try {
-        dateObj = parseISO(endDate);
-      } catch {
-        dateObj = null;
-      }
+    let dateObj: Date | null = null;
+    try {
+      dateObj = parseISO(endDate);
+    } catch {
+      dateObj = null;
+    }
 
-      if (!dateObj) {
-        return {
-          status: 'Active',
-          color: 'text-green-600 bg-green-50 border-green-200',
-          icon: CheckCircle,
-          days: 0
-        };
-      }
+    if (!dateObj) {
+      return {
+        status: 'Active',
+        color: 'text-green-600 bg-green-50 border-green-200',
+        icon: CheckCircle,
+        days: 0
+      };
+    }
 
-      const daysUntilExpiry = differenceInDays(dateObj, new Date());
+    const daysUntilExpiry = differenceInDays(dateObj, new Date());
 
-      if (daysUntilExpiry < 0) {
-        return { status: 'Expired', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle, days: Math.abs(daysUntilExpiry) };
-      } else if (daysUntilExpiry <= 7) {
-        return { status: 'Critical', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle, days: daysUntilExpiry };
-      } else if (daysUntilExpiry <= 30) {
-        return { status: 'Warning', color: 'text-orange-600 bg-orange-50 border-orange-200', icon: Clock, days: daysUntilExpiry };
-      } else {
-        return { status: 'Active', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle, days: daysUntilExpiry };
-      }
-    };
+    if (daysUntilExpiry < 0) {
+      return { status: 'Expired', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle, days: Math.abs(daysUntilExpiry) };
+    } else if (daysUntilExpiry <= 7) {
+      return { status: 'Critical', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle, days: daysUntilExpiry };
+    } else if (daysUntilExpiry <= 30) {
+      return { status: 'Warning', color: 'text-orange-600 bg-orange-50 border-orange-200', icon: Clock, days: daysUntilExpiry };
+    } else {
+      return { status: 'Active', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle, days: daysUntilExpiry };
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -504,57 +470,57 @@ const handleExportPDFDetail = () => {
             </p>
           </div>
         </div>
-        
+
         <div className="flex space-x-3">
-        <Button variant="secondary" icon={Download} onClick={handleExportPDFDetail}>
-          Export PDF
-        </Button>
+          <Button variant="secondary" icon={Download} onClick={handleExportPDFDetail}>
+            Export PDF
+          </Button>
 
           {user?.role !== 'user' && (
-              // in header actions
-        // Renew button in header
-        <Button
-          variant="primary"
-          icon={RefreshCw}
-          onClick={() => {
-            setRenewalData({
-              // prefer item_description, fallback to item
-              productName: selectedLicense?.item_description || selectedLicense?.item || '',
-              serialNo: '',
-              serialStartDate: '',
-              newEndDate: '',
-              cost: 0,
-              // prefill remark into notes textarea
-              notes: selectedLicense?.remark || ''
-            });
-            setSelectedSerialId('');
-            setShowRenewalModal(true);
-          }}
-        >
-          Renew
-        </Button>
-            )}
+            // in header actions
+            // Renew button in header
+            <Button
+              variant="primary"
+              icon={RefreshCw}
+              onClick={() => {
+                setRenewalData({
+                  // prefer item_description, fallback to item
+                  productName: selectedLicense?.item_description || selectedLicense?.item || '',
+                  serialNo: '',
+                  serialStartDate: '',
+                  newEndDate: '',
+                  cost: 0,
+                  // prefill remark into notes textarea
+                  notes: selectedLicense?.remark || ''
+                });
+                setSelectedSerialId('');
+                setShowRenewalModal(true);
+              }}
+            >
+              Renew
+            </Button>
+          )}
 
-           {/* Show Edit for admin and super_user; hide for user */}
-           {user?.role !== 'user' && (
-              <Button
-                variant="secondary"
-                icon={Edit}
-                onClick={() => {
-                  if (!selectedLicense) return;
-                  navigate('/licenses', { state: { editLicenseId: selectedLicense.id } });
-                }}
-              >
-                Edit
-              </Button>
-            )}
+          {/* Show Edit for admin and super_user; hide for user */}
+          {user?.role !== 'user' && (
+            <Button
+              variant="secondary"
+              icon={Edit}
+              onClick={() => {
+                if (!selectedLicense) return;
+                navigate('/licenses', { state: { editLicenseId: selectedLicense.id } });
+              }}
+            >
+              Edit
+            </Button>
+          )}
 
-            {/* Show Delete for admin only; hide for super_user and user */}
-            {user?.role === 'admin' && (
-              <Button variant="danger" icon={Trash2} onClick={handleDelete}>
-                Delete
-              </Button>
-            )}
+          {/* Show Delete for admin only; hide for super_user and user */}
+          {user?.role === 'admin' && (
+            <Button variant="danger" icon={Trash2} onClick={handleDelete}>
+              Delete
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -599,21 +565,6 @@ const handleExportPDFDetail = () => {
 
                 {/* Details grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500">License Start Date</p>
-                      <p className="text-sm text-gray-900">
-                        {format(parseISO(selectedLicense.license_start_date), 'MMM dd, yyyy')}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500">License End Date</p>
-                      <p className="text-sm text-gray-900">
-                        {format(parseISO(selectedLicense.license_end_date), 'MMM dd, yyyy')}
-                      </p>
-                    </div>
-                  </div> */}
 
                   {/* Right column */}
                   <div className="space-y-3">
@@ -634,7 +585,7 @@ const handleExportPDFDetail = () => {
                       <p className="text-sm text-gray-900 flex-1">
                         {selectedLicense.item_description}
                       </p>
-                    
+
                     </div>
                   </div>
                 )}
@@ -650,7 +601,7 @@ const handleExportPDFDetail = () => {
               </div>
             </Card>
           </motion.div>
-         
+
 
           {/* Serial Number Information */}
           <motion.div
@@ -669,72 +620,64 @@ const handleExportPDFDetail = () => {
                       const rowTotal = (s.unit_price || 0) * (s.qty || 0);
                       return (
                         <div key={s.id} className="p-4 border rounded-lg">
-                        {/* Row header with per-serial expiry status */}
-                        {(() => {
-                          const exp = getSerialExpiryStatus(s.end_date);
-                          const Icon = exp.icon;
-                          return (
-                            <div className={`mb-3 inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs ${exp.color}`}>
-                              <Icon className="h-4 w-4" />
-                              <span className="font-medium">Status: {exp.status}</span>
-                              <span className="opacity-80">
-                                {exp.status === 'Expired' ? `Expired ${exp.days}d ago` : `${exp.days}d remaining`}
-                              </span>
+                          {/* Row header with per-serial expiry status */}
+                          {(() => {
+                            const exp = getSerialExpiryStatus(s.end_date);
+                            const Icon = exp.icon;
+                            return (
+                              <div className={`mb-3 inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs ${exp.color}`}>
+                                <Icon className="h-4 w-4" />
+                                <span className="font-medium">Status: {exp.status}</span>
+                                <span className="opacity-80">
+                                  {exp.status === 'Expired' ? `Expired ${exp.days}d ago` : `${exp.days}d remaining`}
+                                </span>
+                              </div>
+                            );
+                          })()}
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500">Serial/Contract</p>
+                              <p className="font-mono text-sm text-gray-900">{s.serial_or_contract}</p>
                             </div>
-                          );
-                        })()}
-                      
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-xs text-gray-500">Serial/Contract</p>
-                            <p className="font-mono text-sm text-gray-900">{s.serial_or_contract}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Start Date</p>
-                            <p className="text-gray-900">
-                              {s.start_date ? format(parseISO(s.start_date), 'MMM dd, yyyy') : '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">End Date</p>
-                            <p className="text-gray-900">
-                              {s.end_date ? format(parseISO(s.end_date), 'MMM dd, yyyy') : '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Qty</p>
-                            <p className="text-gray-900">{s.qty}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Currency</p>
-                            <p className="text-gray-900">{s.currency}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Unit Price</p>
-                            <p className="text-gray-900">{s.unit_price.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Total</p>
-                            <p className="text-gray-900 font-medium">
-                              {((s.unit_price || 0) * (s.qty || 0)).toLocaleString()} {s.currency}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">PO No.</p>
-                            <p className="text-gray-900">{s.po_no || '-'}</p>
+                            <div>
+                              <p className="text-xs text-gray-500">Start Date</p>
+                              <p className="text-gray-900">
+                                {s.start_date ? format(parseISO(s.start_date), 'MMM dd, yyyy') : '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">End Date</p>
+                              <p className="text-gray-900">
+                                {s.end_date ? format(parseISO(s.end_date), 'MMM dd, yyyy') : '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Qty</p>
+                              <p className="text-gray-900">{s.qty}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Currency</p>
+                              <p className="text-gray-900">{s.currency}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Unit Price</p>
+                              <p className="text-gray-900">{s.unit_price.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Total</p>
+                              <p className="text-gray-900 font-medium">
+                                {((s.unit_price || 0) * (s.qty || 0)).toLocaleString()} {s.currency}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">PO No.</p>
+                              <p className="text-gray-900">{s.po_no || '-'}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
                       );
                     })}
-                    {/* Totals per currency */}
-                    {/* <div className="mt-2 text-sm text-gray-700">
-                      {['MMK', 'USD'].map((cur) => {
-                        const sum = serials.filter(s => s.currency === (cur as any)).reduce((acc, s) => acc + (s.unit_price || 0) * (s.qty || 0), 0);
-                        if (!sum) return null;
-                        return <div key={cur} className="font-medium">Total ({cur}): {sum.toLocaleString()}</div>;
-                      })}
-                    </div> */}
                   </div>
                 )}
               </div>
@@ -852,7 +795,7 @@ const handleExportPDFDetail = () => {
             </Card>
           </motion.div>
 
-         {/* Distributor Information */}
+          {/* Distributor Information */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -971,7 +914,7 @@ const handleExportPDFDetail = () => {
                     Add Attachment
                   </Button>
                 </div>
-                
+
                 {attachments.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Paperclip className="h-8 w-8 mx-auto mb-2 text-gray-300" />
@@ -986,7 +929,7 @@ const handleExportPDFDetail = () => {
                           <div>
                             <p className="text-sm font-medium text-gray-900">{attachment.file_name}</p>
                             <p className="text-xs text-gray-500">
-                              {(attachment.file_size / 1024 / 1024).toFixed(2)} MB • 
+                              {(attachment.file_size / 1024 / 1024).toFixed(2)} MB •
                               {format(new Date(attachment.uploaded_at), 'MMM dd, yyyy')}
                             </p>
                             {attachment.description && (
@@ -1020,60 +963,7 @@ const handleExportPDFDetail = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* License Dates */}
-          
 
-          {/* Renewal History */}
-          {/* {renewalHistory.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card>
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Renewal History</h3>
-                  
-                  <div className="space-y-3">
-                    {renewalHistory.map((renewal) => (
-                      <div key={renewal.id} className="border-l-4 border-green-200 pl-3 py-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-900">
-                            ${renewal.cost.toLocaleString()}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                          {renewal.renewal_date
-                            ? format(new Date(renewal.renewal_date), 'MMM dd, yyyy')
-                            : '-'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600">
-                            {renewal.prev_serial_start_date || renewal.prev_serial_end_date ? (
-                              <>
-                                Prev period: {renewal.prev_serial_start_date
-                                  ? format(new Date(renewal.prev_serial_start_date), 'MMM dd, yyyy')
-                                  : '-'}
-                                {' '}→{' '}
-                                {renewal.prev_serial_end_date
-                                  ? format(new Date(renewal.prev_serial_end_date), 'MMM dd, yyyy')
-                                  : '-'}
-                              </>
-                            ) : (
-                              <>Prev end: {renewal.previous_end_date
-                                ? format(new Date(renewal.previous_end_date), 'MMM dd, yyyy')
-                                : '-'}</>
-                            )}
-                          </p>
-                        {renewal.notes && (
-                          <p className="text-xs text-gray-500 mt-1">{renewal.notes}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          )} */}
         </div>
       </div>
 
@@ -1100,17 +990,17 @@ const handleExportPDFDetail = () => {
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
-          
+
           <Input
             label="Description (Optional)"
             value={attachmentDescription}
             onChange={setAttachmentDescription}
             placeholder="Brief description of the attachment..."
           />
-          
+
           <div className="flex justify-end space-x-3">
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={() => {
                 setShowAttachmentModal(false);
                 setSelectedFile(null);
@@ -1119,8 +1009,8 @@ const handleExportPDFDetail = () => {
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleAddAttachment} 
+            <Button
+              onClick={handleAddAttachment}
               disabled={!selectedFile}
               icon={Upload}
             >
@@ -1130,208 +1020,157 @@ const handleExportPDFDetail = () => {
         </div>
       </Modal>
 
-      {/* Renewal Modal */}
-      {/* <Modal
+
+      <Modal
         isOpen={showRenewalModal}
         onClose={() => setShowRenewalModal(false)}
         title="Renew License"
       >
-        <div className="space-y-4">
-          <Input
-            label="New End Date"
-            type="date"
-            value={renewalData.newEndDate}
-            onChange={(value) => setRenewalData({ ...renewalData, newEndDate: value })}
-            required
-          />
-          
-          <Input
-            label="Renewal Cost"
-            type="number"
-            value={renewalData.cost.toString()}
-            onChange={(value) => setRenewalData({ ...renewalData, cost: parseFloat(value) || 0 })}
-            required
-          />
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (Optional)
-            </label>
-            <textarea
-              value={renewalData.notes}
-              onChange={(e) => setRenewalData({ ...renewalData, notes: e.target.value })}
-              rows={3}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Add renewal notes..."
-            />
-          </div>
-          
-          <div className="flex justify-end space-x-3">
-            <Button variant="secondary" onClick={() => setShowRenewalModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleRenewal} 
-              disabled={!renewalData.newEndDate || !renewalData.cost}
-              icon={RefreshCw}
-            >
-              Renew License
-            </Button>
-          </div>
-        </div>
-      </Modal> */}
-
-<Modal
-  isOpen={showRenewalModal}
-  onClose={() => setShowRenewalModal(false)}
-  title="Renew License"
->
-  <div className="space-y-6">
-    {/* Project Name - Editable */}
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700">Project Name *</label>
-      <Input
-        value={renewalData.productName}
-        onChange={(value) => setRenewalData({ ...renewalData, productName: value })}
-        placeholder="Enter product name"
-        required
-      />
-    </div>
-
-    {/* Serial Selection */}
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700">Select Serial *</label>
-      <div className="mt-1 space-y-2 max-h-60 overflow-y-auto p-1">
-        {serials.map((s) => (
-          <div
-            key={s.id || s.serial_or_contract}
-            onClick={() => {
-              setSelectedSerialId(s.id || '');
-              setRenewalData(prev => ({
-                ...prev,
-                serialNo: s.serial_or_contract || '',
-                serialStartDate: s.start_date || '',
-                newEndDate: s.end_date || '',
-                cost: (s.unit_price || 0) * (s.qty || 0)
-              }));
-            }}
-            className={`p-3 border rounded-md cursor-pointer transition-colors ${
-              selectedSerialId === s.id 
-                ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-xs text-gray-500">Serial No</p>
-                <p className="font-medium">{s.serial_or_contract || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Period</p>
-                <p className="font-medium">
-                  {s.start_date || 'N/A'} → {s.end_date || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Qty × Price</p>
-                <p className="font-medium">
-                  {s.qty || '0'} × {s.currency} {s.unit_price || '0.00'}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* Serial Information - Editable */}
-    <div className="space-y-4 pt-2">
-      <h3 className="text-sm font-medium text-gray-700">Serial Information</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Serial No *</label>
-          <Input
-            value={renewalData.serialNo}
-            onChange={(value) => setRenewalData({ ...renewalData, serialNo: value })}
-            placeholder="Enter serial number"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Start Date *</label>
-          <Input
-            type="date"
-            value={renewalData.serialStartDate}
-            onChange={(value) => setRenewalData({ ...renewalData, serialStartDate: value })}
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">End Date *</label>
-          <Input
-            type="date"
-            value={renewalData.newEndDate}
-            onChange={(value) => setRenewalData({ ...renewalData, newEndDate: value })}
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Renewal Cost *</label>
-          <div className="relative rounded-md shadow-sm">
+        <div className="space-y-6">
+          {/* Project Name - Editable */}
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Project Name *</label>
             <Input
-              type="number"
-              value={renewalData.cost.toString()}
-              onChange={(value) => setRenewalData({ ...renewalData, cost: parseFloat(value) || 0 })}
-              placeholder="0.00"
-              step="0.01"
+              value={renewalData.productName}
+              onChange={(value) => setRenewalData({ ...renewalData, productName: value })}
+              placeholder="Enter product name"
               required
             />
           </div>
+
+          {/* Serial Selection */}
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Select Serial *</label>
+            <div className="mt-1 space-y-2 max-h-60 overflow-y-auto p-1">
+              {serials.map((s) => (
+                <div
+                  key={s.id || s.serial_or_contract}
+                  onClick={() => {
+                    setSelectedSerialId(s.id || '');
+                    setRenewalData(prev => ({
+                      ...prev,
+                      serialNo: s.serial_or_contract || '',
+                      serialStartDate: s.start_date || '',
+                      newEndDate: s.end_date || '',
+                      cost: (s.unit_price || 0) * (s.qty || 0)
+                    }));
+                  }}
+                  className={`p-3 border rounded-md cursor-pointer transition-colors ${selectedSerialId === s.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                >
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-500">Serial No</p>
+                      <p className="font-medium">{s.serial_or_contract || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Period</p>
+                      <p className="font-medium">
+                        {s.start_date || 'N/A'} → {s.end_date || 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Qty × Price</p>
+                      <p className="font-medium">
+                        {s.qty || '0'} × {s.currency} {s.unit_price || '0.00'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Serial Information - Editable */}
+          <div className="space-y-4 pt-2">
+            <h3 className="text-sm font-medium text-gray-700">Serial Information</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Serial No *</label>
+                <Input
+                  value={renewalData.serialNo}
+                  onChange={(value) => setRenewalData({ ...renewalData, serialNo: value })}
+                  placeholder="Enter serial number"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Start Date *</label>
+                <Input
+                  type="date"
+                  value={renewalData.serialStartDate}
+                  onChange={(value) => setRenewalData({ ...renewalData, serialStartDate: value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">End Date *</label>
+                <Input
+                  type="date"
+                  value={renewalData.newEndDate}
+                  onChange={(value) => setRenewalData({ ...renewalData, newEndDate: value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Renewal Cost *</label>
+                <div className="relative rounded-md shadow-sm">
+                  <Input
+                    type="number"
+                    value={renewalData.cost.toString()}
+                    onChange={(value) => setRenewalData({ ...renewalData, cost: parseFloat(value) || 0 })}
+                    placeholder="0.00"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Remarks</label>
+              <textarea
+                value={renewalData.notes}
+                onChange={(e) => setRenewalData({ ...renewalData, notes: e.target.value })}
+                rows={3}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                placeholder="Add any notes..."
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-6">
+            <Button
+              variant="secondary"
+              onClick={() => setShowRenewalModal(false)}
+              className="px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRenewal}
+              disabled={
+                !renewalData.productName ||
+                !renewalData.serialNo ||
+                !renewalData.serialStartDate ||
+                !renewalData.newEndDate ||
+                !renewalData.cost ||
+                !selectedSerialId
+              }
+              icon={RefreshCw}
+            >
+              Process Renewal
+            </Button>
+          </div>
         </div>
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">Remarks</label>
-        <textarea
-          value={renewalData.notes}
-          onChange={(e) => setRenewalData({ ...renewalData, notes: e.target.value })}
-          rows={3}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-          placeholder="Add any notes..."
-        />
-      </div>
-    </div>
-
-    {/* Action Buttons */}
-    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-6">
-      <Button 
-        variant="secondary" 
-        onClick={() => setShowRenewalModal(false)}
-        className="px-4"
-      >
-        Cancel
-      </Button>
-      <Button
-        onClick={handleRenewal}
-        disabled={
-          !renewalData.productName ||
-          !renewalData.serialNo ||
-          !renewalData.serialStartDate ||
-          !renewalData.newEndDate ||
-          !renewalData.cost ||
-          !selectedSerialId
-        }
-        icon={RefreshCw}
-      >
-        Process Renewal
-      </Button>
-    </div>
-  </div>
-</Modal>
+      </Modal>
     </div>
   );
 };

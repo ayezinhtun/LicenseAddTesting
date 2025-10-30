@@ -15,7 +15,7 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await login(email, password);
       toast.success('Welcome to 1Cloud Technology License Manager!');

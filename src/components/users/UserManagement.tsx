@@ -9,16 +9,6 @@ import toast from 'react-hot-toast';
 import { Input } from '../common/Input';
 import { Search, RefreshCw, Users, UserCheck, UserX, Save as SaveIcon, Trash2 } from 'lucide-react';
 
-// Expected schema in public.user_profiles:
-// - id (uuid, pk)
-// - user_id (uuid, fk to auth.users)
-// - email (text)
-// - full_name (text)
-// - role (enum: 'admin' | 'super_user' | 'user')
-// - project_assign (text: NPT | YGN | MPT | null)
-// - status (enum: 'approved' | 'rejected' | 'pending' default 'pending')
-// - created_at, updated_at
-
 type Role = 'admin' | 'super_user' | 'user';
 // type Assign = '' | 'NPT' | 'YGN' | 'MPT';
 type Assign = string;
@@ -55,7 +45,7 @@ export const UserManagement: React.FC = () => {
     { value: 'rejected', label: 'Rejected' },
   ]), []);
 
-    // Dynamic project assign options from DB
+  // Dynamic project assign options from DB
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
   useEffect(() => {
     (async () => {
@@ -95,8 +85,8 @@ export const UserManagement: React.FC = () => {
         if (!arr.includes(val)) arr.push(val);
       });
 
-      const allowedRoles: Role[] = ['admin','super_user','user'];
-      const allowedStatus: Status[] = ['pending','approved','rejected'];
+      const allowedRoles: Role[] = ['admin', 'super_user', 'user'];
+      const allowedStatus: Status[] = ['pending', 'approved', 'rejected'];
       const merged = (profiles as any[]).map((p) => {
         const roleRaw = (p.role ?? '').toString().trim();
         const statusRaw = (p.status ?? '').toString().trim();
@@ -367,17 +357,6 @@ export const UserManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-3">
-                        {/* {(['NPT','YGN','MPT'] as Assign[]).map((a) => (
-                          <label key={a} className="inline-flex items-center gap-2 text-gray-700">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              checked={u.assignments?.includes(a as any) || false}
-                              onChange={() => toggleAssign(u, a as any)}
-                            />
-                            <span className="text-sm">{a}</span>
-                          </label>
-                        ))} */}
 
                         {projectOptions.map((a) => (
                           <label key={a} className="inline-flex items-center gap-2 text-gray-700">

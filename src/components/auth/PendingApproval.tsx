@@ -65,7 +65,7 @@ export const PendingApproval: React.FC = () => {
       .subscribe();
 
     return () => {
-      try { supabase.removeChannel(channel); } catch {}
+      try { supabase.removeChannel(channel); } catch { }
     };
   }, [userId, navigate, logout]);
 
@@ -114,7 +114,7 @@ export const PendingApproval: React.FC = () => {
                   <div className="mt-1 text-sm text-red-700">
                     <p>{message}</p>
                   </div>
-                  
+
                 </div>
               </div>
             </div>
@@ -122,9 +122,9 @@ export const PendingApproval: React.FC = () => {
           <div className="mt-4">
             <Button onClick={handleRefreshStatus}>Refresh status</Button>
           </div>
-          
+
           <div className="mt-6">
-          <Button onClick={handleSignOut}>Sign out</Button>          </div>
+            <Button onClick={handleSignOut}>Sign out</Button>          </div>
         </div>
       </Card>
     </div>

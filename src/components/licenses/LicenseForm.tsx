@@ -103,7 +103,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       }
     ],
     customers: [] as Array<{
-      customer_id?: string; 
+      customer_id?: string;
       company_name: string;
       contact_person?: string;
       contact_email?: string;
@@ -111,7 +111,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       address?: string;
     }>,
     distributors: [] as Array<{
-      distributor_id?: string; 
+      distributor_id?: string;
       company_name: string;
       contact_person?: string;
       contact_email?: string;
@@ -126,61 +126,61 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     user_name: '',
     // license_start_date: '',
     // license_end_date: '',
-    
-    
+
+
   });
 
 
-    const { customers, fetchCustomers } = useCustomerStore();
-    useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
+  const { customers, fetchCustomers } = useCustomerStore();
+  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-    const customerOptions = (customers || []).map(c => ({
-      value: c.id,
-      label: c.company_name
-    }));
-
-
-    const selectExistingCustomer = (rowIndex: number, customerId: string) => {
-      const c = customers.find(x => x.id === customerId);
-      setFormData(prev => {
-        const next = [...prev.customers];
-        next[rowIndex] = {
-          ...next[rowIndex],
-          customer_id: customerId,
-          company_name: c?.company_name || '',
-          contact_person: c?.contact_person || '',
-          contact_email: c?.contact_email || '',
-          contact_number: c?.contact_number || '',
-          address: c?.address || ''
-        };
-        return { ...prev, customers: next };
-      });
-    };
+  const customerOptions = (customers || []).map(c => ({
+    value: c.id,
+    label: c.company_name
+  }));
 
 
-    const { distributors, fetchDistributors } = useDistributorStore();
-    useEffect(() => { fetchDistributors(); }, [fetchDistributors]);
+  const selectExistingCustomer = (rowIndex: number, customerId: string) => {
+    const c = customers.find(x => x.id === customerId);
+    setFormData(prev => {
+      const next = [...prev.customers];
+      next[rowIndex] = {
+        ...next[rowIndex],
+        customer_id: customerId,
+        company_name: c?.company_name || '',
+        contact_person: c?.contact_person || '',
+        contact_email: c?.contact_email || '',
+        contact_number: c?.contact_number || '',
+        address: c?.address || ''
+      };
+      return { ...prev, customers: next };
+    });
+  };
 
-    const distributorOptions = (distributors || []).map(d => ({
-      value: d.id,
-      label: d.company_name
-    }));
 
-    const selectExistingDistributor = (rowIndex: number, distributorId: string) => {
-      const d = distributors.find(x => x.id === distributorId);
-      setFormData(prev => {
-        const next = [...prev.distributors];
-        next[rowIndex] = {
-          ...next[rowIndex],
-          distributor_id: distributorId,
-          company_name: d?.company_name || '',
-          contact_person: d?.contact_person || '',
-          contact_email: d?.contact_email || '',
-          contact_number: d?.contact_number || ''
-        };
-        return { ...prev, distributors: next };
-      });
-    };
+  const { distributors, fetchDistributors } = useDistributorStore();
+  useEffect(() => { fetchDistributors(); }, [fetchDistributors]);
+
+  const distributorOptions = (distributors || []).map(d => ({
+    value: d.id,
+    label: d.company_name
+  }));
+
+  const selectExistingDistributor = (rowIndex: number, distributorId: string) => {
+    const d = distributors.find(x => x.id === distributorId);
+    setFormData(prev => {
+      const next = [...prev.distributors];
+      next[rowIndex] = {
+        ...next[rowIndex],
+        distributor_id: distributorId,
+        company_name: d?.company_name || '',
+        contact_person: d?.contact_person || '',
+        contact_email: d?.contact_email || '',
+        contact_number: d?.contact_number || ''
+      };
+      return { ...prev, distributors: next };
+    });
+  };
 
   // removed tags/custom fields
   const [errors, setErrors] = useState<string[]>([]);
@@ -188,7 +188,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
   useEffect(() => {
     if (!license) return;
-  
+
     // Set top-level fields
     setFormData(prev => ({
       ...prev,
@@ -204,10 +204,10 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       priority: license.priority || 'medium',
       status: (license.status as any) || 'active',
     }));
-  
+
     // Seed children ONLY from license if provided by parent (no DB calls here)
     const l = license as any;
-  
+
     if (Array.isArray(l.serials)) {
       setFormData(prev => ({
         ...prev,
@@ -224,7 +224,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         }))
       }));
     }
-  
+
     if (Array.isArray(l.customers)) {
       setFormData(prev => ({
         ...prev,
@@ -238,7 +238,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
         }))
       }));
     }
-  
+
     if (Array.isArray(l.distributors)) {
       setFormData(prev => ({
         ...prev,
@@ -255,15 +255,15 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
   useEffect(() => {
     if (!license) return;
-  
+
     (async () => {
       try {
         const { data: attachRows } = await supabase
           .from('license_attachments')
-          .select('id,file_name,file_url,file_size,uploaded_at')           
+          .select('id,file_name,file_url,file_size,uploaded_at')
           .eq('license_id', license.id)
           .order('uploaded_at', { ascending: false });
-  
+
         setExistingAttachments((attachRows || []).map((a: any) => ({
           id: a.id,
           file_name: a.file_name,
@@ -278,40 +278,40 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
   const addFileInputRef = useRef<HTMLInputElement>(null);
 
-const handleClickAddAttachment = () => {
-  addFileInputRef.current?.click();
-};
+  const handleClickAddAttachment = () => {
+    addFileInputRef.current?.click();
+  };
 
-const handleAddAttachmentFiles = async (files: FileList | null) => {
-  if (!license || !files || files.length === 0) return;
-  // Upload each file via store, then refresh the list
-  for (const file of Array.from(files)) {
-    await addAttachment(license.id, file);
-  }
-  const refreshed = await fetchAttachments(license.id);
-  setExistingAttachments(
-    (refreshed || []).map((a: any) => ({
-      id: a.id,
-      file_name: a.file_name,
-      file_url: a.file_url,
-      file_size: a.file_size,
-      uploaded_at: a.uploaded_at
-    }))
-  );
-};
+  const handleAddAttachmentFiles = async (files: FileList | null) => {
+    if (!license || !files || files.length === 0) return;
+    // Upload each file via store, then refresh the list
+    for (const file of Array.from(files)) {
+      await addAttachment(license.id, file);
+    }
+    const refreshed = await fetchAttachments(license.id);
+    setExistingAttachments(
+      (refreshed || []).map((a: any) => ({
+        id: a.id,
+        file_name: a.file_name,
+        file_url: a.file_url,
+        file_size: a.file_size,
+        uploaded_at: a.uploaded_at
+      }))
+    );
+  };
 
-const handleDeleteExistingAttachment = async (id: string) => {
-  await deleteAttachment(id);
-  setExistingAttachments(prev => prev.filter(a => a.id !== id));
-};
+  const handleDeleteExistingAttachment = async (id: string) => {
+    await deleteAttachment(id);
+    setExistingAttachments(prev => prev.filter(a => a.id !== id));
+  };
 
-const handleDownloadExistingAttachment = async (att: { id: string; file_name: string; file_url: string; file_size: number }) => {
-  await downloadAttachment(att as any);
-};
+  const handleDownloadExistingAttachment = async (att: { id: string; file_name: string; file_url: string; file_size: number }) => {
+    await downloadAttachment(att as any);
+  };
 
   const handleChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear errors when user starts typing
     if (errors.length > 0) {
       setErrors([]);
@@ -319,25 +319,25 @@ const handleDownloadExistingAttachment = async (att: { id: string; file_name: st
   };
 
   // Dynamic arrays handlers
-const addSerial = () => {
-  setFormData(prev => ({
-    ...prev,
-    serials: [
-      ...prev.serials,
-      {
-        serial_or_contract: '',
-        start_date: '',
-        end_date: '',
-        qty: 1,
-        unit_price: 0,
-        currency: 'MMK' as 'MMK' | 'USD',
-        po_no: '',
-        notify_before_days: 30, // add this to satisfy inferred type
-      }
-    ]
-  }));
-};
-  
+  const addSerial = () => {
+    setFormData(prev => ({
+      ...prev,
+      serials: [
+        ...prev.serials,
+        {
+          serial_or_contract: '',
+          start_date: '',
+          end_date: '',
+          qty: 1,
+          unit_price: 0,
+          currency: 'MMK' as 'MMK' | 'USD',
+          po_no: '',
+          notify_before_days: 30, // add this to satisfy inferred type
+        }
+      ]
+    }));
+  };
+
   const removeSerial = (index: number) => {
     setFormData(prev => ({ ...prev, serials: prev.serials.filter((_, i) => i !== index) }));
   };
@@ -397,7 +397,7 @@ const addSerial = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Build payload for new schema
       const payload: any = {
@@ -420,8 +420,8 @@ const addSerial = () => {
         user_name: formData.user_name,
         // license_start_date: formData.license_start_date,
         // license_end_date: formData.license_end_date,
-        
-        
+
+
       };
 
       // Validate using store rules
@@ -457,40 +457,40 @@ const addSerial = () => {
     { value: 'completed', label: 'Completed' }
   ];
 
- // Permission-aware, dynamic project assignment options (super_user only sees assigned)
-const projectAssignOptions = useMemo(() => {
-  // All from DB
-  const all = (assigns || []).map(a => ({ value: a.name, label: a.name }));
+  // Permission-aware, dynamic project assignment options (super_user only sees assigned)
+  const projectAssignOptions = useMemo(() => {
+    // All from DB
+    const all = (assigns || []).map(a => ({ value: a.name, label: a.name }));
 
-  // Admin can see all
-  if (user?.role === 'admin') {
-    return all;
-  }
+    // Admin can see all
+    if (user?.role === 'admin') {
+      return all;
+    }
 
-  // super_user and others: only assigned from authStore.assignments
-  const allowed = new Set((assignments || []).map(a => a.trim()).filter(Boolean));
-  const filtered = all.filter(o => allowed.has(o.value));
+    // super_user and others: only assigned from authStore.assignments
+    const allowed = new Set((assignments || []).map(a => a.trim()).filter(Boolean));
+    const filtered = all.filter(o => allowed.has(o.value));
 
-  // If editing legacy data outside allowed list, include it so the form renders
-  if (
-    license &&
-    (license as any).project_assign &&
-    !filtered.find(o => o.value === (license as any).project_assign)
-  ) {
-    const val = String((license as any).project_assign);
-    filtered.push({ value: val, label: `${val} (not permitted)` });
-  }
+    // If editing legacy data outside allowed list, include it so the form renders
+    if (
+      license &&
+      (license as any).project_assign &&
+      !filtered.find(o => o.value === (license as any).project_assign)
+    ) {
+      const val = String((license as any).project_assign);
+      filtered.push({ value: val, label: `${val} (not permitted)` });
+    }
 
     return filtered;
   }, [assigns, user?.role, assignments, license]);
 
-    const [existingAttachments, setExistingAttachments] = useState<Array<{
-      id: string;
-      file_name: string;
-      file_url: string;
-      file_size: number;
-      uploaded_at?: string;
-    }>>([]);
+  const [existingAttachments, setExistingAttachments] = useState<Array<{
+    id: string;
+    file_name: string;
+    file_url: string;
+    file_size: number;
+    uploaded_at?: string;
+  }>>([]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -520,12 +520,12 @@ const projectAssignOptions = useMemo(() => {
             error={errors.find(e => e.includes('Vendor'))}
           /> */}
           <Select
-              label="Vendor Name"
-              value={formData.vendor}
-              onChange={(value) => handleChange('vendor', value)}
-              options={vendorOptions}
-              required
-            />
+            label="Vendor Name"
+            value={formData.vendor}
+            onChange={(value) => handleChange('vendor', value)}
+            options={vendorOptions}
+            required
+          />
           {/* <Input
             label="Project Name"
             value={formData.project_name}
@@ -581,7 +581,7 @@ const projectAssignOptions = useMemo(() => {
             options={projectAssignOptions}
             required
           />
-          
+
           {/* <Input
             label="License Start Date"
             type="date"
@@ -660,128 +660,128 @@ const projectAssignOptions = useMemo(() => {
           </div>
         </div>
 
-    {/* Attachments */}
-    {license && (
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-md font-semibold text-gray-900">
-            Attachments ({existingAttachments.length})
-          </h4>
-          <div>
-            <input
-              type="file"
-              ref={addFileInputRef}
-              className="hidden"
-              multiple
-              onChange={(e) => handleAddAttachmentFiles(e.target.files)}
-            />
-            <Button type="button" icon={Paperclip} onClick={handleClickAddAttachment}>
-              Add Attachment
-            </Button>
-          </div>
-        </div>
+        {/* Attachments */}
+        {license && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-md font-semibold text-gray-900">
+                Attachments ({existingAttachments.length})
+              </h4>
+              <div>
+                <input
+                  type="file"
+                  ref={addFileInputRef}
+                  className="hidden"
+                  multiple
+                  onChange={(e) => handleAddAttachmentFiles(e.target.files)}
+                />
+                <Button type="button" icon={Paperclip} onClick={handleClickAddAttachment}>
+                  Add Attachment
+                </Button>
+              </div>
+            </div>
 
-        {existingAttachments.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
-            No attachments yet.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {existingAttachments.map(att => (
-              <div key={att.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
-                <div className="flex items-center gap-3">
-                  <Paperclip className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {att.file_name}
-                    </a>
-                    <div className="text-xs text-gray-500">
-                      {(att.file_size / (1024 * 1024)).toFixed(2)} MB
-                      {att.uploaded_at ? ` · ${new Date(att.uploaded_at).toLocaleDateString()}` : ''}
+            {existingAttachments.length === 0 ? (
+              <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
+                No attachments yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {existingAttachments.map(att => (
+                  <div key={att.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
+                    <div className="flex items-center gap-3">
+                      <Paperclip className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {att.file_name}
+                        </a>
+                        <div className="text-xs text-gray-500">
+                          {(att.file_size / (1024 * 1024)).toFixed(2)} MB
+                          {att.uploaded_at ? ` · ${new Date(att.uploaded_at).toLocaleDateString()}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon={Download}
+                        onClick={() => handleDownloadExistingAttachment(att)}
+                        title="Download"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={() => handleDeleteExistingAttachment(att.id)}
+                        title="Delete"
+                      />
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon={Download}
-                    onClick={() => handleDownloadExistingAttachment(att)}
-                    title="Download"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon={Trash2}
-                    onClick={() => handleDeleteExistingAttachment(att.id)}
-                    title="Delete"
-                  />
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
-      </div>
-    )}
 
-    {/* Add mode: show uploader for new files as before */}
-    {!license && (
-      <div className="mt-8">
-        <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
-        <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
-        {formData.attachments.length > 0 && (
-          <div className="mt-2 space-y-1 text-sm text-gray-600">
-            {formData.attachments.map((f, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <span>{f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB</span>
-                <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
+        {/* Add mode: show uploader for new files as before */}
+        {!license && (
+          <div className="mt-8">
+            <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
+            <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
+            {formData.attachments.length > 0 && (
+              <div className="mt-2 space-y-1 text-sm text-gray-600">
+                {formData.attachments.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span>{f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB</span>
+                    <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
               </div>
-            ))}
-            <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
+            )}
           </div>
         )}
       </div>
-    )}
-    </div>
 
-    {/* Customer Information (Multiple Optional) */}
-    <div className="bg-gray-50 p-6 rounded-lg">
-      <h3 className="text-lg font-semibold text-gray-900">Customer Information</h3>
-      <p className="text-sm text-gray-600 mb-4">You can add multiple customers (optional)</p>
-      <div className="mb-2">
-        <Button type="button" size="sm" icon={Plus} onClick={addCustomer}>Add Customer</Button>
-      </div>
-      <div className="space-y-4">
-        {formData.customers.map((c, idx) => (
-          <div key={idx} className="p-4 bg-white rounded border">
-            {/* NEW: Master customer dropdown per row */}
-            <Select
-              label="Customer (from master)"
-              value={formData.customers[idx].customer_id || ''}
-              onChange={(val) => selectExistingCustomer(idx, val)}
-              options={customerOptions}
-              placeholder="Select existing customer (optional)"
-            />
+      {/* Customer Information (Multiple Optional) */}
+      <div className="bg-gray-50 p-6 rounded-lg">
+        <h3 className="text-lg font-semibold text-gray-900">Customer Information</h3>
+        <p className="text-sm text-gray-600 mb-4">You can add multiple customers (optional)</p>
+        <div className="mb-2">
+          <Button type="button" size="sm" icon={Plus} onClick={addCustomer}>Add Customer</Button>
+        </div>
+        <div className="space-y-4">
+          {formData.customers.map((c, idx) => (
+            <div key={idx} className="p-4 bg-white rounded border">
+              {/* NEW: Master customer dropdown per row */}
+              <Select
+                label="Customer (from master)"
+                value={formData.customers[idx].customer_id || ''}
+                onChange={(val) => selectExistingCustomer(idx, val)}
+                options={customerOptions}
+                placeholder="Select existing customer (optional)"
+              />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <Input label="Company Name" value={c.company_name} onChange={(v) => updateCustomer(idx, 'company_name', v)} />
-              <Input label="Contact Person" value={c.contact_person || ''} onChange={(v) => updateCustomer(idx, 'contact_person', v)} />
-              <Input label="Contact Email" type="email" value={c.contact_email || ''} onChange={(v) => updateCustomer(idx, 'contact_email', v)} />
-              <Input label="Contact Number" value={c.contact_number || ''} onChange={(v) => updateCustomer(idx, 'contact_number', v)} />
-              <Input label="Address" value={c.address || ''} onChange={(v) => updateCustomer(idx, 'address', v)} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <Input label="Company Name" value={c.company_name} onChange={(v) => updateCustomer(idx, 'company_name', v)} />
+                <Input label="Contact Person" value={c.contact_person || ''} onChange={(v) => updateCustomer(idx, 'contact_person', v)} />
+                <Input label="Contact Email" type="email" value={c.contact_email || ''} onChange={(v) => updateCustomer(idx, 'contact_email', v)} />
+                <Input label="Contact Number" value={c.contact_number || ''} onChange={(v) => updateCustomer(idx, 'contact_number', v)} />
+                <Input label="Address" value={c.address || ''} onChange={(v) => updateCustomer(idx, 'address', v)} />
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeCustomer(idx)}>Remove</Button>
+              </div>
             </div>
-            <div className="mt-3 flex justify-end">
-              <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeCustomer(idx)}>Remove</Button>
-            </div>
-          </div>
-        ))}
-        {formData.customers.length === 0 && (
-          <p className="text-sm text-gray-500">No customers added.</p>
-        )}
+          ))}
+          {formData.customers.length === 0 && (
+            <p className="text-sm text-gray-500">No customers added.</p>
+          )}
+        </div>
       </div>
-    </div>
       {/* Distributor Information (Multiple Optional) */}
       <div className="bg-gray-50 p-6 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-900">Distributor Information</h3>
@@ -790,7 +790,7 @@ const projectAssignOptions = useMemo(() => {
           <Button type="button" size="sm" icon={Plus} onClick={addDistributor}>Add Distributor</Button>
         </div>
         <div className="space-y-4">
-        {formData.distributors.map((d, idx) => (
+          {formData.distributors.map((d, idx) => (
             <div key={idx} className="p-4 bg-white rounded border">
               <Select
                 label="Distributor (from master)"

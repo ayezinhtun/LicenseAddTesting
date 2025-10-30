@@ -32,65 +32,32 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
   const { user } = useAuthStore();
 
   const { fetchRenewalHistory } = useLicenseStore();
-const [historyCache, setHistoryCache] = useState<Record<string, RenewalRecord[]>>({});
-const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+  const [historyCache, setHistoryCache] = useState<Record<string, RenewalRecord[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
 
-// Prefetch history for all visible licenses (newest first)
-useEffect(() => {
-  let cancelled = false;
-  (async () => {
-    setLoadingHistory(true);
-    try {
-      const next: Record<string, RenewalRecord[]> = {};
-      for (const l of licenses) {
-        try {
-          const data = await fetchRenewalHistory(l.id);
-          next[l.id] = data || [];
-        } catch {
-          next[l.id] = [];
+  // Prefetch history for all visible licenses (newest first)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingHistory(true);
+      try {
+        const next: Record<string, RenewalRecord[]> = {};
+        for (const l of licenses) {
+          try {
+            const data = await fetchRenewalHistory(l.id);
+            next[l.id] = data || [];
+          } catch {
+            next[l.id] = [];
+          }
         }
+        if (!cancelled) setHistoryCache(next);
+      } finally {
+        if (!cancelled) setLoadingHistory(false);
       }
-      if (!cancelled) setHistoryCache(next);
-    } finally {
-      if (!cancelled) setLoadingHistory(false);
-    }
-  })();
-  return () => { cancelled = true; };
-}, [licenses]);
+    })();
+    return () => { cancelled = true; };
+  }, [licenses]);
 
-  // const getExpiryStatus = (endDate: string) => {
-  //   const daysUntilExpiry = differenceInDays(parseISO(endDate), new Date());
-    
-  //   if (daysUntilExpiry < 0) {
-  //     return { 
-  //       status: 'Expired', 
-  //       color: 'bg-red-100 text-red-800 border-red-200', 
-  //       days: Math.abs(daysUntilExpiry),
-  //       variant: 'danger' as const
-  //     };
-  //   } else if (daysUntilExpiry <= 7) {
-  //     return { 
-  //       status: 'Critical', 
-  //       color: 'bg-red-100 text-red-800 border-red-200', 
-  //       days: daysUntilExpiry,
-  //       variant: 'danger' as const
-  //     };
-  //   } else if (daysUntilExpiry <= 30) {
-  //     return { 
-  //       status: 'Warning', 
-  //       color: 'bg-orange-100 text-orange-800 border-orange-200', 
-  //       days: daysUntilExpiry,
-  //       variant: 'warning' as const
-  //     };
-  //   } else {
-  //     return { 
-  //       status: 'Active', 
-  //       color: 'bg-green-100 text-green-800 border-green-200', 
-  //       days: daysUntilExpiry,
-  //       variant: 'success' as const
-  //     };
-  //   }
-  // };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -191,7 +158,7 @@ useEffect(() => {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Status & Priority
             </th>
-           {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Expiry Status
             </th>  */}
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -227,35 +194,21 @@ useEffect(() => {
                         {license.item}
                       </div>
                       <div className="text-sm text-gray-500">{license.vendor}</div>
-                      {/* <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-400 font-mono">
-                          {license.serial_number}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={Copy}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopySerial(license.serial_number);
-                          }}
-                          className="text-gray-400 hover:text-gray-600 p-1"
-                        />
-                      </div> */}
 
-{(license as any).serials?.length ? (
-  <div className="flex flex-wrap gap-1 mt-1">
-    {(license as any).serials.map((sn: string, i: number) => (
-      <span
-        key={i}
-        className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-1 py-0.5"
-        title={sn}
-      >
-        {sn}
-      </span>
-    ))}
-  </div>
-) : null}
+
+                      {(license as any).serials?.length ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {(license as any).serials.map((sn: string, i: number) => (
+                            <span
+                              key={i}
+                              className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-1 py-0.5"
+                              title={sn}
+                            >
+                              {sn}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </td>
 
@@ -351,24 +304,24 @@ useEffect(() => {
                             className="border rounded-md bg-gray-50"
                             style={{ marginLeft: '1.25rem' }}
                           >
-                           <div className="px-3 py-2 border-b text-xs text-gray-600 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">
-                                {renewal.renewal_date
-                                  ? new Date(renewal.renewal_date).toLocaleDateString()
+                            <div className="px-3 py-2 border-b text-xs text-gray-600 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {renewal.renewal_date
+                                    ? new Date(renewal.renewal_date).toLocaleDateString()
+                                    : '-'}
+                                </span>
+                                <span className="text-gray-500">• Old cost:</span>
+                                <span className="font-medium">
+                                  {Number(renewal.cost ?? 0).toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-gray-500">
+                                Prev end: {renewal.previous_end_date
+                                  ? new Date(renewal.previous_end_date).toLocaleDateString()
                                   : '-'}
-                              </span>
-                              <span className="text-gray-500">• Old cost:</span>
-                              <span className="font-medium">
-                                {Number(renewal.cost ?? 0).toLocaleString()}
-                              </span>
+                              </div>
                             </div>
-                            <div className="text-[11px] text-gray-500">
-                              Prev end: {renewal.previous_end_date
-                                ? new Date(renewal.previous_end_date).toLocaleDateString()
-                                : '-'}
-                            </div>
-                          </div>
 
                             <div className="px-3 py-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                               <div>

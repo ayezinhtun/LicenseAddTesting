@@ -24,7 +24,7 @@ export const SignUp: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -34,7 +34,7 @@ export const SignUp: React.FC = () => {
       toast.error('Password must be at least 6 characters');
       return;
     }
-    
+
     try {
       await signup(formData.name, formData.email, formData.password);
       toast.success('Verification email sent! Please check your inbox.');
@@ -44,7 +44,7 @@ export const SignUp: React.FC = () => {
     }
   };
 
-  
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">

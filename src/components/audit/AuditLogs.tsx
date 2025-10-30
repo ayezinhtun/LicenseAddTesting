@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Activity, 
-  Filter, 
-  Download, 
-  Search, 
+import {
+  Activity,
+  Filter,
+  Download,
+  Search,
   Calendar,
   User,
   Eye,
@@ -152,10 +152,10 @@ export const AuditLogs: React.FC = () => {
 
   const formatChanges = (changes: Record<string, any> | null) => {
     if (!changes) return 'No changes recorded';
-    
+
     const changeEntries = Object.entries(changes);
     if (changeEntries.length === 0) return 'No changes recorded';
-    
+
     return changeEntries.map(([key, value]) => {
       if (typeof value === 'object' && value.old !== undefined && value.new !== undefined) {
         return `${key}: ${value.old} → ${value.new}`;
@@ -230,7 +230,7 @@ export const AuditLogs: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Today's Activity</p>
               <p className="text-2xl font-bold text-gray-900">
-                {logs.filter(log => 
+                {logs.filter(log =>
                   format(new Date(log.created_at), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
                 ).length}
               </p>
@@ -330,9 +330,9 @@ export const AuditLogs: React.FC = () => {
                 <Select
                   label="Actions"
                   value={localFilters.action?.[0] || ''}
-                  onChange={(value) => setLocalFilters({ 
-                    ...localFilters, 
-                    action: value ? [value] : undefined 
+                  onChange={(value) => setLocalFilters({
+                    ...localFilters,
+                    action: value ? [value] : undefined
                   })}
                   options={[{ value: '', label: 'All Actions' }, ...actionOptions]}
                 />
@@ -340,9 +340,9 @@ export const AuditLogs: React.FC = () => {
                 <Select
                   label="Entity Type"
                   value={localFilters.entity_type?.[0] || ''}
-                  onChange={(value) => setLocalFilters({ 
-                    ...localFilters, 
-                    entity_type: value ? [value] : undefined 
+                  onChange={(value) => setLocalFilters({
+                    ...localFilters,
+                    entity_type: value ? [value] : undefined
                   })}
                   options={[{ value: '', label: 'All Types' }, ...entityTypeOptions]}
                 />
@@ -358,10 +358,10 @@ export const AuditLogs: React.FC = () => {
                   label="Date From"
                   type="date"
                   value={localFilters.date_range?.start || ''}
-                  onChange={(value) => setLocalFilters({ 
-                    ...localFilters, 
-                    date_range: { 
-                      ...localFilters.date_range, 
+                  onChange={(value) => setLocalFilters({
+                    ...localFilters,
+                    date_range: {
+                      ...localFilters.date_range,
                       start: value,
                       end: localFilters.date_range?.end || ''
                     }
@@ -372,10 +372,10 @@ export const AuditLogs: React.FC = () => {
                   label="Date To"
                   type="date"
                   value={localFilters.date_range?.end || ''}
-                  onChange={(value) => setLocalFilters({ 
-                    ...localFilters, 
-                    date_range: { 
-                      ...localFilters.date_range, 
+                  onChange={(value) => setLocalFilters({
+                    ...localFilters,
+                    date_range: {
+                      ...localFilters.date_range,
                       start: localFilters.date_range?.start || '',
                       end: value
                     }
@@ -427,7 +427,7 @@ export const AuditLogs: React.FC = () => {
               logs.map((log, index) => {
                 const ActionIcon = getActionIcon(log.action);
                 const actionColor = getActionColor(log.action);
-                
+
                 return (
                   <motion.div
                     key={log.id}
@@ -440,14 +440,14 @@ export const AuditLogs: React.FC = () => {
                       <div className={`${actionColor} p-2 rounded-lg flex-shrink-0`}>
                         <ActionIcon className="h-5 w-5" />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
                             <h4 className="text-sm font-semibold text-gray-900 capitalize">
                               {log.action} {log.entity_type}
                             </h4>
-                            <Badge 
+                            <Badge
                               variant={getActionBadgeVariant(log.action) as any}
                               size="sm"
                             >
@@ -470,7 +470,7 @@ export const AuditLogs: React.FC = () => {
                             />
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="flex items-center space-x-4 text-sm text-gray-600">
                             <span><strong>User:</strong> {log.user_name}</span>
@@ -479,7 +479,7 @@ export const AuditLogs: React.FC = () => {
                               <span><strong>IP:</strong> {log.ip_address}</span>
                             )}
                           </div>
-                          
+
                           {log.changes && (
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <p className="text-xs font-medium text-gray-700 mb-1">Changes:</p>

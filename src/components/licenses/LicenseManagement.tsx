@@ -65,7 +65,7 @@ export const LicenseManagement: React.FC = () => {
     return () => { mounted = false; };
   }, [getNearSerialExpiryCount]);
 
-  
+
   const [localFilters, setLocalFilters] = useState({
     search: '',
     vendor: '',
@@ -92,7 +92,7 @@ export const LicenseManagement: React.FC = () => {
   //   }
   // });
 
-  
+
 
   useEffect(() => {
     fetchLicenses();
@@ -103,36 +103,36 @@ export const LicenseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-const handleEditLicense = async (license: License) => {
-  // Preload child rows and attach to the license object
-  const [serialRes, customerRes, distributorRes] = await Promise.all([
-    supabase
-      .from('license_serials')
-      .select('*')
-      .eq('license_id', license.id)
-      .order('start_date', { ascending: true }),
-    supabase
-      .from('license_customers')
-      .select('*')
-      .eq('license_id', license.id)
-      .order('company_name', { ascending: true }),
-    supabase
-      .from('license_distributors')
-      .select('*')
-      .eq('license_id', license.id)
-      .order('company_name', { ascending: true }),
-  ]);
+  const handleEditLicense = async (license: License) => {
+    // Preload child rows and attach to the license object
+    const [serialRes, customerRes, distributorRes] = await Promise.all([
+      supabase
+        .from('license_serials')
+        .select('*')
+        .eq('license_id', license.id)
+        .order('start_date', { ascending: true }),
+      supabase
+        .from('license_customers')
+        .select('*')
+        .eq('license_id', license.id)
+        .order('company_name', { ascending: true }),
+      supabase
+        .from('license_distributors')
+        .select('*')
+        .eq('license_id', license.id)
+        .order('company_name', { ascending: true }),
+    ]);
 
-  const licWithChildren = {
-    ...license,
-    serials: serialRes.data || [],
-    customers: customerRes.data || [],
-    distributors: distributorRes.data || [],
+    const licWithChildren = {
+      ...license,
+      serials: serialRes.data || [],
+      customers: customerRes.data || [],
+      distributors: distributorRes.data || [],
+    };
+
+    setEditingLicense(licWithChildren);
+    setIsFormOpen(true);
   };
-
-  setEditingLicense(licWithChildren);
-  setIsFormOpen(true);
-};
 
   const handleDeleteLicense = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this license? This action cannot be undone.')) {
@@ -175,62 +175,20 @@ const handleEditLicense = async (license: License) => {
     } catch (err) {
       let msg = editingLicense ? 'Failed to update license' : 'Failed to add license';
       const e = err as any;
-    
+
       if (e?.message && typeof e.message === 'string') msg = e.message;
       else if (typeof e === 'string') msg = e;
       else if (e?.error?.message) msg = e.error.message;
       else if (e?.data?.message) msg = e.data.message;
       else if (e?.details) msg = `${msg} — ${e.details}`;
-    
+
       toast.error(msg);
     }
   };
 
-  // const handleExport = async () => {
-  //   try {
-  //     const exportFilters = { ...filters };
-      
-  //     // Add date range filter if specified
-  //     if (exportOptions.dateRange.start && exportOptions.dateRange.end) {
-  //       exportFilters.date_range = {
-  //         start: exportOptions.dateRange.start,
-  //         end: exportOptions.dateRange.end
-  //       };
-  //     }
-
-  //     await exportLicenses(exportOptions.format, exportFilters);
-  //     toast.success(`Licenses exported as ${exportOptions.format.toUpperCase()} successfully`);
-  //     setShowExportModal(false);
-  //   } catch (error) {
-  //     toast.error('Failed to export licenses');
-  //   }
-  // };
-
-  // const handleBulkExport = async () => {
-  //   if (selectedLicenses.length === 0) {
-  //     toast.error('Please select licenses to export');
-  //     return;
-  //   }
-
-  //   try {
-  //     // Create a filter that includes only selected licenses
-  //     const bulkFilters = {
-  //       ...filters,
-  //       license_ids: selectedLicenses
-  //     };
-
-  //     await exportLicenses(exportOptions.format, bulkFilters);
-  //     toast.success(`${selectedLicenses.length} licenses exported successfully`);
-  //     setSelectedLicenses([]);
-  //     setShowExportModal(false);
-  //   } catch (error) {
-  //     toast.error('Failed to export selected licenses');
-  //   }
-  // };
-
   const handleApplyFilters = () => {
     const appliedFilters: any = {};
-    
+
     if (localFilters.search) appliedFilters.search = localFilters.search;
     if (localFilters.vendor) appliedFilters.vendor = localFilters.vendor;
     if (localFilters.serialNumber) appliedFilters.serial_number = localFilters.serialNumber;
@@ -263,140 +221,140 @@ const handleEditLicense = async (license: License) => {
   };
 
   // Helper: build flat rows per serial with joined distributor/customer names
-const buildExportRows = async () => {
-  try {
-    const licenseIds = licenses.map(l => l.id);
-    if (licenseIds.length === 0) return [];
+  const buildExportRows = async () => {
+    try {
+      const licenseIds = licenses.map(l => l.id);
+      if (licenseIds.length === 0) return [];
 
-    // Fetch all child rows for licenses currently visible
-    const [serialRes, custRes, distRes] = await Promise.all([
-      supabase.from('license_serials')
-        .select('license_id, serial_or_contract, start_date, end_date, qty')
-        .in('license_id', licenseIds),
-      supabase.from('license_customers')
-        .select('license_id, company_name')
-        .in('license_id', licenseIds),
-      supabase.from('license_distributors')
-        .select('license_id, company_name')
-        .in('license_id', licenseIds),
-    ]);
+      // Fetch all child rows for licenses currently visible
+      const [serialRes, custRes, distRes] = await Promise.all([
+        supabase.from('license_serials')
+          .select('license_id, serial_or_contract, start_date, end_date, qty')
+          .in('license_id', licenseIds),
+        supabase.from('license_customers')
+          .select('license_id, company_name')
+          .in('license_id', licenseIds),
+        supabase.from('license_distributors')
+          .select('license_id, company_name')
+          .in('license_id', licenseIds),
+      ]);
 
-    const serials = serialRes.data || [];
-    const customers = custRes.data || [];
-    const distributors = distRes.data || [];
+      const serials = serialRes.data || [];
+      const customers = custRes.data || [];
+      const distributors = distRes.data || [];
 
-    const customersByLicense = customers.reduce<Record<string, string[]>>((acc, c: any) => {
-      acc[c.license_id] = acc[c.license_id] || [];
-      if (c.company_name) acc[c.license_id].push(c.company_name);
-      return acc;
-    }, {});
+      const customersByLicense = customers.reduce<Record<string, string[]>>((acc, c: any) => {
+        acc[c.license_id] = acc[c.license_id] || [];
+        if (c.company_name) acc[c.license_id].push(c.company_name);
+        return acc;
+      }, {});
 
-    const distributorsByLicense = distributors.reduce<Record<string, string[]>>((acc, d: any) => {
-      acc[d.license_id] = acc[d.license_id] || [];
-      if (d.company_name) acc[d.license_id].push(d.company_name);
-      return acc;
-    }, {});
+      const distributorsByLicense = distributors.reduce<Record<string, string[]>>((acc, d: any) => {
+        acc[d.license_id] = acc[d.license_id] || [];
+        if (d.company_name) acc[d.license_id].push(d.company_name);
+        return acc;
+      }, {});
 
-    // Build one row per serial for the export
-    const rows = serials.map((s: any) => {
-      const lic = licenses.find(l => l.id === s.license_id);
-      if (!lic) return null;
+      // Build one row per serial for the export
+      const rows = serials.map((s: any) => {
+        const lic = licenses.find(l => l.id === s.license_id);
+        if (!lic) return null;
 
-      // Product: prefer item_description, fallback to item
-      const product = lic.item_description?.trim() ? lic.item_description : lic.item;
+        // Product: prefer item_description, fallback to item
+        const product = lic.item_description?.trim() ? lic.item_description : lic.item;
 
-      return {
-        vendorName: lic.vendor || '',
-        distributorName: (distributorsByLicense[lic.id] || []).join(', '),
-        customerName: (customersByLicense[lic.id] || []).join(', '),
-        projectName: lic.project_name || '',
-        product: product || '',
-        serialContractNumber: s.serial_or_contract || lic.serial_number || '',
-        quantity: String(s.qty ?? ''),
-        startDate: s.start_date || '',
-        endDate: s.end_date || '',
-        status: lic.status || '',
-      };
-    }).filter(Boolean) as Array<{
-      vendorName: string;
-      distributorName: string;
-      customerName: string;
-      projectName: string;
-      product: string;
-      serialContractNumber: string;
-      quantity: string;
-      startDate: string;
-      endDate: string;
-      status: string;
-    }>;
+        return {
+          vendorName: lic.vendor || '',
+          distributorName: (distributorsByLicense[lic.id] || []).join(', '),
+          customerName: (customersByLicense[lic.id] || []).join(', '),
+          projectName: lic.project_name || '',
+          product: product || '',
+          serialContractNumber: s.serial_or_contract || lic.serial_number || '',
+          quantity: String(s.qty ?? ''),
+          startDate: s.start_date || '',
+          endDate: s.end_date || '',
+          status: lic.status || '',
+        };
+      }).filter(Boolean) as Array<{
+        vendorName: string;
+        distributorName: string;
+        customerName: string;
+        projectName: string;
+        product: string;
+        serialContractNumber: string;
+        quantity: string;
+        startDate: string;
+        endDate: string;
+        status: string;
+      }>;
 
-    return rows;
-  } catch (e) {
-    console.error('buildExportRows error:', e);
-    toast.error('Failed to prepare export data');
-    return [];
-  }
-};
+      return rows;
+    } catch (e) {
+      console.error('buildExportRows error:', e);
+      toast.error('Failed to prepare export data');
+      return [];
+    }
+  };
 
-// CSV export
-const handleExportCSV = async () => {
-  const rows = await buildExportRows();
-  if (rows.length === 0) {
-    toast.error('No data to export');
-    return;
-  }
+  // CSV export
+  const handleExportCSV = async () => {
+    const rows = await buildExportRows();
+    if (rows.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
 
-  const header = [
-    'Vendor Name',
-    'Distributor Name',
-    'Customer Name',
-    'Project Name',
-    'Product',
-    'Serial/Contract Number',
-    'Quantity',
-    'Start Date',
-    'End Date',
-    'Status',
-  ];
+    const header = [
+      'Vendor Name',
+      'Distributor Name',
+      'Customer Name',
+      'Project Name',
+      'Product',
+      'Serial/Contract Number',
+      'Quantity',
+      'Start Date',
+      'End Date',
+      'Status',
+    ];
 
-  const escapeCSV = (val: string) => `"${(val ?? '').replace(/"/g, '""')}"`;
+    const escapeCSV = (val: string) => `"${(val ?? '').replace(/"/g, '""')}"`;
 
-  const csvContent = [
-    header.join(','),
-    ...rows.map(r => [
-      escapeCSV(r.vendorName),
-      escapeCSV(r.distributorName),
-      escapeCSV(r.customerName),
-      escapeCSV(r.projectName),
-      escapeCSV(r.product),
-      escapeCSV(r.serialContractNumber),
-      escapeCSV(r.quantity),
-      escapeCSV(r.startDate),
-      escapeCSV(r.endDate),
-      escapeCSV(r.status),
-    ].join(',')),
-  ].join('\n');
+    const csvContent = [
+      header.join(','),
+      ...rows.map(r => [
+        escapeCSV(r.vendorName),
+        escapeCSV(r.distributorName),
+        escapeCSV(r.customerName),
+        escapeCSV(r.projectName),
+        escapeCSV(r.product),
+        escapeCSV(r.serialContractNumber),
+        escapeCSV(r.quantity),
+        escapeCSV(r.startDate),
+        escapeCSV(r.endDate),
+        escapeCSV(r.status),
+      ].join(',')),
+    ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `licenses-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  window.URL.revokeObjectURL(url);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `licenses-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
 
-  toast.success('Exported CSV successfully');
-};
+    toast.success('Exported CSV successfully');
+  };
 
-// PDF export (print-to-PDF)
-const handleExportPDF = async () => {
-  const rows = await buildExportRows();
-  if (rows.length === 0) {
-    toast.error('No data to export');
-    return;
-  }
+  // PDF export (print-to-PDF)
+  const handleExportPDF = async () => {
+    const rows = await buildExportRows();
+    if (rows.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
 
-  const tableRows = rows.map(r => `
+    const tableRows = rows.map(r => `
     <tr>
       <td>${r.vendorName}</td>
       <td>${r.distributorName}</td>
@@ -411,7 +369,7 @@ const handleExportPDF = async () => {
     </tr>
   `).join('');
 
-  const html = `
+    const html = `
     <html>
       <head>
         <title>Licenses Export</title>
@@ -450,16 +408,16 @@ const handleExportPDF = async () => {
     </html>
   `;
 
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.print();
-    toast.success('Opened Print dialog for PDF');
-  } else {
-    toast.error('Popup blocked. Please allow popups for this site.');
-  }
-};
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      w.print();
+      toast.success('Opened Print dialog for PDF');
+    } else {
+      toast.error('Popup blocked. Please allow popups for this site.');
+    }
+  };
 
   const handleSelectLicense = (licenseId: string, selected: boolean) => {
     if (selected) {
@@ -508,13 +466,7 @@ const handleExportPDF = async () => {
     { value: 'critical', label: 'Critical' }
   ];
 
-  // autoRenewOptions removed
 
-  // const exportFormatOptions = [
-  //   { value: 'csv', label: 'CSV (Comma Separated Values)' },
-  //   { value: 'xlsx', label: 'Excel Spreadsheet' },
-  //   { value: 'pdf', label: 'PDF Document' }
-  // ];
 
   const getActiveFiltersCount = () => {
     return Object.values(localFilters).filter(value => value !== '').length;
@@ -525,17 +477,17 @@ const handleExportPDF = async () => {
     const openEditFromState = async () => {
       const editId = location.state?.editLicenseId;
       if (!editId) return;
-    
+
       // Try to find the license from the already-fetched list
       let lic = licenses.find(l => l.id === editId) || null;
-    
+
       // If not found yet (e.g., first load), fetch it directly from the store
       if (!lic && typeof useLicenseStore.getState().fetchLicenseById === 'function') {
         try {
           lic = await useLicenseStore.getState().fetchLicenseById(editId);
-        } catch {}
+        } catch { }
       }
-    
+
       if (lic) {
         // Preload child rows and attach to the license object
         const [serialRes, customerRes, distributorRes] = await Promise.all([
@@ -543,22 +495,22 @@ const handleExportPDF = async () => {
           supabase.from('license_customers').select('*').eq('license_id', lic.id).order('company_name', { ascending: true }),
           supabase.from('license_distributors').select('*').eq('license_id', lic.id).order('company_name', { ascending: true })
         ]);
-    
+
         const licWithChildren = {
           ...lic,
           serials: serialRes.data || [],
           customers: customerRes.data || [],
           distributors: distributorRes.data || []
         };
-    
+
         setEditingLicense(licWithChildren);
         setIsFormOpen(true);
       }
-    
+
       // Clear the navigation state so it doesn’t reopen on refresh/back
       navigate('/licenses', { replace: true, state: {} });
     };
-  
+
     openEditFromState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state, licenses]);
@@ -579,49 +531,20 @@ const handleExportPDF = async () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          {/* {selectedLicenses.length > 0 && (
-            <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg">
-              <span className="text-sm text-blue-700 font-medium">
-                {selectedLicenses.length} selected
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={Download}
-                onClick={() => setShowExportModal(true)}
-              >
-                Export Selected
-              </Button>
-            </div>
-          )} */}
-          {/* <Button
-            variant="secondary"
-            icon={Upload}
-            onClick={() => toast('Import feature coming soon!')}
-          >
-            Import
-          </Button>
+
           <Button
             variant="secondary"
-            icon={Download}
-            onClick={() => setShowExportModal(true)}
+            icon={FileText}
+            onClick={handleExportPDF}
           >
-            Export
-          </Button> */}
-
-        <Button
-          variant="secondary"
-          icon={FileText}
-          onClick={handleExportPDF}
-        >
-          Export PDF
-        </Button>
-        <Button
-          icon={Download}
-          onClick={handleExportCSV}
-        >
-          Export CSV
-        </Button>
+            Export PDF
+          </Button>
+          <Button
+            icon={Download}
+            onClick={handleExportCSV}
+          >
+            Export CSV
+          </Button>
           {user?.role !== 'user' && (
             <Button
               icon={Plus}
@@ -671,12 +594,6 @@ const handleExportPDF = async () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Serial Expiring Soon</p>
               <p className="text-2xl font-bold text-gray-900">
-                {/* {licenses.filter(l => {
-                  const daysUntilExpiry = Math.ceil(
-                    (new Date(l.license_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                  );
-                  return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-                }).length} */}
                 {nearExpiryCount}
               </p>
             </div>
@@ -686,7 +603,7 @@ const handleExportPDF = async () => {
           </div>
         </Card>
 
-        
+
       </motion.div>
 
       {/* Search and Filters */}
@@ -733,29 +650,24 @@ const handleExportPDF = async () => {
                 className="border-t border-gray-200 pt-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {/* <Input
-                    label="Vendor"
-                    value={localFilters.vendor}
-                    onChange={(value) => setLocalFilters(prev => ({ ...prev, vendor: value }))}
-                    placeholder="Filter by vendor"
-                  /> */}
+
                   <Select
                     label="Vendor"
                     value={localFilters.vendor}
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, vendor: value }))}
                     options={[
-                      {value: '', label: 'All Vendor'},
+                      { value: '', label: 'All Vendor' },
                       ...getUniqueVendors()
                     ]}
                   />
 
                   <Input
-                      label="Serial Number"
-                      value={localFilters.serialNumber}
-                      onChange={(value) => setLocalFilters(prev => ({ ...prev, serialNumber: value }))}
-                      placeholder="Filter by serial number"
-                    />
-                  
+                    label="Serial Number"
+                    value={localFilters.serialNumber}
+                    onChange={(value) => setLocalFilters(prev => ({ ...prev, serialNumber: value }))}
+                    placeholder="Filter by serial number"
+                  />
+
                   <Input
                     label="Project Name"
                     value={localFilters.project_name}
@@ -763,12 +675,7 @@ const handleExportPDF = async () => {
                     placeholder="Filter by project name"
                   />
 
-                  {/* <Select
-                    label="Project Assign"
-                    value={localFilters.project_assign}
-                    onChange={(value) => setLocalFilters(prev => ({ ...prev, project_assign: value as any }))}
-                    options={[{ value: '', label: 'All Assigns' }, { value: 'NPT', label: 'NPT' }, { value: 'YGN', label: 'YGN' }, { value: 'MPT', label: 'MPT' }]}
-                  /> */}
+
 
                   <Select
                     label="Project Assign"
@@ -776,24 +683,24 @@ const handleExportPDF = async () => {
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, project_assign: value as any }))}
                     options={projectAssignFilterOptions}
                   />
-                  
+
                   <Select
                     label="Status"
                     value={localFilters.status}
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, status: value }))}
                     options={statusOptions}
                   />
-                  
+
                   <Select
                     label="Priority"
                     value={localFilters.priority}
                     onChange={(value) => setLocalFilters(prev => ({ ...prev, priority: value }))}
                     options={priorityOptions}
                   />
-                  
+
                   {/* Auto Renew filter removed */}
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 mt-4">
                   <Button variant="secondary" onClick={handleClearFilters}>
                     Clear All
@@ -828,7 +735,7 @@ const handleExportPDF = async () => {
                   ))}
                 </div>
               </div>
-              
+
               <div className="text-sm text-gray-500">
                 Showing {licenses.length} of {totalCount} licenses
               </div>
@@ -881,116 +788,6 @@ const handleExportPDF = async () => {
           }}
         />
       </Modal>
-
-      {/* Export Modal */}
-      {/* <Modal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        title="Export Licenses"
-        maxWidth="lg"
-      >
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Export Options</h3>
-            
-            <div className="space-y-4">
-              <Select
-                label="Export Format"
-                value={exportOptions.format}
-                onChange={(value) => setExportOptions(prev => ({ ...prev, format: value as any }))}
-                options={exportFormatOptions}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Date From"
-                  type="date"
-                  value={exportOptions.dateRange.start}
-                  onChange={(value) => setExportOptions(prev => ({
-                    ...prev,
-                    dateRange: { ...prev.dateRange, start: value }
-                  }))}
-                />
-                <Input
-                  label="Date To"
-                  type="date"
-                  value={exportOptions.dateRange.end}
-                  onChange={(value) => setExportOptions(prev => ({
-                    ...prev,
-                    dateRange: { ...prev.dateRange, end: value }
-                  }))}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    id="includeComments"
-                    type="checkbox"
-                    checked={exportOptions.includeComments}
-                    onChange={(e) => setExportOptions(prev => ({ ...prev, includeComments: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="includeComments" className="ml-2 block text-sm text-gray-900">
-                    Include Comments
-                  </label>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    id="includeAttachments"
-                    type="checkbox"
-                    checked={exportOptions.includeAttachments}
-                    onChange={(e) => setExportOptions(prev => ({ ...prev, includeAttachments: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="includeAttachments" className="ml-2 block text-sm text-gray-900">
-                    Include Attachment References
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Export Summary</h4>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Format: {exportOptions.format.toUpperCase()}</p>
-              <p>Total Licenses: {selectedLicenses.length > 0 ? selectedLicenses.length : licenses.length}</p>
-              {exportOptions.dateRange.start && exportOptions.dateRange.end && (
-                <p>Date Range: {format(new Date(exportOptions.dateRange.start), 'MMM dd, yyyy')} - {format(new Date(exportOptions.dateRange.end), 'MMM dd, yyyy')}</p>
-              )}
-              {getActiveFiltersCount() > 0 && (
-                <p>Active Filters: {getActiveFiltersCount()}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3">
-            <Button
-              variant="secondary"
-              onClick={() => setShowExportModal(false)}
-            >
-              Cancel
-            </Button>
-            {selectedLicenses.length > 0 ? (
-              <Button
-                onClick={handleBulkExport}
-                icon={Download}
-              >
-                Export Selected ({selectedLicenses.length})
-              </Button>
-            ) : (
-              <Button
-                onClick={handleExport}
-                icon={Download}
-              >
-                Export All
-              </Button>
-            )}
-          </div>
-        </div>
-      </Modal> */}
     </div>
   );
 };
