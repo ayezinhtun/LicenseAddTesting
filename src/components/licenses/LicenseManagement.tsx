@@ -134,6 +134,8 @@ export const LicenseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
+  
+
   const handleDeleteLicense = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this license? This action cannot be undone.')) {
       try {

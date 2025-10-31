@@ -17,7 +17,9 @@ import {
   Zap,
   Building2,
   Users,
-  ClipboardList
+  ClipboardList,
+  Trash,
+  Clock
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../common/Button';
@@ -32,6 +34,7 @@ const menuItems = [
   { icon: User, label: 'Customer Manager', path: '/customers', badge: null, adminOnly: true },
   { icon: Building2, label: 'Distributor Manager', path: '/distributors', badge: null, adminOnly: true },
   { icon: FileText, label: 'License Manager', path: '/licenses', badge: null },
+  { icon: Clock, label: 'Recent Deleted', path: '/licenses/deleted', badge: null, adminOnly: true },
   { icon: BarChart3, label: 'Reports & Analytics', path: '/reports', badge: null },
   { icon: Bell, label: 'Notifications', path: '/notifications', badge: 'notifications' },
   { icon: Activity, label: 'Audit Logs', path: '/audit', badge: null },
@@ -81,22 +84,21 @@ export const Sidebar: React.FC<{
   // };
 
   const getBadgeCount = (badgeType: string | null) => {
-  switch (badgeType) {
-    case 'notifications':
-      return notificationCount > 0 ? notificationCount : null;
-    default:
-      return null;
-  }
-};
+    switch (badgeType) {
+      case 'notifications':
+        return notificationCount > 0 ? notificationCount : null;
+      default:
+        return null;
+    }
+  };
 
   return (
     <motion.div
-    initial={{ x: -280 }}
-    animate={{ x: isHidden ? -280 : 0 }}
-    transition={{ duration: 0.3, ease: 'easeOut' }}
-    className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${
-      isHidden ? 'w-0 overflow-hidden' : (isCollapsed ? 'w-20' : 'w-72')
-    } flex flex-col min-h-0`}
+      initial={{ x: -280 }}
+      animate={{ x: isHidden ? -280 : 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${isHidden ? 'w-0 overflow-hidden' : (isCollapsed ? 'w-20' : 'w-72')
+        } flex flex-col min-h-0`}
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
@@ -122,7 +124,7 @@ export const Sidebar: React.FC<{
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -176,11 +178,11 @@ export const Sidebar: React.FC<{
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        
+
         {visibleItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const badgeCount = getBadgeCount(item.badge);
-          
+
           return (
             <motion.div
               key={item.path}
@@ -190,11 +192,10 @@ export const Sidebar: React.FC<{
             >
               <Link
                 to={item.path}
-                className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${
-                  isActive
+                className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${isActive
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <item.icon className={`${isCollapsed ? 'mx-auto' : 'mr-3'} h-5 w-5 flex-shrink-0`} />
                 <AnimatePresence>
@@ -230,11 +231,10 @@ export const Sidebar: React.FC<{
           >
             <Link
               to="/users"
-              className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${
-                location.pathname === '/users'
+              className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/users'
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
+                }`}
             >
               <User className={`${isCollapsed ? 'mx-auto' : 'mr-3'} h-5 w-5 flex-shrink-0`} />
               <AnimatePresence>
@@ -304,9 +304,8 @@ export const Sidebar: React.FC<{
           variant="ghost"
           icon={LogOut}
           onClick={handleLogout}
-          className={`w-full text-gray-600 hover:text-red-600 hover:bg-red-50 ${
-            isCollapsed ? 'px-0 justify-center' : 'justify-start'
-          }`}
+          className={`w-full text-gray-600 hover:text-red-600 hover:bg-red-50 ${isCollapsed ? 'px-0 justify-center' : 'justify-start'
+            }`}
           animate={false}
         >
           {!isCollapsed && 'Sign Out'}

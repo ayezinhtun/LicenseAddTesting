@@ -20,6 +20,7 @@ import { VendorPage } from './components/vendors/VendorPage';
 import { ProjectAssignPage } from './components/projectAssign/ProjectAssignPage';
 import { CustomerPage } from './components/customers/CustomerPage';
 import { DistributorPage } from './components/distributors/DistributorPage';
+import {RecentlyDeleted} from './components/licenses/RecentlyDeleted';
 
 function App() {
   const { isAuthenticated, getCurrentUser, user, profileStatus } = useAuthStore();
@@ -171,7 +172,6 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            {/* Pending approval page (won't render here because handled above) */}
             <Route path="/pending-approval" element={<PendingApproval />} />
 
             {/* Protected routes */}
@@ -181,6 +181,7 @@ function App() {
             <Route path="/customers" element={<CustomerPage />} />
             <Route path="/distributors" element={<DistributorPage />} />
             <Route path="/licenses" element={<LicenseManagement />} />
+            <Route path="/licenses/deleted" element={<RecentlyDeleted />} />
             <Route path="/licenses/:id" element={<LicenseDetails />} />
             <Route path="/users" element={user?.role === 'admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />} />
             <Route path="/reports" element={<Reports />} />
