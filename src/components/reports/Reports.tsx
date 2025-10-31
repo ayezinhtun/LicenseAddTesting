@@ -39,9 +39,9 @@ export const Reports: React.FC = () => {
 
   const handleExportCSV = () => {
     const csvContent = [
-      'Vendor,Item,Description,Serial Number,Project,Status,Priority,Remark',
+      'Vendor,Description,Project,Status,Priority,Remark',
       ...filteredLicenses.map(license => 
-        `"${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.status}","${license.priority}","${license.remark || ''}"`
+        `"${license.vendor}","${license.item_description}","${license.project_name}","${license.status}","${license.priority}","${license.remark || ''}"`
       )
     ].join('\n');
     
@@ -96,17 +96,17 @@ export const Reports: React.FC = () => {
           <table>
             <thead>
               <tr>
+                <th>Project</th>
                 <th>Priority</th>
                 <th>Status</th>
-                <th>Project</th>
               </tr>
             </thead>
             <tbody>
               ${filteredLicenses.map(license => `
                 <tr>
+                  <td>${license.project_name}</td>
                   <td>${license.priority}</td>
                   <td>${license.status}</td>
-                  <td>${license.project_name}</td>
                 </tr>
                 `).join('')}
             </tbody>
@@ -227,9 +227,9 @@ export const Reports: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Item
-                </th>
+                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Vendor
                 </th>
@@ -248,12 +248,12 @@ export const Reports: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredLicenses.map((license) => (
                 <tr key={license.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  {/* <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{license.item}</div>
                       <div className="text-sm text-gray-500">{license.serial_number}</div>
                     </div>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {license.vendor}
                   </td>
