@@ -1698,7 +1698,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
   // Recently deleted (<= 30 days)
   fetchRecentlyDeleted: async (): Promise<License[]> => {
-    const cutoff = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
       .from('licenses')
