@@ -174,7 +174,7 @@ export const DistributorPage: React.FC = () => {
             <h3 className="text-sm font-medium text-gray-900">No customers</h3>
             <p className="mt-1 text-sm text-gray-500">Add your first customer to get started.</p>
             <div className="mt-6">
-              <Button icon={Plus} onClick={openCreate}>Add Customer</Button>
+              <Button icon={Plus} onClick={openCreate}>Add Distributor</Button>
             </div>
           </div>
         ) : (
@@ -216,7 +216,7 @@ export const DistributorPage: React.FC = () => {
         )}
       </Card>
 
-      <Modal isOpen={showForm} onClose={() => { setShowForm(false); resetForm(); }} title={editingId ? 'Edit Customer' : 'Add New Customer'} maxWidth="lg">
+      <Modal isOpen={showForm} onClose={() => { setShowForm(false); resetForm(); }} title={editingId ? 'Edit Distributor' : 'Add New Distributor'} maxWidth="lg">
         <form onSubmit={onSubmit} className="space-y-4">
           <Input label="Company Name" value={company_name} onChange={setCompanyName} required placeholder="e.g., ABC Co., Ltd." />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -226,7 +226,7 @@ export const DistributorPage: React.FC = () => {
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</Button>
-            <Button type="submit">{editingId ? 'Update Customer' : 'Create Customer'}</Button>
+            <Button type="submit">{editingId ? 'Update Distributor' : 'Create Distributor'}</Button>
           </div>
         </form>
       </Modal>
