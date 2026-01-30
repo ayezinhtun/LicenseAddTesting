@@ -6,6 +6,7 @@ import { Input } from '../common/Input';
 import { Modal } from '../common/Modal';
 import { Card } from '../common/Card';
 import { Plus, Search, Filter, Edit, Trash2, SortAsc, SortDesc } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -63,13 +64,21 @@ export const DistributorPage: React.FC = () => {
       contact_number: contact_number.trim() || null,
     };
 
-    if (editingId) {
-      await updateDistributor(editingId, payload);
-    } else {
-      await addDistributor(payload as any);
+    try {
+      if (editingId) {
+        await updateDistributor(editingId, payload);
+        toast.success('Distributor updated successfully')
+      } else {
+        await addDistributor(payload as any);
+        toast.success('Distributor added successfully')
+      }
+      resetForm();
+      setShowForm(false);
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.')
     }
-    resetForm();
-    setShowForm(false);
+
+    
   };
 
   const filtered = useMemo(() => {
@@ -204,11 +213,27 @@ export const DistributorPage: React.FC = () => {
                     /> */}
 
                     <Button
-                      variant="ghost" size="sm" icon={Trash2}
-                      onClick={async () => { if (window.confirm('Delete this distributor?')) await deleteDistributor(c.id); }}
-                      title="Delete" className="text-gray-400 hover:text-red-600"
+                      variant="ghost"
+                      size="sm"
+                      icon={Trash2}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+
+                        if (!window.confirm('Are you sure you want to delete this vendor?')) return;
+
+                        try {
+                          await deleteDistributor(c.id);
+                          toast.success('Distributor deleted successfully');
+                        } catch (error) {
+                          toast.error('Failed to delete Distributor');
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-600"
+                      title="Delete Distributor"
                     />
+
                   </div>
+
                 </div>
               </div>
             ))}

@@ -7,6 +7,7 @@ import { Select } from '../common/Select';
 import { Modal } from '../common/Modal';
 import { Card } from '../common/Card';
 import { Plus, Search, Filter, Edit, Trash2, SortAsc, SortDesc } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -37,13 +38,20 @@ export const ProjectAssignPage: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    if (editingId) {
-      await updateProjectAssign(editingId, name.trim());
-    } else {
-      await addProjectAssign(name.trim());
+    try {
+      if (editingId) {
+        await updateProjectAssign(editingId, name.trim());
+        toast.success('Project Assign updated successfully');
+
+      } else {
+        await addProjectAssign(name.trim());
+        toast.success('Project Assign added successfully');
+      }
+      resetForm();
+      setShowForm(false);
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
     }
-    resetForm();
-    setShowForm(false);
   };
 
   const filtered = useMemo(() => {
@@ -216,10 +224,20 @@ export const ProjectAssignPage: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         icon={Trash2}
-                        onClick={async (e) => { e.stopPropagation(); if (window.confirm('Delete this item?')) { await deleteProjectAssign(v.id); } }}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!window.confirm('Are you sure you want to delete this project assign?')) return;
+                          try {
+                            await deleteProjectAssign(v.id);
+                            toast.success('Project Assign deleted successfully');
+                          } catch (error) {
+                            toast.error('Failed to delete Project Assign');
+                          }
+                        }}
                         className="text-gray-400 hover:text-red-600"
                         title="Delete"
                       />
+
                     </div>
                   </div>
                 </div>

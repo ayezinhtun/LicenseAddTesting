@@ -6,6 +6,7 @@ import { Input } from '../common/Input';
 import { Modal } from '../common/Modal';
 import { Card } from '../common/Card';
 import { Plus, Search, Filter, Edit, Trash2, SortAsc, SortDesc } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -67,13 +68,19 @@ export const CustomerPage: React.FC = () => {
       address: address.trim() || null,
     };
 
-    if (editingId) {
-      await updateCustomer(editingId, payload);
-    } else {
-      await addCustomer(payload as any);
+    try {
+      if (editingId) {
+        await updateCustomer(editingId, payload);
+        toast.success('Customer updated successfully');
+      } else {
+        await addCustomer(payload as any);
+        toast.success('Customer added successfully');
+      }
+      resetForm();
+      setShowForm(false);
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
     }
-    resetForm();
-    setShowForm(false);
   };
 
   const filtered = useMemo(() => {
@@ -125,28 +132,28 @@ export const CustomerPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700">Sort by:</span>
-            <div className="flex space-x-2">
-              {[
-                { field: 'company_name' as const, label: 'Name' },
-                { field: 'created_at' as const, label: 'Created' },
-              ].map(({ field, label }) => (
-                <Button
-                  key={field}
-                  variant={sortBy === field ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleSort(field)}
-                  icon={sortBy === field ? renderSortIcon(field) : undefined}
-                >
-                  {label}
-                </Button>
-              ))}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <div className="flex space-x-2">
+                {[
+                  { field: 'company_name' as const, label: 'Name' },
+                  { field: 'created_at' as const, label: 'Created' },
+                ].map(({ field, label }) => (
+                  <Button
+                    key={field}
+                    variant={sortBy === field ? 'primary' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleSort(field)}
+                    icon={sortBy === field ? renderSortIcon(field) : undefined}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
             </div>
+            {/* Optional right-side info */}
+            {/* <div className="text-sm text-gray-500">Showing {filtered.length} customers</div> */}
           </div>
-          {/* Optional right-side info */}
-          {/* <div className="text-sm text-gray-500">Showing {filtered.length} customers</div> */}
-        </div>
 
           {showFilters && (
             <div className="border-t border-gray-200 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -204,16 +211,30 @@ export const CustomerPage: React.FC = () => {
                   <div className="flex items-center justify-end space-x-1">
                     <Button variant="ghost" size="sm" icon={Edit} onClick={() => openEdit(c)} title="Edit" className="text-gray-400 hover:text-blue-600" />
                     <Button
-                      variant="ghost" size="sm" icon={Trash2}
-                      onClick={async () => { if (window.confirm('Delete this customer?')) await deleteCustomer(c.id); }}
-                      title="Delete" className="text-gray-400 hover:text-red-600"
+                      variant="ghost"
+                      size="sm"
+                      icon={Trash2}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+
+                        if (!window.confirm('Are you sure you want to delete this customer?')) return;
+
+                        try {
+                          await deleteCustomer(c.id);
+                          toast.success('Customer deleted successfully');
+                        } catch (error) {
+                          toast.error('Failed to delete customer');
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-600"
+                      title="Delete Customer"
                     />
                   </div>
                 </div>
               </div>
             ))}
 
-            
+
           </div>
         )}
       </Card>
