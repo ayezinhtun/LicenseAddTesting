@@ -12,6 +12,7 @@ import { useVendorStore } from '../../store/vendorStore';
 import { useProjectAssignStore } from '../../store/projectAssignStore';
 import { useCustomerStore } from '../../store/customerStore';
 import { useDistributorStore } from '../../store/useDistributorStore';
+import toast from 'react-hot-toast';
 
 interface LicenseFormProps {
   license?: License | null;
@@ -28,6 +29,13 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
   const { user, assignments } = useAuthStore();
   const { vendors, fetchVendors } = useVendorStore();
   const { assigns, fetchProjectAssigns } = useProjectAssignStore();
+
+
+  const MIN_FILE_SIZE = 2 * 1024;        // 2 KB
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+
 
   useEffect(() => {
     fetchVendors();
@@ -284,10 +292,25 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
   const handleAddAttachmentFiles = async (files: FileList | null) => {
     if (!license || !files || files.length === 0) return;
-    // Upload each file via store, then refresh the list
+
+    for (const file of Array.from(files)) {
+      if (file.size < MIN_FILE_SIZE) {
+        setAttachmentError(`File "${file.name}" is smaller than 2 KB`);
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        setAttachmentError(`File "${file.name}" exceeds 5 MB`);
+        return;
+      }
+    }
+
+    setAttachmentError(null);
+
     for (const file of Array.from(files)) {
       await addAttachment(license.id, file);
     }
+
     const refreshed = await fetchAttachments(license.id);
     setExistingAttachments(
       (refreshed || []).map((a: any) => ({
@@ -299,6 +322,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       }))
     );
   };
+
 
   const handleDeleteExistingAttachment = async (id: string) => {
     await deleteAttachment(id);
@@ -385,9 +409,38 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
-    setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...arr] }));
+
+    const validFiles: File[] = [];
+    let errorMsg: string | null = null;
+
+    for (const file of Array.from(files)) {
+      if (file.size < MIN_FILE_SIZE) {
+        errorMsg = `File "${file.name}" is smaller than 2 KB`;
+        break;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        errorMsg = `File "${file.name}" exceeds 5 MB`;
+        break;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (errorMsg) {
+      setAttachmentError(errorMsg);
+      return;
+    }
+
+    setAttachmentError(null);
+    setFormData(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...validFiles]
+    }));
   };
+
+
+
   const removeAttachment = (index: number) => {
     setFormData(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }));
   };
@@ -398,6 +451,14 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
 
+    if(attachmentError) {
+      setErrors([attachmentError]);
+
+      toast.error(attachmentError);
+
+      setIsSubmitting(false);
+      return;
+    }
     try {
       // Build payload for new schema
       const payload: any = {
@@ -675,6 +736,11 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                   multiple
                   onChange={(e) => handleAddAttachmentFiles(e.target.files)}
                 />
+
+                {attachmentError && (
+                  <p className="mt-2 text-sm text-red-600">{attachmentError}</p>
+                )}
+
                 <Button type="button" icon={Paperclip} onClick={handleClickAddAttachment}>
                   Add Attachment
                 </Button>
@@ -731,6 +797,11 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
           <div className="mt-8">
             <h4 className="text-md font-semibold text-gray-900 mb-2">Attachments (Multiple)</h4>
             <input type="file" multiple onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-700" />
+
+            {attachmentError && (
+              <p className="mt-1 text-sm text-red-600">{attachmentError}</p>
+            )}
+
             {formData.attachments.length > 0 && (
               <div className="mt-2 space-y-1 text-sm text-gray-600">
                 {formData.attachments.map((f, i) => (
@@ -739,7 +810,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                     <Button type="button" variant="ghost" size="sm" icon={Trash2} onClick={() => removeAttachment(i)} />
                   </div>
                 ))}
-                <p className="text-xs text-gray-500">Max 200 MB, Min 10 KB per file</p>
+                <p className="text-xs text-gray-500">Max 50 MB, Min 10 KB per file</p>
               </div>
             )}
           </div>

@@ -316,6 +316,22 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       });
     }
 
+    // Duplicate serial detection (client-side)
+    const seen = new Set<string>();
+    const dupes: string[] = [];
+    for (const s of serials) {
+      const key = (s.serial_or_contract || '').trim().toLowerCase();
+      if (!key) continue;
+      if (seen.has(key)) {
+        dupes.push(s.serial_or_contract);
+      } else {
+        seen.add(key);
+      }
+    }
+    if (dupes.length > 0) {
+      errors.push(`Duplicate Serial/Contract not allowed: ${Array.from(new Set(dupes)).join(', ')}`);
+    }
+
     return {
       isValid: errors.length === 0,
       errors
@@ -625,6 +641,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
         const { error: serialErr } = await supabase.from('license_serials').insert(serialRows);
         if (serialErr) {
+          await supabase.from('licenses').delete().eq('id', data.id);
           if ((serialErr as any).code === '23505') {
             throw new Error('Serial number already exists. It must be unique.');
           }

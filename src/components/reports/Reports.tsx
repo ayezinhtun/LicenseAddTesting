@@ -162,7 +162,7 @@ export const Reports: React.FC = () => {
             onChange={(value) => setFilters(prev => ({ ...prev, project: value }))}
             placeholder="Filter by project..."
           />
-          <Input
+          {/* <Input
             label="Date From"
             type="date"
             value={filters.dateFrom}
@@ -173,7 +173,7 @@ export const Reports: React.FC = () => {
             type="date"
             value={filters.dateTo}
             onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
-          />
+          /> */}
         </div>
       </div>
 

@@ -411,7 +411,7 @@ export const AuditLogs: React.FC = () => {
             </p>
           </div>
 
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 overflow-hidden">
             {isLoading && logs.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -473,8 +473,8 @@ export const AuditLogs: React.FC = () => {
 
                         <div className="space-y-2">
                           <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span><strong>User:</strong> {log.user_name}</span>
-                            <span><strong>Entity ID:</strong> {log.entity_id}</span>
+                            <span className='break-all'><strong>User:</strong> {log.user_name}</span>
+                            <span className='breack-all'><strong>Entity ID:</strong> {log.entity_id}</span>
                             {log.ip_address && (
                               <span><strong>IP:</strong> {log.ip_address}</span>
                             )}
@@ -483,7 +483,7 @@ export const AuditLogs: React.FC = () => {
                           {log.changes && (
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <p className="text-xs font-medium text-gray-700 mb-1">Changes:</p>
-                              <p className="text-xs text-gray-600 font-mono">
+                              <p className="text-xs text-gray-600 font-mono break-all whitespace-pre-wrap">
                                 {formatChanges(log.changes)}
                               </p>
                             </div>
