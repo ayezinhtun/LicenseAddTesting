@@ -356,6 +356,7 @@ export const useAuditStore = create<AuditState>((set, get) => ({
     }
   },
 
+  
   getLogsByUser: async (userId) => {
     try {
       const { data, error } = await supabase

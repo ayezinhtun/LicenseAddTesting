@@ -76,7 +76,7 @@ export const Login: React.FC = () => {
                 </button>
               </div>
             </div>
-
+{/* 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -93,12 +93,12 @@ export const Login: React.FC = () => {
               <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
                 Forgot password?
               </Link>
-            </div>
+            </div> */}
 
             <Button
               type="submit"
               loading={isLoading}
-              className="w-full"
+              className="w-full mt-6"
               size="lg"
             >
               Sign In
@@ -114,13 +114,15 @@ export const Login: React.FC = () => {
             </p>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-gray-600 mb-2">Demo credentials:</p>
             <p className="text-xs text-gray-500">
               Email: admin@1cloudtechnology.com<br />
               Password: admin123
             </p>
-          </div>
+          </div> */}
+
+
         </div>
       </div>
     </div>

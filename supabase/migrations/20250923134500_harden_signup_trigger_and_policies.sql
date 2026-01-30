@@ -1,8 +1,3 @@
--- Harden signup flow and align DB with direct SQL-editor changes
--- - Add RLS insert policies for public.user_profiles
--- - Make handle_new_user SECURITY DEFINER and idempotent
--- - Recreate trigger to point to updated function
--- - Optional: backfill any missing profiles for existing users
 
 -- 1) Ensure RLS is enabled (no-op if already)
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;

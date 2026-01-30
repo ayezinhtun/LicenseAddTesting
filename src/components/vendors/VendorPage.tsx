@@ -16,6 +16,7 @@ import {
   SortAsc,
   SortDesc,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type SortOrder = 'asc' | 'desc';
 
@@ -49,13 +50,19 @@ export const VendorPage: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    if (editingId) {
-      await updateVendor(editingId, name.trim());
-    } else {
-      await addVendor(name.trim());
+    try {
+      if (editingId) {
+        await updateVendor(editingId, name.trim());
+        toast.success('Vendor updated successfully');
+      } else {
+        await addVendor(name.trim());
+        toast.success('Vendor added successfully');
+      }
+      resetForm();
+      setShowForm(false);
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
     }
-    resetForm();
-    setShowForm(false);
   };
 
   const filtered = useMemo(() => {
@@ -262,42 +269,49 @@ export const VendorPage: React.FC = () => {
               {/* Rows */}
               {paged.map(v => (
                 <div key={v.id} className="px-4 py-3 grid grid-cols-12 items-center">
-                    <div className="col-span-8">
+                  <div className="col-span-8">
                     <div className="font-medium text-gray-900">{v.name}</div>
                     <div className="text-xs text-gray-500">
-                        Created {v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}
+                      Created {v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}
                     </div>
-                    </div>
-                    <div className="col-span-4">
+                  </div>
+                  <div className="col-span-4">
                     <div className="flex items-center justify-end space-x-1">
-                        <Button
+                      <Button
                         variant="ghost"
                         size="sm"
                         icon={Edit}
                         onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingId(v.id);
-                            setName(v.name);
-                            setShowForm(true);
+                          e.stopPropagation();
+                          setEditingId(v.id);
+                          setName(v.name);
+                          setShowForm(true);
                         }}
                         className="text-gray-400 hover:text-blue-600"
                         title="Edit Vendor"
-                        />
-                        <Button
+                      />
+                      <Button
                         variant="ghost"
                         size="sm"
                         icon={Trash2}
                         onClick={async (e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Are you sure you want to delete this vendor?')) {
+                          e.stopPropagation();
+
+                          if (!window.confirm('Are you sure you want to delete this vendor?')) return;
+
+                          try {
                             await deleteVendor(v.id);
-                            }
+                            toast.success('Vendor deleted successfully');
+                          } catch (error) {
+                            toast.error('Failed to delete vendor');
+                          }
                         }}
                         className="text-gray-400 hover:text-red-600"
                         title="Delete Vendor"
-                        />
+                      />
+
                     </div>
-                    </div>
+                  </div>
                 </div>
               ))}
 

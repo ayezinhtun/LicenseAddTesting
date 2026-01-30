@@ -9,18 +9,18 @@ export const RecentlyDeleted: React.FC = () => {
     const [rows, setRows] = useState<License[]>([]);
     const [loading, setLoading] = useState(false);
 
-   const load = async () => {
-    try {
-      setLoading(true);
-      // Auto purge anything older than 30 days
-      await useLicenseStore.getState().purgeOldDeletedLicenses();
-      // Then load only last 30 days
-      const data = await useLicenseStore.getState().fetchRecentlyDeleted();
-      setRows(data);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const load = async () => {
+        try {
+            setLoading(true);
+            // Auto purge anything older than 30 days
+            await useLicenseStore.getState().purgeOldDeletedLicenses();
+            // Then load only last 30 days
+            const data = await useLicenseStore.getState().fetchRecentlyDeleted();
+            setRows(data);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => { load(); }, []);
 
@@ -56,7 +56,10 @@ export const RecentlyDeleted: React.FC = () => {
             <Card padding="none">
                 <div className="overflow-x-auto">
                     {loading ? (
-                        <div className="px-6 py-6 text-gray-500">Loading...</div>
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <span className="ml-3 text-gray-600">Loading...</span>
+                        </div>
                     ) : rows.length === 0 ? (
                         <div className="px-6 py-6 text-gray-500">No recently deleted licenses.</div>
                     ) : (
@@ -82,15 +85,15 @@ export const RecentlyDeleted: React.FC = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <div className="flex items-center justify-end space-x-2">
                                                 <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                icon={RotateCcw}
-                                                onClick={() => handleRecover(l.id)}
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    icon={RotateCcw}
+                                                    onClick={() => handleRecover(l.id)}
                                                 >
-                                                Recover
+                                                    Recover
                                                 </Button>
 
-                                                <Button size='sm' variant='ghost' icon={Trash2} className='text-red-600 hover-text-red-700' onClick={()=> handlePermanentDelete(l.id)}>
+                                                <Button size='sm' variant='ghost' icon={Trash2} className='text-red-600 hover-text-red-700' onClick={() => handlePermanentDelete(l.id)}>
                                                     Delete Permently
                                                 </Button>
                                             </div>
