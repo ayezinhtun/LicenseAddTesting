@@ -134,7 +134,7 @@ export const LicenseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  
+
 
   const handleDeleteLicense = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this license? This action cannot be undone.')) {
@@ -257,6 +257,7 @@ export const LicenseManagement: React.FC = () => {
         return acc;
       }, {});
 
+
       // Build one row per serial for the export
       const rows = serials.map((s: any) => {
         const lic = licenses.find(l => l.id === s.license_id);
@@ -276,6 +277,7 @@ export const LicenseManagement: React.FC = () => {
           startDate: s.start_date || '',
           endDate: s.end_date || '',
           status: lic.status || '',
+          remark: lic.remark || ''
         };
       }).filter(Boolean) as Array<{
         vendorName: string;
@@ -288,6 +290,7 @@ export const LicenseManagement: React.FC = () => {
         startDate: string;
         endDate: string;
         status: string;
+        remark: string
       }>;
 
       return rows;
@@ -317,6 +320,7 @@ export const LicenseManagement: React.FC = () => {
       'Start Date',
       'End Date',
       'Status',
+      'Remark'
     ];
 
     const escapeCSV = (val: string) => `"${(val ?? '').replace(/"/g, '""')}"`;
@@ -334,6 +338,7 @@ export const LicenseManagement: React.FC = () => {
         escapeCSV(r.startDate),
         escapeCSV(r.endDate),
         escapeCSV(r.status),
+        escapeCSV(r.remark)
       ].join(',')),
     ].join('\n');
 
@@ -368,6 +373,7 @@ export const LicenseManagement: React.FC = () => {
       <td>${r.startDate}</td>
       <td>${r.endDate}</td>
       <td>${r.status}</td>
+      <td>${r.remark}</td>
     </tr>
   `).join('');
 
@@ -400,6 +406,7 @@ export const LicenseManagement: React.FC = () => {
               <th>Start Date</th>
               <th>End Date</th>
               <th>Status</th>
+              <th>Remark</th>
             </tr>
           </thead>
           <tbody>
@@ -565,7 +572,7 @@ export const LicenseManagement: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
-        <Card>
+        {/* <Card>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Licenses</p>
@@ -575,9 +582,9 @@ export const LicenseManagement: React.FC = () => {
               <Grid className="h-6 w-6 text-blue-600" />
             </div>
           </div>
-        </Card>
+        </Card> */}
 
-        <Card>
+        {/* <Card>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Licenses</p>
@@ -589,9 +596,9 @@ export const LicenseManagement: React.FC = () => {
               <RefreshCw className="h-6 w-6 text-green-600" />
             </div>
           </div>
-        </Card>
+        </Card> */}
 
-        <Card>
+        {/* <Card>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Serial Expiring Soon</p>
@@ -603,7 +610,7 @@ export const LicenseManagement: React.FC = () => {
               <Search className="h-6 w-6 text-orange-600" />
             </div>
           </div>
-        </Card>
+        </Card> */}
 
 
       </motion.div>
@@ -620,7 +627,7 @@ export const LicenseManagement: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex-1">
                 <Input
-                  placeholder="Search licenses by name, vendor, project, or serial number..."
+                  placeholder="Search licenses by name..."
                   value={localFilters.search}
                   onChange={(value) => setLocalFilters(prev => ({ ...prev, search: value }))}
                   icon={Search}
@@ -649,7 +656,7 @@ export const LicenseManagement: React.FC = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="border-t border-gray-200 pt-4"
+                className="border-t border-gray-200 pt-3"
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
 
@@ -703,7 +710,7 @@ export const LicenseManagement: React.FC = () => {
                   {/* Auto Renew filter removed */}
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-4">
+                <div className="flex justify-end space-x-3">
                   <Button variant="secondary" onClick={handleClearFilters}>
                     Clear All
                   </Button>
@@ -715,7 +722,7 @@ export const LicenseManagement: React.FC = () => {
             )}
 
             {/* Sort Options */}
-            <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+            <div className="flex items-center justify-between border-t border-gray-200 pt-2">
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium text-gray-700">Sort by:</span>
                 <div className="flex space-x-2">
@@ -760,7 +767,12 @@ export const LicenseManagement: React.FC = () => {
             </div>
           ) : (
             <LicenseTable
-              licenses={licenses}
+              licenses={licenses.filter(l =>
+                localFilters.search
+                  ? (l.item?.toLowerCase().includes(localFilters.search.toLowerCase()) ||
+                    l.item_description?.toLowerCase().includes(localFilters.search.toLowerCase()))
+                  : true
+              )}
               onEdit={handleEditLicense}
               onDelete={handleDeleteLicense}
               selectedLicenses={selectedLicenses}

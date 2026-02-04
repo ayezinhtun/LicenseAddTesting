@@ -689,12 +689,12 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
               return (
                 <div key={idx} className="p-4 bg-white rounded border">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input label="Serial/Contract No." value={s.serial_or_contract} onChange={(v) => updateSerial(idx, 'serial_or_contract', v)} required />
+                    <Input label="Serial/License Name." value={s.serial_or_contract} onChange={(v) => updateSerial(idx, 'serial_or_contract', v)} required />
                     <Input label="Start Date" type="date" value={s.start_date} onChange={(v) => updateSerial(idx, 'start_date', v)} required />
                     <Input label="End Date" type="date" value={s.end_date} onChange={(v) => updateSerial(idx, 'end_date', v)} required />
                     <Input label="Qty" type="number" min={1} value={String(s.qty)} onChange={(v) => updateSerial(idx, 'qty', Math.max(1, parseInt(v || '1', 10)))} required />
-                    <Select label="Currency" value={s.currency} onChange={(v) => updateSerial(idx, 'currency', v as any)} options={[{ value: 'MMK', label: 'MMK' }, { value: 'USD', label: 'USD' }]} />
-                    <Input label="Unit Price" type="number" min={0} step={0.01} value={String(s.unit_price)} onChange={(v) => updateSerial(idx, 'unit_price', parseFloat(v || '0') || 0)} />
+                    {/* <Select label="Currency" value={s.currency} onChange={(v) => updateSerial(idx, 'currency', v as any)} options={[{ value: 'MMK', label: 'MMK' }, { value: 'USD', label: 'USD' }]} /> */}
+                    {/* <Input label="Unit Price" type="number" min={0} step={0.01} value={String(s.unit_price)} onChange={(v) => updateSerial(idx, 'unit_price', parseFloat(v || '0') || 0)} /> */}
                     <Select
                       label="Notify Before"
                       value={String(s.notify_before_days ?? 30)}
@@ -708,7 +708,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                       ]}
                     />
                     <Input label="PO No. to Distributor" value={s.po_no || ''} onChange={(v) => updateSerial(idx, 'po_no', v)} placeholder="Optional" />
-                    <div className="flex items-end"><div className="text-sm text-gray-600">Total: {s.currency} {rowTotal.toLocaleString()}</div></div>
+                    {/* <div className="flex items-end"><div className="text-sm text-gray-600">Total: {s.currency} {rowTotal.toLocaleString()}</div></div> */}
                   </div>
                   <div className="mt-3 flex justify-end">
                     {formData.serials.length > 1 && (

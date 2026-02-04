@@ -43,7 +43,7 @@ export interface LicenseSerial {
   unit_price: number;
   currency: 'MMK' | 'USD';
   po_no?: string | null;
-  notify_before_days?: number | null;
+  notify_before_days?: number | null
 }
 
 export interface LicenseCustomer {
@@ -456,20 +456,26 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       if (ids.length > 0) {
         const { data: serialRows, error: sErr } = await supabase
           .from('license_serials')
-          .select('license_id, serial_or_contract')
+          .select('license_id, serial_or_contract, start_date, end_date')
           .in('license_id', ids);
 
         if (!sErr) {
-          const byLicense: Record<string, string[]> = {};
+          const byLicense: Record<string, any[]> = {};
           (serialRows || []).forEach((row: any) => {
-            (byLicense[row.license_id] ||= []).push(row.serial_or_contract);
+            (byLicense[row.license_id] ||= []).push({
+              serial_or_contract: row.serial_or_contract,
+              start_date: row.start_date,
+              end_date: row.end_date,
+            });
           });
+
           licensesWithSerials = licensesRaw.map((l: any) => ({
             ...l,
-            serials: byLicense[l.id] || [],
+            license_serials: byLicense[l.id] || [],
           }));
         }
       }
+
 
       set({
         licenses: licensesWithSerials,
@@ -635,6 +641,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
           currency: s.currency,
           po_no: s.po_no || null,
           notify_before_days: s.notify_before_days ?? 30,
+          
         }));
         // const { error: serialErr } = await supabase.from('license_serials').insert(serialRows);
         // if (serialErr) throw serialErr;
@@ -1430,6 +1437,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         .select()
         .single();
       if (renewalError) throw renewalError;
+
+
 
       // Update CURRENT license table with NEW info
       const { error: licUpErr } = await supabase

@@ -230,7 +230,6 @@ export const LicenseDetails: React.FC = () => {
                 <th>End Date</th>
                 <th style="text-align:right">Qty</th>
                 <th>Currency</th>
-                <th style="text-align:right">Unit Price</th>
                 <th style="text-align:right">Total</th>
                 <th>PO No.</th>
               </tr>
@@ -657,20 +656,6 @@ export const LicenseDetails: React.FC = () => {
                               <p className="text-gray-900">{s.qty}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">Currency</p>
-                              <p className="text-gray-900">{s.currency}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Unit Price</p>
-                              <p className="text-gray-900">{s.unit_price.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Total</p>
-                              <p className="text-gray-900 font-medium">
-                                {((s.unit_price || 0) * (s.qty || 0)).toLocaleString()} {s.currency}
-                              </p>
-                            </div>
-                            <div>
                               <p className="text-xs text-gray-500">PO No.</p>
                               <p className="text-gray-900">{s.po_no || '-'}</p>
                             </div>
@@ -959,6 +944,63 @@ export const LicenseDetails: React.FC = () => {
               </div>
             </Card>
           </motion.div>
+
+          {/* Renewal History */}
+          {renewalHistory.length !== 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.28 }}
+            >
+              <Card>
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Old License Data</h3>
+                  {renewalHistory.length === 0 ? (
+                    <p className="text-sm text-gray-500">No old data found.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {renewalHistory.map((renewal: any) => (
+                        <div key={renewal.id} className="border rounded-md bg-gray-50">
+                          <div className="px-3 py-2 border-b text-xs text-gray-600 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                Renewal Date - {renewal.renewal_date ? new Date(renewal.renewal_date).toLocaleDateString() : '-'}
+                              </span>
+                              {/* <span className="text-gray-500">• Old cost:</span>
+                              <span className="font-medium">{Number(renewal.cost ?? 0).toLocaleString()}</span> */}
+                            </div>
+                            {/* <div className="text-[11px] text-gray-500">
+                              Prev end: {renewal.previous_end_date ? new Date(renewal.previous_end_date).toLocaleDateString() : '-'}
+                            </div> */}
+                          </div>
+
+                          <div className="px-3 py-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            <div>
+                              <div className="text-xs text-gray-500">Product</div>
+                              <div className="text-gray-900">{renewal.prev_product_name || '-'}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Serial</div>
+                              <div className="text-gray-900">{renewal.prev_serial_no || '-'}</div>
+                              <div className="text-[11px] text-gray-500">
+                                Start Date - {renewal.prev_serial_start_date ? new Date(renewal.prev_serial_start_date).toLocaleDateString() : '-'} <br />
+                                End Date - {renewal.prev_serial_end_date ? ` ${new Date(renewal.prev_serial_end_date).toLocaleDateString()}` : ' -'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Remark</div>
+                              <div className="text-gray-900 whitespace-pre-line">{renewal.prev_remark || '-'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
         </div>
 
         {/* Sidebar */}
@@ -1029,7 +1071,7 @@ export const LicenseDetails: React.FC = () => {
         <div className="space-y-6">
           {/* Project Name - Editable */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Project Name *</label>
+            <label className="block text-sm font-medium text-gray-700">Project Name</label>
             <Input
               value={renewalData.productName}
               onChange={(value) => setRenewalData({ ...renewalData, productName: value })}
@@ -1040,7 +1082,7 @@ export const LicenseDetails: React.FC = () => {
 
           {/* Serial Selection */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Select Serial *</label>
+            <label className="block text-sm font-medium text-gray-700">Select Serial <span className='text-red-400'>*</span></label>
             <div className="mt-1 space-y-2 max-h-60 overflow-y-auto p-1">
               {serials.map((s) => (
                 <div
@@ -1056,8 +1098,8 @@ export const LicenseDetails: React.FC = () => {
                     }));
                   }}
                   className={`p-3 border rounded-md cursor-pointer transition-colors ${selectedSerialId === s.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:bg-gray-50'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:bg-gray-50'
                     }`}
                 >
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1089,7 +1131,7 @@ export const LicenseDetails: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Serial No *</label>
+                <label className="block text-sm font-medium text-gray-700">Serial No <span className='text-red-500'>*</span></label>
                 <Input
                   value={renewalData.serialNo}
                   onChange={(value) => setRenewalData({ ...renewalData, serialNo: value })}
@@ -1099,7 +1141,7 @@ export const LicenseDetails: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Start Date *</label>
+                <label className="block text-sm font-medium text-gray-700">Start Date <span className='text-red-500'>*</span></label>
                 <Input
                   type="date"
                   value={renewalData.serialStartDate}
@@ -1109,7 +1151,7 @@ export const LicenseDetails: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">End Date *</label>
+                <label className="block text-sm font-medium text-gray-700">End Date <span className='text-red-400'>*</span></label>
                 <Input
                   type="date"
                   value={renewalData.newEndDate}
@@ -1118,19 +1160,7 @@ export const LicenseDetails: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Renewal Cost *</label>
-                <div className="relative rounded-md shadow-sm">
-                  <Input
-                    type="number"
-                    value={renewalData.cost.toString()}
-                    onChange={(value) => setRenewalData({ ...renewalData, cost: parseFloat(value) || 0 })}
-                    placeholder="0.00"
-                    step="0.01"
-                    required
-                  />
-                </div>
-              </div>
+              
             </div>
 
             <div className="space-y-1">
@@ -1139,7 +1169,7 @@ export const LicenseDetails: React.FC = () => {
                 value={renewalData.notes}
                 onChange={(e) => setRenewalData({ ...renewalData, notes: e.target.value })}
                 rows={3}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                className="block w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 placeholder="Add any notes..."
               />
             </div>

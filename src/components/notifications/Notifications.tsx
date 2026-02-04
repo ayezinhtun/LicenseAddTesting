@@ -73,8 +73,6 @@ export const Notifications: React.FC = () => {
     ] : [])
   ].slice(0, 20);
 
-      console.log('allNotifications', allNotifications);
-
 
   const unreadCount = allNotifications.filter(n => !n.is_read).length;
 
