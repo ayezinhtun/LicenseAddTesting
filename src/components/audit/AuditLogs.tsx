@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   Filter,
@@ -14,16 +14,16 @@ import {
   FileText,
   Clock,
   ChevronDown,
-  RefreshCw
-} from 'lucide-react';
-import { useAuditStore } from '../../store/auditStore';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
-import { Select } from '../common/Select';
-import { Card } from '../common/Card';
-import { Badge } from '../common/Badge';
-import { format, formatDistanceToNow } from 'date-fns';
-import toast from 'react-hot-toast';
+  RefreshCw,
+} from "lucide-react";
+import { useAuditStore } from "../../store/auditStore";
+import { Button } from "../common/Button";
+import { Input } from "../common/Input";
+import { Select } from "../common/Select";
+import { Card } from "../common/Card";
+import { Badge } from "../common/Badge";
+import { format, formatDistanceToNow } from "date-fns";
+import toast from "react-hot-toast";
 
 export const AuditLogs: React.FC = () => {
   const {
@@ -39,7 +39,7 @@ export const AuditLogs: React.FC = () => {
     exportAuditLogs,
     setTimeFilter,
     deleteAuditLog,
-    clearAllAuditLogs
+    clearAllAuditLogs,
   } = useAuditStore();
 
   const [showFilters, setShowFilters] = useState(false);
@@ -50,63 +50,85 @@ export const AuditLogs: React.FC = () => {
   }, [fetchAuditLogs]);
 
   const actionOptions = [
-    { value: 'create', label: 'Create' },
-    { value: 'update', label: 'Update' },
-    { value: 'delete', label: 'Delete' },
-    { value: 'view', label: 'View' },
-    { value: 'export', label: 'Export' },
-    { value: 'login', label: 'Login' },
-    { value: 'logout', label: 'Logout' }
+    { value: "create", label: "Create" },
+    { value: "update", label: "Update" },
+    { value: "delete", label: "Delete" },
+    { value: "view", label: "View" },
+    { value: "export", label: "Export" },
+    { value: "login", label: "Login" },
+    { value: "logout", label: "Logout" },
   ];
 
   const entityTypeOptions = [
-    { value: 'license', label: 'License' },
-    { value: 'user', label: 'User' },
-    { value: 'report', label: 'Report' },
-    { value: 'notification', label: 'Notification' }
+    { value: "license", label: "License" },
+    { value: "user", label: "User" },
+    { value: "report", label: "Report" },
+    { value: "notification", label: "Notification" },
   ];
 
   const timeFilterOptions = [
-    { value: 'recent', label: 'Recent (7 days)' },
-    { value: 'week', label: 'This Week' },
-    { value: 'month', label: 'This Month' },
-    { value: 'year', label: 'This Year' }
+    { value: "recent", label: "Recent (7 days)" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" },
+    { value: "year", label: "This Year" },
   ];
 
   const getActionIcon = (action: string) => {
     switch (action) {
-      case 'create': return Plus;
-      case 'update': return Edit;
-      case 'delete': return Trash2;
-      case 'view': return Eye;
-      case 'export': return Download;
-      case 'login': return User;
-      case 'logout': return User;
-      default: return Activity;
+      case "create":
+        return Plus;
+      case "update":
+        return Edit;
+      case "delete":
+        return Trash2;
+      case "view":
+        return Eye;
+      case "export":
+        return Download;
+      case "login":
+        return User;
+      case "logout":
+        return User;
+      default:
+        return Activity;
     }
   };
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'create': return 'text-green-600 bg-green-50';
-      case 'update': return 'text-blue-600 bg-blue-50';
-      case 'delete': return 'text-red-600 bg-red-50';
-      case 'view': return 'text-gray-600 bg-gray-50';
-      case 'export': return 'text-purple-600 bg-purple-50';
-      case 'login': return 'text-emerald-600 bg-emerald-50';
-      case 'logout': return 'text-orange-600 bg-orange-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case "create":
+        return "text-green-600 bg-green-50";
+      case "update":
+        return "text-blue-600 bg-blue-50";
+      case "delete":
+        return "text-red-600 bg-red-50";
+      case "view":
+        return "text-gray-600 bg-gray-50";
+      case "export":
+        return "text-purple-600 bg-purple-50";
+      case "login":
+        return "text-emerald-600 bg-emerald-50";
+      case "logout":
+        return "text-orange-600 bg-orange-50";
+      default:
+        return "text-gray-600 bg-gray-50";
     }
   };
 
   const getActionBadgeVariant = (action: string) => {
     switch (action) {
-      case 'create': return 'success';
-      case 'update': return 'primary';
-      case 'delete': return 'danger';
-      case 'view': return 'secondary';
-      case 'export': return 'info';
-      default: return 'default';
+      case "create":
+        return "success";
+      case "update":
+        return "primary";
+      case "delete":
+        return "danger";
+      case "view":
+        return "secondary";
+      case "export":
+        return "info";
+      default:
+        return "default";
     }
   };
 
@@ -122,22 +144,24 @@ export const AuditLogs: React.FC = () => {
   };
 
   const handleDeleteLog = async (id: string) => {
-    if (!window.confirm('Delete this audit log? This action cannot be undone.')) return;
+    if (!window.confirm("Delete this audit log? This action cannot be undone."))
+      return;
     try {
       await deleteAuditLog(id);
-      toast.success('Audit log deleted');
+      toast.success("Audit log deleted");
     } catch (error) {
-      toast.error('Failed to delete audit log');
+      toast.error("Failed to delete audit log");
     }
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm('Delete ALL audit logs? This action cannot be undone.')) return;
+    if (!window.confirm("Delete ALL audit logs? This action cannot be undone."))
+      return;
     try {
       await clearAllAuditLogs();
-      toast.success('All audit logs deleted');
+      toast.success("All audit logs deleted");
     } catch (error) {
-      toast.error('Failed to clear audit logs');
+      toast.error("Failed to clear audit logs");
     }
   };
 
@@ -151,17 +175,23 @@ export const AuditLogs: React.FC = () => {
   };
 
   const formatChanges = (changes: Record<string, any> | null) => {
-    if (!changes) return 'No changes recorded';
+    if (!changes) return "No changes recorded";
 
     const changeEntries = Object.entries(changes);
-    if (changeEntries.length === 0) return 'No changes recorded';
+    if (changeEntries.length === 0) return "No changes recorded";
 
-    return changeEntries.map(([key, value]) => {
-      if (typeof value === 'object' && value.old !== undefined && value.new !== undefined) {
-        return `${key}: ${value.old} → ${value.new}`;
-      }
-      return `${key}: ${JSON.stringify(value)}`;
-    }).join(', ');
+    return changeEntries
+      .map(([key, value]) => {
+        if (
+          typeof value === "object" &&
+          value.old !== undefined &&
+          value.new !== undefined
+        ) {
+          return `${key}: ${value.old} → ${value.new}`;
+        }
+        return `${key}: ${JSON.stringify(value)}`;
+      })
+      .join(", ");
   };
 
   return (
@@ -199,7 +229,7 @@ export const AuditLogs: React.FC = () => {
           <Button
             variant="secondary"
             icon={Download}
-            onClick={() => exportAuditLogs('csv')}
+            onClick={() => exportAuditLogs("csv")}
           >
             Export CSV
           </Button>
@@ -217,7 +247,9 @@ export const AuditLogs: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Logs</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {totalCount.toLocaleString()}
+              </p>
             </div>
             <div className="bg-blue-50 p-3 rounded-lg">
               <Activity className="h-6 w-6 text-blue-600" />
@@ -228,11 +260,17 @@ export const AuditLogs: React.FC = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Today's Activity</p>
+              <p className="text-sm font-medium text-gray-600">
+                Today's Activity
+              </p>
               <p className="text-2xl font-bold text-gray-900">
-                {logs.filter(log =>
-                  format(new Date(log.created_at), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-                ).length}
+                {
+                  logs.filter(
+                    (log) =>
+                      format(new Date(log.created_at), "yyyy-MM-dd") ===
+                      format(new Date(), "yyyy-MM-dd"),
+                  ).length
+                }
               </p>
             </div>
             <div className="bg-green-50 p-3 rounded-lg">
@@ -246,7 +284,7 @@ export const AuditLogs: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Active Users</p>
               <p className="text-2xl font-bold text-gray-900">
-                {new Set(logs.map(log => log.user_id)).size}
+                {new Set(logs.map((log) => log.user_id)).size}
               </p>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg">
@@ -258,9 +296,11 @@ export const AuditLogs: React.FC = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">License Changes</p>
+              <p className="text-sm font-medium text-gray-600">
+                License Changes
+              </p>
               <p className="text-2xl font-bold text-gray-900">
-                {logs.filter(log => log.entity_type === 'license').length}
+                {logs.filter((log) => log.entity_type === "license").length}
               </p>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg">
@@ -280,7 +320,9 @@ export const AuditLogs: React.FC = () => {
         {timeFilterOptions.map((option) => (
           <Button
             key={option.value}
-            variant={filters.time_period === option.value ? 'primary' : 'secondary'}
+            variant={
+              filters.time_period === option.value ? "primary" : "secondary"
+            }
             size="sm"
             onClick={() => handleTimeFilterChange(option.value)}
           >
@@ -297,15 +339,17 @@ export const AuditLogs: React.FC = () => {
       >
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Filters & Search</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Filters & Search
+            </h3>
             <Button
               variant="ghost"
               size="sm"
               icon={ChevronDown}
               onClick={() => setShowFilters(!showFilters)}
-              className={`transform transition-transform ${showFilters ? 'rotate-180' : ''}`}
+              className={`transform transition-transform ${showFilters ? "rotate-180" : ""}`}
             >
-              {showFilters ? 'Hide' : 'Show'} Filters
+              {showFilters ? "Hide" : "Show"} Filters
             </Button>
           </div>
 
@@ -313,8 +357,10 @@ export const AuditLogs: React.FC = () => {
             {/* Search */}
             <Input
               placeholder="Search by user name, entity ID, or changes..."
-              value={localFilters.search || ''}
-              onChange={(value) => setLocalFilters({ ...localFilters, search: value })}
+              value={localFilters.search || ""}
+              onChange={(value) =>
+                setLocalFilters({ ...localFilters, search: value })
+              }
               icon={Search}
             />
 
@@ -322,64 +368,80 @@ export const AuditLogs: React.FC = () => {
             {showFilters && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
                 className="grid grid-cols-1 md:grid-cols-3 gap-4"
               >
                 <Select
                   label="Actions"
-                  value={localFilters.action?.[0] || ''}
-                  onChange={(value) => setLocalFilters({
-                    ...localFilters,
-                    action: value ? [value] : undefined
-                  })}
-                  options={[{ value: '', label: 'All Actions' }, ...actionOptions]}
+                  value={localFilters.action?.[0] || ""}
+                  onChange={(value) =>
+                    setLocalFilters({
+                      ...localFilters,
+                      action: value ? [value] : undefined,
+                    })
+                  }
+                  options={[
+                    { value: "", label: "All Actions" },
+                    ...actionOptions,
+                  ]}
                 />
 
                 <Select
                   label="Entity Type"
-                  value={localFilters.entity_type?.[0] || ''}
-                  onChange={(value) => setLocalFilters({
-                    ...localFilters,
-                    entity_type: value ? [value] : undefined
-                  })}
-                  options={[{ value: '', label: 'All Types' }, ...entityTypeOptions]}
+                  value={localFilters.entity_type?.[0] || ""}
+                  onChange={(value) =>
+                    setLocalFilters({
+                      ...localFilters,
+                      entity_type: value ? [value] : undefined,
+                    })
+                  }
+                  options={[
+                    { value: "", label: "All Types" },
+                    ...entityTypeOptions,
+                  ]}
                 />
 
                 <Input
                   label="User ID"
-                  value={localFilters.user_id || ''}
-                  onChange={(value) => setLocalFilters({ ...localFilters, user_id: value })}
+                  value={localFilters.user_id || ""}
+                  onChange={(value) =>
+                    setLocalFilters({ ...localFilters, user_id: value })
+                  }
                   placeholder="Filter by user ID"
                 />
 
                 <Input
                   label="Date From"
                   type="date"
-                  value={localFilters.date_range?.start || ''}
-                  onChange={(value) => setLocalFilters({
-                    ...localFilters,
-                    date_range: {
-                      ...localFilters.date_range,
-                      start: value,
-                      end: localFilters.date_range?.end || ''
-                    }
-                  })}
+                  value={localFilters.date_range?.start || ""}
+                  onChange={(value) =>
+                    setLocalFilters({
+                      ...localFilters,
+                      date_range: {
+                        ...localFilters.date_range,
+                        start: value,
+                        end: localFilters.date_range?.end || "",
+                      },
+                    })
+                  }
                 />
 
                 <Input
                   label="Date To"
                   type="date"
-                  value={localFilters.date_range?.end || ''}
-                  onChange={(value) => setLocalFilters({
-                    ...localFilters,
-                    date_range: {
-                      ...localFilters.date_range,
-                      start: localFilters.date_range?.start || '',
-                      end: value
-                    }
-                  })}
+                  value={localFilters.date_range?.end || ""}
+                  onChange={(value) =>
+                    setLocalFilters({
+                      ...localFilters,
+                      date_range: {
+                        ...localFilters.date_range,
+                        start: localFilters.date_range?.start || "",
+                        end: value,
+                      },
+                    })
+                  }
                 />
               </motion.div>
             )}
@@ -405,7 +467,9 @@ export const AuditLogs: React.FC = () => {
       >
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Activity Timeline</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Activity Timeline
+            </h3>
             <p className="text-sm text-gray-500 mt-1">
               Showing {logs.length} of {totalCount} total logs
             </p>
@@ -420,8 +484,12 @@ export const AuditLogs: React.FC = () => {
             ) : logs.length === 0 ? (
               <div className="p-12 text-center">
                 <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No audit logs found</h3>
-                <p className="text-gray-500">No activities match your current filters.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No audit logs found
+                </h3>
+                <p className="text-gray-500">
+                  No activities match your current filters.
+                </p>
               </div>
             ) : (
               logs.map((log, index) => {
@@ -437,7 +505,9 @@ export const AuditLogs: React.FC = () => {
                     className="p-6 hover:bg-gray-50 transition-colors duration-200"
                   >
                     <div className="flex items-start space-x-4">
-                      <div className={`${actionColor} p-2 rounded-lg flex-shrink-0`}>
+                      <div
+                        className={`${actionColor} p-2 rounded-lg flex-shrink-0`}
+                      >
                         <ActionIcon className="h-5 w-5" />
                       </div>
 
@@ -457,9 +527,18 @@ export const AuditLogs: React.FC = () => {
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center space-x-2 text-xs text-gray-500">
                               <Calendar className="h-3 w-3" />
-                              <span>{format(new Date(log.created_at), 'MMM dd, yyyy HH:mm')}</span>
+                              <span>
+                                {format(
+                                  new Date(log.created_at),
+                                  "MMM dd, yyyy HH:mm",
+                                )}
+                              </span>
                               <span>•</span>
-                              <span>{formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}</span>
+                              <span>
+                                {formatDistanceToNow(new Date(log.created_at), {
+                                  addSuffix: true,
+                                })}
+                              </span>
                             </div>
                             <Button
                               variant="ghost"
@@ -473,16 +552,24 @@ export const AuditLogs: React.FC = () => {
 
                         <div className="space-y-2">
                           <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span className='break-all'><strong>User:</strong> {log.user_name}</span>
-                            <span className='breack-all'><strong>Entity ID:</strong> {log.entity_id}</span>
+                            <span className="break-all">
+                              <strong>User:</strong> {log.user_name}
+                            </span>
+                            <span className="breack-all">
+                              <strong>Entity ID:</strong> {log.entity_id}
+                            </span>
                             {log.ip_address && (
-                              <span><strong>IP:</strong> {log.ip_address}</span>
+                              <span>
+                                <strong>IP:</strong> {log.ip_address}
+                              </span>
                             )}
                           </div>
 
                           {log.changes && (
                             <div className="bg-gray-50 p-3 rounded-lg">
-                              <p className="text-xs font-medium text-gray-700 mb-1">Changes:</p>
+                              <p className="text-xs font-medium text-gray-700 mb-1">
+                                Changes:
+                              </p>
                               <p className="text-xs text-gray-600 font-mono break-all whitespace-pre-wrap">
                                 {formatChanges(log.changes)}
                               </p>

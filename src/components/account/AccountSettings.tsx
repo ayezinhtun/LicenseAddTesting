@@ -1,72 +1,79 @@
-import React, { useState } from 'react';
-import { User, Mail, Lock, Shield, Bell, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { User, Mail, Lock, Shield, Bell, Eye, EyeOff } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { Button } from "../common/Button";
+import { Input } from "../common/Input";
+import toast from "react-hot-toast";
 
 export const AccountSettings: React.FC = () => {
   const { user, updateProfile, changePassword } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
-    email: user?.email || ''
+    name: user?.name || "",
+    email: user?.email || "",
   });
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
     licenseExpiryAlerts: true,
     weeklyReports: false,
-    twoFactorAuth: false
+    twoFactorAuth: false,
   });
 
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'security', label: 'Security', icon: Lock },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'privacy', label: 'Privacy', icon: Shield }
+    { id: "profile", label: "Profile", icon: User },
+    { id: "security", label: "Security", icon: Lock },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "privacy", label: "Privacy", icon: Shield },
   ];
 
   const handleProfileSave = async () => {
     try {
       await updateProfile({ name: profileData.name });
       await useAuthStore.getState().getCurrentUser();
-      toast.success('Profile updated successfully');
+      toast.success("Profile updated successfully");
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to update profile');
+      toast.error(e?.message || "Failed to update profile");
     }
   };
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error("New passwords do not match");
       return;
     }
     if (passwordData.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters');
+      toast.error("New password must be at least 6 characters");
       return;
     }
     try {
-      await changePassword(passwordData.currentPassword, passwordData.newPassword);
-      toast.success('Password changed successfully');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      await changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+      );
+      toast.success("Password changed successfully");
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to change password');
+      toast.error(e?.message || "Failed to change password");
     }
   };
 
   const handlePreferencesSave = () => {
     // Simulate API call
-    toast.success('Preferences updated successfully');
+    toast.success("Preferences updated successfully");
   };
 
   return (
@@ -90,8 +97,8 @@ export const AccountSettings: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center px-6 py-4 text-sm font-medium transition-colors duration-200 ${
                 activeTab === tab.id
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
             >
               <tab.icon className="h-4 w-4 mr-2" />
@@ -101,15 +108,19 @@ export const AccountSettings: React.FC = () => {
         </div>
 
         <div className="p-6">
-          {activeTab === 'profile' && (
+          {activeTab === "profile" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Profile Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input
                     label="Full Name"
                     value={profileData.name}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, name: value }))}
+                    onChange={(value) =>
+                      setProfileData((prev) => ({ ...prev, name: value }))
+                    }
                     icon={User}
                   />
                   <div>
@@ -117,7 +128,9 @@ export const AccountSettings: React.FC = () => {
                       label="Email Address"
                       type="email"
                       value={user?.email || profileData.email}
-                      onChange={() => { /* email cannot be changed */ }}
+                      onChange={() => {
+                        /* email cannot be changed */
+                      }}
                       icon={Mail}
                       disabled
                     />
@@ -125,19 +138,19 @@ export const AccountSettings: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
-                <Button onClick={handleProfileSave}>
-                  Save Changes
-                </Button>
+                <Button onClick={handleProfileSave}>Save Changes</Button>
               </div>
             </div>
           )}
 
-          {activeTab === 'security' && (
+          {activeTab === "security" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Change Password
+                </h3>
                 <div className="space-y-4 max-w-md">
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
@@ -146,17 +159,28 @@ export const AccountSettings: React.FC = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <input
-                        type={showCurrentPassword ? 'text' : 'password'}
+                        type={showCurrentPassword ? "text" : "password"}
                         value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            currentPassword: e.target.value,
+                          }))
+                        }
                         className="block w-full pl-10 pr-10 py-2 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -168,9 +192,14 @@ export const AccountSettings: React.FC = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <input
-                        type={showNewPassword ? 'text' : 'password'}
+                        type={showNewPassword ? "text" : "password"}
                         value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            newPassword: e.target.value,
+                          }))
+                        }
                         className="block w-full pl-10 pr-10 py-2 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       />
                       <button
@@ -178,7 +207,11 @@ export const AccountSettings: React.FC = () => {
                         onClick={() => setShowNewPassword(!showNewPassword)}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -187,16 +220,19 @@ export const AccountSettings: React.FC = () => {
                     label="Confirm New Password"
                     type="password"
                     value={passwordData.confirmPassword}
-                    onChange={(value) => setPasswordData(prev => ({ ...prev, confirmPassword: value }))}
+                    onChange={(value) =>
+                      setPasswordData((prev) => ({
+                        ...prev,
+                        confirmPassword: value,
+                      }))
+                    }
                     icon={Lock}
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
-                <Button onClick={handlePasswordChange}>
-                  Change Password
-                </Button>
+                <Button onClick={handlePasswordChange}>Change Password</Button>
               </div>
 
               {/* <div className="border-t border-gray-200 pt-6">
@@ -217,52 +253,81 @@ export const AccountSettings: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'notifications' && (
+          {activeTab === "notifications" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Notification Preferences
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Email Notifications</p>
-                      <p className="text-sm text-gray-500">Receive email notifications for important updates</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Email Notifications
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Receive email notifications for important updates
+                      </p>
                     </div>
                     <input
                       type="checkbox"
                       checked={preferences.emailNotifications}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, emailNotifications: e.target.checked }))}
+                      onChange={(e) =>
+                        setPreferences((prev) => ({
+                          ...prev,
+                          emailNotifications: e.target.checked,
+                        }))
+                      }
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">License Expiry Alerts</p>
-                      <p className="text-sm text-gray-500">Get notified when licenses are about to expire</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        License Expiry Alerts
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Get notified when licenses are about to expire
+                      </p>
                     </div>
                     <input
                       type="checkbox"
                       checked={preferences.licenseExpiryAlerts}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, licenseExpiryAlerts: e.target.checked }))}
+                      onChange={(e) =>
+                        setPreferences((prev) => ({
+                          ...prev,
+                          licenseExpiryAlerts: e.target.checked,
+                        }))
+                      }
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Weekly Reports</p>
-                      <p className="text-sm text-gray-500">Receive weekly summary reports via email</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Weekly Reports
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Receive weekly summary reports via email
+                      </p>
                     </div>
                     <input
                       type="checkbox"
                       checked={preferences.weeklyReports}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, weeklyReports: e.target.checked }))}
+                      onChange={(e) =>
+                        setPreferences((prev) => ({
+                          ...prev,
+                          weeklyReports: e.target.checked,
+                        }))
+                      }
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
                 <Button onClick={handlePreferencesSave}>
                   Save Preferences
@@ -271,30 +336,44 @@ export const AccountSettings: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'privacy' && (
+          {activeTab === "privacy" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Privacy Settings</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Privacy Settings
+                </h3>
                 <div className="space-y-4">
                   <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-blue-900 mb-2">Data Protection</h4>
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">
+                      Data Protection
+                    </h4>
                     <p className="text-sm text-blue-700">
-                      Your data is secured with industry-standard encryption and is only used for license management purposes.
-                      1Cloud Technology complies with all relevant data protection regulations.
+                      Your data is secured with industry-standard encryption and
+                      is only used for license management purposes. 1Cloud
+                      Technology complies with all relevant data protection
+                      regulations.
                     </p>
                   </div>
 
                   <div className="p-4 bg-green-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-green-900 mb-2">Activity Logging</h4>
+                    <h4 className="text-sm font-medium text-green-900 mb-2">
+                      Activity Logging
+                    </h4>
                     <p className="text-sm text-green-700">
-                      All license management activities are logged for audit purposes. These logs help maintain security and compliance.
+                      All license management activities are logged for audit
+                      purposes. These logs help maintain security and
+                      compliance.
                     </p>
                   </div>
 
                   <div className="p-4 bg-yellow-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-yellow-900 mb-2">Data Retention</h4>
+                    <h4 className="text-sm font-medium text-yellow-900 mb-2">
+                      Data Retention
+                    </h4>
                     <p className="text-sm text-yellow-700">
-                      License data is retained according to your organization's data retention policy. Contact your administrator for more information.
+                      License data is retained according to your organization's
+                      data retention policy. Contact your administrator for more
+                      information.
                     </p>
                   </div>
                 </div>

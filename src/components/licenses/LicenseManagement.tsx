@@ -170,6 +170,8 @@ export const LicenseManagement: React.FC = () => {
           }
         }
 
+        await useLicenseStore.getState().fetchLicenses(useLicenseStore.getState().currentPage);
+
         toast.success('License added successfully');
       }
       setIsFormOpen(false);
@@ -563,56 +565,6 @@ export const LicenseManagement: React.FC = () => {
             </Button>
           )}
         </div>
-      </motion.div>
-
-      {/* Stats Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        {/* <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Licenses</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
-            </div>
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <Grid className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-        </Card> */}
-
-        {/* <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Licenses</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {licenses.filter(l => l.status === 'active').length}
-              </p>
-            </div>
-            <div className="bg-green-50 p-3 rounded-lg">
-              <RefreshCw className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </Card> */}
-
-        {/* <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Serial Expiring Soon</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {nearExpiryCount}
-              </p>
-            </div>
-            <div className="bg-orange-50 p-3 rounded-lg">
-              <Search className="h-6 w-6 text-orange-600" />
-            </div>
-          </div>
-        </Card> */}
-
-
       </motion.div>
 
       {/* Search and Filters */}

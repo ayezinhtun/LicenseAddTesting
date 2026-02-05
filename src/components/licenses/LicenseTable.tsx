@@ -104,7 +104,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            
+
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               License Details
             </th>
@@ -117,7 +117,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
             {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Dates
             </th> */}
-            
+
             {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Expiry Status
             </th>  */}
@@ -128,7 +128,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {licenses.map((license) => {
-            
+
             const isSelected = selectedLicenses.includes(license.id);
 
             return (
@@ -138,7 +138,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
                   className={`hover:bg-gray-50 transition-colors duration-150 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
                   onClick={() => handleViewDetails(license)}
                 >
-                  
+
 
                   <td className="px-6 py-2 whitespace-nowrap">
                     <div className="space-y-1">
@@ -149,16 +149,16 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
 
 
                       {(license as any).license_serials?.length ? (
-                        
+
                         <div className="flex flex-wrap gap-1 mt-1">
-                          
+
                           {(license as any).license_serials.map((s: any) => (
-                            
+
                             <span
                               key={s.serial_or_contract}
                               className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-1 py-0.5"
                             >
-                              {s.serial_or_contract} \ {s.start_date} - {s.end_date}
+                              {s.serial_or_contract} - Start: {format(parseISO(s.start_date), 'dd MMM yyyy')} → End: {format(parseISO(s.end_date), 'dd MMM yyyy')}
                             </span>
                           ))}
                         </div>

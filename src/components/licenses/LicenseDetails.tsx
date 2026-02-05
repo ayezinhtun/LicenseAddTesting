@@ -167,6 +167,21 @@ export const LicenseDetails: React.FC = () => {
       </tr>
     `).join('') || `<tr><td colspan="4" style="text-align:center;color:#777">No distributors added</td></tr>`;
 
+    const renewalRows = (renewalHistory || [])
+      .map((r: any) => `
+    <tr>
+      <td>${r.renewal_date ? new Date(r.renewal_date).toLocaleDateString() : ''}</td>
+      <td>${r.previous_end_date ? new Date(r.previous_end_date).toLocaleDateString() : ''}</td>
+      <td>${r.prev_product_name || ''}</td>
+      <td>${r.prev_serial_no || ''}</td>
+      <td>${r.prev_serial_start_date ? new Date(r.prev_serial_start_date).toLocaleDateString() : ''}</td>
+      <td>${r.prev_serial_end_date ? new Date(r.prev_serial_end_date).toLocaleDateString() : ''}</td>
+      <td>${r.prev_remark || ''}</td>
+    </tr>
+  `)
+      .join('')
+      || `<tr><td colspan="8" style="text-align:center;color:#777">No old data found</td></tr>`;
+
     const product = selectedLicense.item_description?.trim() ? selectedLicense.item_description : selectedLicense.item;
 
     return `
@@ -274,6 +289,27 @@ export const LicenseDetails: React.FC = () => {
             </tbody>
           </table>
         </div>
+        
+        <div class="section">
+          <h2>Old License Data</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Renewal Date</th>
+                <th>Previous End Date</th>
+                <th>Product (old)</th>
+                <th>Serial (old)</th>
+                <th>Serial Start (old)</th>
+                <th>Serial End (old)</th>
+                <th>Remark (old)</th>in 
+              </tr>
+            </thead>
+            <tbody>
+              ${renewalRows}
+            </tbody>
+          </table>
+        </div>
+        
       </body>
     </html>
   `;
@@ -293,6 +329,98 @@ export const LicenseDetails: React.FC = () => {
     }
   };
 
+  const buildExportDetailRows = () => {
+    if (!selectedLicense) return [];
+
+    const product = selectedLicense.item_description?.trim()
+      ? selectedLicense.item_description
+      : (selectedLicense as any).item;
+
+    // One CSV row per serial
+    return (serials || []).map((s: any) => ({
+      vendorName: selectedLicense.vendor || '',
+      projectName: selectedLicense.project_name || '',
+      projectAssign: (selectedLicense as any).project_assign || '',
+      product: product || '',
+      serialContractNumber: s.serial_or_contract || '',
+      quantity: String(s.qty ?? ''),
+      startDate: s.start_date || '',
+      endDate: s.end_date || '',
+      notifyBeforeDays: String(s.notify_before_days ?? 30),
+      status: selectedLicense.status || '',
+      remark: selectedLicense.remark || '',
+
+      // optional: pack old data into one field
+      oldLicenseData: (renewalHistory || [])
+        .map((r: any) =>
+          [
+            r.renewal_date || '',
+            r.previous_end_date || '',
+            r.prev_product_name || '',
+            r.prev_serial_no || '',
+            r.prev_serial_start_date || '',
+            r.prev_serial_end_date || '',
+            r.prev_remark || ''
+          ].join(' | ')
+        )
+        .join(' ; ')
+    }));
+  };
+
+
+  const handleExportCSVDetail = () => {
+    const rows = buildExportDetailRows();
+    if (rows.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const header = [
+      'Vendor Name',
+      'Project Name',
+      'Project Assign',
+      'Product',
+      'Serial/Contract Number',
+      'Quantity',
+      'Start Date',
+      'End Date',
+      'Notify Before Days',
+      'Status',
+      'Remark',
+      'Old License Data'
+    ];
+
+    const escapeCSV = (val: string) => `"${(val ?? '').replace(/"/g, '""')}"`;
+
+    const csvContent = [
+      header.join(','),
+      ...rows.map(r => [
+        escapeCSV(r.vendorName),
+        escapeCSV(r.projectName),
+        escapeCSV(r.projectAssign),
+        escapeCSV(r.product),
+        escapeCSV(r.serialContractNumber),
+        escapeCSV(r.quantity),
+        escapeCSV(r.startDate),
+        escapeCSV(r.endDate),
+        escapeCSV(r.notifyBeforeDays),
+        escapeCSV(r.status),
+        escapeCSV(r.remark),
+        escapeCSV(r.oldLicenseData),
+      ].join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `license-${selectedLicense?.id}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast.success('Exported CSV successfully');
+  };
+  
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (!window.confirm('Are you sure you want to delete this attachment?')) return;
 
@@ -322,7 +450,7 @@ export const LicenseDetails: React.FC = () => {
       !renewalData.serialNo ||
       !renewalData.serialStartDate ||
       !renewalData.newEndDate ||
-      !renewalData.cost
+      renewalData.cost === null
     ) return;
 
     try {
@@ -473,6 +601,13 @@ export const LicenseDetails: React.FC = () => {
         <div className="flex space-x-3">
           <Button variant="secondary" icon={Download} onClick={handleExportPDFDetail}>
             Export PDF
+          </Button>
+
+          <Button
+            icon={Download}
+            onClick={handleExportCSVDetail}
+          >
+            Export CSV
           </Button>
 
           {user?.role !== 'user' && (
@@ -1160,7 +1295,7 @@ export const LicenseDetails: React.FC = () => {
                 />
               </div>
 
-              
+
             </div>
 
             <div className="space-y-1">
@@ -1191,7 +1326,7 @@ export const LicenseDetails: React.FC = () => {
                 !renewalData.serialNo ||
                 !renewalData.serialStartDate ||
                 !renewalData.newEndDate ||
-                !renewalData.cost ||
+                renewalData.cost === null ||
                 !selectedSerialId
               }
               icon={RefreshCw}

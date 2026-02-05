@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { Button } from "../common/Button";
+import { Input } from "../common/Input";
+import toast from "react-hot-toast";
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuthStore();
@@ -18,9 +18,9 @@ export const Login: React.FC = () => {
 
     try {
       await login(email, password);
-      toast.success('Welcome to 1Cloud Technology License Manager!');
+      toast.success("Welcome to 1Cloud Technology License Manager!");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Login failed');
+      toast.error(error instanceof Error ? error.message : "Login failed");
     }
   };
 
@@ -36,9 +36,7 @@ export const Login: React.FC = () => {
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             License Manager
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
 
         <div className="bg-white p-8 rounded-xl shadow-lg">
@@ -60,7 +58,7 @@ export const Login: React.FC = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -72,11 +70,15 @@ export const Login: React.FC = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
-{/* 
+            {/* 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -107,8 +109,11 @@ export const Login: React.FC = () => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Sign up
               </Link>
             </p>
@@ -121,8 +126,6 @@ export const Login: React.FC = () => {
               Password: admin123
             </p>
           </div> */}
-
-
         </div>
       </div>
     </div>
