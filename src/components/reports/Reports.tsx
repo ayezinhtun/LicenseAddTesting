@@ -36,15 +36,13 @@ export const Reports: React.FC = () => {
 
   const [serials, setSerials] = useState<string[]>([]);
 
-
-
   // fetch serials when component mounts
 
   React.useEffect(() => {
 
     const loadSerials = async () => {
 
-      const {data} = await supabase
+      const { data } = await supabase
 
         .from('license_serials')
 
@@ -100,42 +98,53 @@ export const Reports: React.FC = () => {
 
   const uniqueProjects = new Set(filteredLicenses.map(license => license.project_name)).size;
 
+  const serialsByLicense = React.useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    (serials as any[]).forEach(s => {
+      if (!grouped[s.license_id]) grouped[s.license_id] = [];
+      grouped[s.license_id].push(s);
+    });
+    return grouped;
+  }, [serials]);
 
 
   const handleExportCSV = () => {
+    const rows: string[][] = [];
+
+    filteredLicenses.forEach(license => {
+      const licenseSerials = serialsByLicense[license.id] || [];
+      if (licenseSerials.length === 0) {
+        // License with no serials
+        rows.push([
+          `"${license.project_name}"`,
+          `"${license.vendor}"`,
+          `"No serials"`
+        ]);
+      } else {
+        licenseSerials.forEach(serial => {
+          rows.push([
+            `"${license.project_name}"`,
+            `"${license.vendor}"`,
+            `"${serial.serial_or_contract} - Start: ${serial.start_date || '-'} → End: ${serial.end_date || '-'}"`
+          ]);
+        });
+      }
+    });
 
     const csvContent = [
-
-      'Vendor,Description,Project,Status,Priority,Remark',
-
-      ...filteredLicenses.map(license =>
-
-        `"${license.vendor}","${license.item_description}","${license.project_name}","${license.status}","${license.priority}","${license.remark || ''}"`
-
-      )
-
+      'Project Name,Vendor,Serial',
+      ...rows.map(row => row.join(','))
     ].join('\n');
 
-
-
     const blob = new Blob([csvContent], { type: 'text/csv' });
-
     const url = window.URL.createObjectURL(blob);
-
     const a = document.createElement('a');
-
     a.href = url;
-
     a.download = `license-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-
     a.click();
-
     window.URL.revokeObjectURL(url);
 
-
-
     toast.success('Report exported to CSV successfully');
-
   };
 
 
@@ -220,11 +229,11 @@ export const Reports: React.FC = () => {
 
               <tr>
 
-                <th>Project</th>
+                <th>Project Name</th>
 
-                <th>Priority</th>
+                <th>Vendor</th>
 
-                <th>Status</th>
+                <th>Serials</th>
 
               </tr>
 
@@ -232,19 +241,24 @@ export const Reports: React.FC = () => {
 
             <tbody>
 
-              ${filteredLicenses.map(license => `
+                ${filteredLicenses.map(license => {
+      const licenseSerials = serialsByLicense[license.id] || [];
+      return `
+                            <tr>
+                              <td>${license.project_name}</td>
+                              <td>${license.vendor}</td>
+                              <td>
+                                ${licenseSerials.length > 0
+          ? licenseSerials.map(serial =>
+            `<div class="serial-item">${serial.serial_or_contract} - Start: ${serial.start_date || '-'} → End: ${serial.end_date || '-'}</div>`
+          ).join('')
+          : 'No serials'
+        }
+                              </td>
+                            </tr>
+                          `;
+    }).join('')}
 
-                <tr>
-
-                  <td>${license.project_name}</td>
-
-                  <td>${license.priority}</td>
-
-                  <td>${license.status}</td>
-
-                </tr>
-
-                `).join('')}
 
             </tbody>
 
@@ -278,7 +292,7 @@ export const Reports: React.FC = () => {
 
 
 
-  
+
 
 
 
@@ -499,7 +513,9 @@ export const Reports: React.FC = () => {
                 </th>
 
 
-
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Serials
+                </th>
 
 
 
@@ -510,44 +526,35 @@ export const Reports: React.FC = () => {
 
             <tbody className="bg-white divide-y divide-gray-200">
 
-              {filteredLicenses.map((license) => (
-
-                <tr key={license.id} className="hover:bg-gray-50">
-
-                  {/* <td className="px-6 py-4 whitespace-nowrap">
-
-                    <div>
-
-                      <div className="text-sm font-medium text-gray-900">{license.item}</div>
-
-                      <div className="text-sm text-gray-500">{license.serial_number}</div>
-
-                    </div>
-
-                  </td> */}
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-
-                    {license.project_name}
-
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-
-                    {license.vendor}
-
-                  </td>
-
-                  
-
-
-
-
-
-                </tr>
-
-              ))}
-
+              {filteredLicenses.map((license) => {
+                const licenseSerials = serialsByLicense[license.id] || [];
+                return (
+                  <tr key={license.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {license.project_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {license.vendor}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {licenseSerials.length > 0 ? (
+                        <div>
+                          {licenseSerials.map((serial, index) => (
+                            <div key={serial.id}>
+                              <span className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-1 py-0.5">
+                                {serial.serial_or_contract} - Start: {format(parseISO(serial.start_date), 'dd MMM yyyy')} → End: {format(parseISO(serial.end_date), 'dd MMM yyyy')}
+                              </span>
+                              {index < licenseSerials.length - 1 && <br />}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500">No serials</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
 
           </table>
