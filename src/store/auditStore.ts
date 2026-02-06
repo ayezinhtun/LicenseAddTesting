@@ -1,13 +1,27 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-import { supabase } from '../lib/supabase';
-import { useAuthStore } from './authStore';
-import { format, subDays, subMonths, subYears, startOfDay, endOfDay } from 'date-fns';
+import { supabase } from "../lib/supabase";
+import { useAuthStore } from "./authStore";
+import {
+  format,
+  subDays,
+  subMonths,
+  subYears,
+  startOfDay,
+  endOfDay,
+} from "date-fns";
 
 export interface AuditLog {
   id: string;
-  action: 'create' | 'update' | 'delete' | 'view' | 'export' | 'login' | 'logout';
-  entity_type: 'license' | 'user' | 'report' | 'notification';
+  action:
+    | "create"
+    | "update"
+    | "delete"
+    | "view"
+    | "export"
+    | "login"
+    | "logout";
+  entity_type: "license" | "user" | "report" | "notification";
   entity_id: string;
   user_id: string;
   user_name: string;
@@ -26,7 +40,7 @@ export interface AuditFilters {
     end: string;
   };
   search?: string;
-  time_period?: 'recent' | 'week' | 'month' | 'year' | 'custom';
+  time_period?: "recent" | "week" | "month" | "year" | "custom";
 }
 
 interface AuditState {
@@ -36,54 +50,61 @@ interface AuditState {
   totalCount: number;
   currentPage: number;
   pageSize: number;
-  
+
   // Actions
   fetchAuditLogs: (page?: number) => Promise<void>;
   setFilters: (filters: AuditFilters) => void;
   clearFilters: () => void;
-  logAction: (action: Omit<AuditLog, 'id' | 'created_at' | 'user_id' | 'user_name'>) => Promise<void>;
-  exportAuditLogs: (format: 'csv' | 'pdf') => Promise<void>;
+  logAction: (
+    action: Omit<AuditLog, "id" | "created_at" | "user_id" | "user_name">,
+  ) => Promise<void>;
+  exportAuditLogs: (format: "csv" | "pdf") => Promise<void>;
   getFilteredLogs: () => AuditLog[];
-  setTimeFilter: (period: 'recent' | 'week' | 'month' | 'year') => void;
+  setTimeFilter: (period: "recent" | "week" | "month" | "year") => void;
   getCurrentUser: () => Promise<{ id: string; name: string } | null>;
   getClientIP: () => Promise<string | null>;
   deleteAuditLog: (id: string) => Promise<void>;
   clearAllAuditLogs: () => Promise<void>;
-  
+
   // Analytics
   getActionStats: () => Record<string, number>;
   getEntityStats: () => Record<string, number>;
   getUserStats: () => Array<{ user: string; count: number }>;
   getActivityTrends: () => Array<{ date: string; count: number }>;
-  
+
   // Search and filtering
   searchLogs: (query: string) => Promise<AuditLog[]>;
   getLogsByUser: (userId: string) => Promise<AuditLog[]>;
-  getLogsByEntity: (entityType: string, entityId: string) => Promise<AuditLog[]>;
+  getLogsByEntity: (
+    entityType: string,
+    entityId: string,
+  ) => Promise<AuditLog[]>;
 }
 
 export const useAuditStore = create<AuditState>((set, get) => ({
   logs: [],
   isLoading: false,
-  filters: { time_period: 'recent' },
+  filters: { time_period: "recent" },
   totalCount: 0,
   currentPage: 1,
   pageSize: 50,
 
   getCurrentUser: async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (user) {
         return {
           id: user.id,
-          name: user.user_metadata?.name || user.email || 'Unknown User'
+          name: user.user_metadata?.name || user.email || "Unknown User",
         };
       }
-      
+
       return null;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error("Error getting current user:", error);
       return null;
     }
   },
@@ -92,23 +113,23 @@ export const useAuditStore = create<AuditState>((set, get) => ({
     try {
       // Optimistic UI update
       const prevLogs = get().logs;
-      set({ logs: prevLogs.filter(l => l.id !== id) });
+      set({ logs: prevLogs.filter((l) => l.id !== id) });
 
       const { data, error } = await supabase
-        .from('audit_logs')
+        .from("audit_logs")
         .delete()
-        .eq('id', id)
-        .select('id');
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
       if (!data || data.length === 0) {
         // Revert optimistic update if nothing was deleted (e.g., RLS denies or not found)
         set({ logs: prevLogs });
-        throw new Error('Delete not permitted or log not found');
+        throw new Error("Delete not permitted or log not found");
       }
       // Refresh to ensure consistency
       await get().fetchAuditLogs(1);
     } catch (error) {
-      console.error('Error deleting audit log:', error);
+      console.error("Error deleting audit log:", error);
       throw error;
     }
   },
@@ -121,17 +142,17 @@ export const useAuditStore = create<AuditState>((set, get) => ({
 
       // Supabase requires a filter for deletes. Use a very early date to match all rows.
       const { data, error } = await supabase
-        .from('audit_logs')
+        .from("audit_logs")
         .delete()
-        .gte('created_at', '1970-01-01T00:00:00Z')
-        .select('id');
+        .gte("created_at", "1970-01-01T00:00:00Z")
+        .select("id");
       if (error) throw error;
       if (!data) {
         // Unknown outcome; re-fetch
         await get().fetchAuditLogs(1);
       }
     } catch (error) {
-      console.error('Error clearing audit logs:', error);
+      console.error("Error clearing audit logs:", error);
       // Revert optimistic update
       const prevLogs = await get().fetchAuditLogs(1);
       throw error;
@@ -140,69 +161,77 @@ export const useAuditStore = create<AuditState>((set, get) => ({
 
   fetchAuditLogs: async (page = 1) => {
     set({ isLoading: true });
-    
+
     try {
       const { filters, pageSize } = get();
       const auth = useAuthStore.getState();
       const role = auth.user?.role;
       const currentUser = await get().getCurrentUser();
       const offset = (page - 1) * pageSize;
-      
+
       let query = supabase
-        .from('audit_logs')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
+        .from("audit_logs")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
       // Role-based visibility: admin sees all; others only their own logs
-      if (role !== 'admin' && currentUser?.id) {
-        query = query.eq('user_id', currentUser.id);
+      if (role !== "admin" && currentUser?.id) {
+        query = query.eq("user_id", currentUser.id);
       }
 
       // Apply filters
       if (filters.action && filters.action.length > 0) {
-        query = query.in('action', filters.action);
+        query = query.in("action", filters.action);
       }
-      
+
       if (filters.entity_type && filters.entity_type.length > 0) {
-        query = query.in('entity_type', filters.entity_type);
+        query = query.in("entity_type", filters.entity_type);
       }
-      
+
       if (filters.user_id) {
-        query = query.eq('user_id', filters.user_id);
+        query = query.eq("user_id", filters.user_id);
       }
-      
+
       if (filters.search) {
-        query = query.or(`user_name.ilike.%${filters.search}%,entity_id.ilike.%${filters.search}%`);
+        query = query.or(
+          `user_name.ilike.%${filters.search}%,entity_id.ilike.%${filters.search}%`,
+        );
       }
-      
+
       // Apply date range based on time period
-      if (filters.time_period && filters.time_period !== 'custom') {
+      if (filters.time_period && filters.time_period !== "custom") {
         const now = new Date();
         let startDate: Date;
-        
+
         switch (filters.time_period) {
-          case 'recent':
+          case "recent":
             startDate = subDays(now, 7);
             break;
-          case 'week':
+          case "week":
             startDate = subDays(now, 7);
             break;
-          case 'month':
+          case "month":
             startDate = subMonths(now, 1);
             break;
-          case 'year':
+          case "year":
             startDate = subYears(now, 1);
             break;
           default:
             startDate = subDays(now, 7);
         }
-        
-        query = query.gte('created_at', startDate.toISOString());
+
+        query = query.gte("created_at", startDate.toISOString());
       } else if (filters.date_range) {
         query = query
-          .gte('created_at', startOfDay(new Date(filters.date_range.start)).toISOString())
-          .lte('created_at', endOfDay(new Date(filters.date_range.end)).toISOString());
+          .gte(
+            "created_at",
+            startOfDay(new Date(filters.date_range.start)).toISOString(),
+          )
+          .lte(
+            "created_at",
+            endOfDay(new Date(filters.date_range.end)).toISOString(),
+          );
       }
 
       const { data, error, count } = await query;
@@ -213,10 +242,10 @@ export const useAuditStore = create<AuditState>((set, get) => ({
         logs: data || [],
         totalCount: count || 0,
         currentPage: page,
-        isLoading: false
+        isLoading: false,
       });
     } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      console.error("Error fetching audit logs:", error);
       set({ isLoading: false });
       throw error;
     }
@@ -228,7 +257,7 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   },
 
   clearFilters: () => {
-    set({ filters: { time_period: 'recent' } });
+    set({ filters: { time_period: "recent" } });
     get().fetchAuditLogs(1);
   },
 
@@ -241,7 +270,7 @@ export const useAuditStore = create<AuditState>((set, get) => ({
     try {
       const currentUser = await get().getCurrentUser();
       if (!currentUser) {
-        console.log('No authenticated user found, skipping audit log');
+        console.log("No authenticated user found, skipping audit log");
         return;
       }
 
@@ -250,7 +279,8 @@ export const useAuditStore = create<AuditState>((set, get) => ({
       const now = Date.now();
       const key = `${actionData.action}:${actionData.entity_type}:${actionData.entity_id}:${currentUser.id}`;
       // @ts-ignore - attach ephemeral cache on the store instance
-      const cache: Map<string, number> = (useAuditStore as any)._dedupeCache || new Map();
+      const cache: Map<string, number> =
+        (useAuditStore as any)._dedupeCache || new Map();
       // @ts-ignore
       (useAuditStore as any)._dedupeCache = cache;
       const last = cache.get(key) || 0;
@@ -259,18 +289,18 @@ export const useAuditStore = create<AuditState>((set, get) => ({
       }
       cache.set(key, now);
 
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert([{
+      const { error } = await supabase.from("audit_logs").insert([
+        {
           ...actionData,
           user_id: currentUser.id,
           user_name: currentUser.name,
           ip_address: await get().getClientIP(),
-          user_agent: navigator.userAgent
-        }]);
+          user_agent: navigator.userAgent,
+        },
+      ]);
 
       if (error) {
-        console.error('Error inserting audit log:', error);
+        console.error("Error inserting audit log:", error);
         return; // Don't throw to prevent breaking main functionality
       }
 
@@ -279,7 +309,7 @@ export const useAuditStore = create<AuditState>((set, get) => ({
         get().fetchAuditLogs(1);
       }
     } catch (error) {
-      console.error('Error logging action:', error);
+      console.error("Error logging action:", error);
       // Don't throw the error to prevent breaking the main functionality
     }
   },
@@ -291,34 +321,34 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   getActionStats: () => {
     const { logs } = get();
     const stats: Record<string, number> = {};
-    
-    logs.forEach(log => {
+
+    logs.forEach((log) => {
       stats[log.action] = (stats[log.action] || 0) + 1;
     });
-    
+
     return stats;
   },
 
   getEntityStats: () => {
     const { logs } = get();
     const stats: Record<string, number> = {};
-    
-    logs.forEach(log => {
+
+    logs.forEach((log) => {
       stats[log.entity_type] = (stats[log.entity_type] || 0) + 1;
     });
-    
+
     return stats;
   },
 
   getUserStats: () => {
     const { logs } = get();
     const userMap = new Map<string, number>();
-    
-    logs.forEach(log => {
+
+    logs.forEach((log) => {
       const count = userMap.get(log.user_name) || 0;
       userMap.set(log.user_name, count + 1);
     });
-    
+
     return Array.from(userMap.entries())
       .map(([user, count]) => ({ user, count }))
       .sort((a, b) => b.count - a.count);
@@ -327,13 +357,13 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   getActivityTrends: () => {
     const { logs } = get();
     const dateMap = new Map<string, number>();
-    
-    logs.forEach(log => {
-      const date = format(new Date(log.created_at), 'yyyy-MM-dd');
+
+    logs.forEach((log) => {
+      const date = format(new Date(log.created_at), "yyyy-MM-dd");
       const count = dateMap.get(date) || 0;
       dateMap.set(date, count + 1);
     });
-    
+
     return Array.from(dateMap.entries())
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -342,34 +372,35 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   searchLogs: async (query) => {
     try {
       const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .or(`user_name.ilike.%${query}%,entity_id.ilike.%${query}%,action.ilike.%${query}%`)
-        .order('created_at', { ascending: false })
+        .from("audit_logs")
+        .select("*")
+        .or(
+          `user_name.ilike.%${query}%,entity_id.ilike.%${query}%,action.ilike.%${query}%`,
+        )
+        .order("created_at", { ascending: false })
         .limit(100);
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error searching audit logs:', error);
+      console.error("Error searching audit logs:", error);
       return [];
     }
   },
 
-  
   getLogsByUser: async (userId) => {
     try {
       const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .from("audit_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
         .limit(100);
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching logs by user:', error);
+      console.error("Error fetching logs by user:", error);
       return [];
     }
   },
@@ -377,17 +408,17 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   getLogsByEntity: async (entityType, entityId) => {
     try {
       const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('entity_type', entityType)
-        .eq('entity_id', entityId)
-        .order('created_at', { ascending: false })
+        .from("audit_logs")
+        .select("*")
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .order("created_at", { ascending: false })
         .limit(50);
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching logs by entity:', error);
+      console.error("Error fetching logs by entity:", error);
       return [];
     }
   },
@@ -395,35 +426,36 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   exportAuditLogs: async (exportFormat) => {
     try {
       const { logs } = get();
-      
-      if (exportFormat === 'csv') {
+
+      if (exportFormat === "csv") {
         const csvContent = [
-          'Timestamp,Action,Entity Type,Entity ID,User,Changes,IP Address',
-          ...logs.map(log => 
-            `"${format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}","${log.action}","${log.entity_type}","${log.entity_id}","${log.user_name}","${JSON.stringify(log.changes || {})}","${log.ip_address || 'N/A'}"`
-          )
-        ].join('\n');
-        
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+          "Timestamp,Action,Entity Type,Entity ID,User,Changes,IP Address",
+          ...logs.map(
+            (log) =>
+              `"${format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss")}","${log.action}","${log.entity_type}","${log.entity_id}","${log.user_name}","${JSON.stringify(log.changes || {})}","${log.ip_address || "N/A"}"`,
+          ),
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = `audit-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+        a.download = `audit-logs-${format(new Date(), "yyyy-MM-dd")}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
       }
-      
+
       // Log the export action
       await get().logAction({
-        action: 'export',
-        entity_type: 'report',
-        entity_id: 'audit-logs',
+        action: "export",
+        entity_type: "report",
+        entity_id: "audit-logs",
         changes: { format: exportFormat, count: logs.length },
         ip_address: null,
-        user_agent: null
+        user_agent: null,
       });
     } catch (error) {
-      console.error('Error exporting audit logs:', error);
+      console.error("Error exporting audit logs:", error);
       throw error;
     }
   },
@@ -431,11 +463,11 @@ export const useAuditStore = create<AuditState>((set, get) => ({
   // Helper function to get client IP (simplified)
   getClientIP: async () => {
     try {
-      const response = await fetch('https://api.ipify.org?format=json');
+      const response = await fetch("https://api.ipify.org?format=json");
       const data = await response.json();
       return data.ip;
     } catch {
       return null;
     }
-  }
+  },
 }));

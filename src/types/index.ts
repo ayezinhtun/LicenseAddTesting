@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user' | 'viewer';
+  role: "admin" | "user" | "viewer";
   isVerified: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -13,7 +13,7 @@ export interface User {
 }
 
 export interface UserPreferences {
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   notifications: {
     email: boolean;
     push: boolean;
@@ -22,7 +22,7 @@ export interface UserPreferences {
     comments: boolean;
   };
   dashboard: {
-    defaultView: 'grid' | 'list';
+    defaultView: "grid" | "list";
     cardsPerRow: number;
     showWelcome: boolean;
   };
@@ -49,13 +49,13 @@ export interface License {
   remark?: string | null;
   custom_fields: Record<string, any>;
   tags: string[];
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'active' | 'expired' | 'suspended' | 'pending';
+  priority: "low" | "medium" | "high" | "critical";
+  status: "active" | "expired" | "suspended" | "pending";
   created_at: string;
   updated_at: string;
   created_by: string;
   last_modified_by: string;
-  
+
   // Related data
   comments?: LicenseComment[];
   attachments?: LicenseAttachment[];
@@ -100,13 +100,13 @@ export interface RenewalRecord {
 
 export interface Notification {
   id: string;
-  type: 'expiry' | 'renewal' | 'comment' | 'system' | 'warning' | 'info';
+  type: "expiry" | "renewal" | "comment" | "system" | "warning" | "info";
   title: string;
   message: string;
   license_id?: string | null;
   user_id: string;
   is_read: boolean;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   action_required: boolean;
   action_url?: string | null;
   created_at: string;
@@ -158,13 +158,16 @@ export interface AuthState {
   logout: () => void;
   verifyEmail: (token: string) => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
 }
 
 export interface AuditLog {
   id: string;
-  action: 'create' | 'update' | 'delete' | 'view' | 'export';
-  entity_type: 'license' | 'user' | 'report';
+  action: "create" | "update" | "delete" | "view" | "export";
+  entity_type: "license" | "user" | "report";
   entity_id: string;
   user_id: string;
   user_name: string;
@@ -182,7 +185,7 @@ export interface ReportTemplate {
   columns: string[];
   groupBy?: string;
   sortBy?: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
   createdBy: string;
   createdAt: string;
   isPublic: boolean;
@@ -190,8 +193,8 @@ export interface ReportTemplate {
 
 export interface BulkOperation {
   id: string;
-  type: 'update' | 'delete' | 'export';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  type: "update" | "delete" | "export";
+  status: "pending" | "processing" | "completed" | "failed";
   totalItems: number;
   processedItems: number;
   failedItems: number;

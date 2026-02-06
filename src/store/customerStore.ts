@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { create } from "zustand";
+import { supabase } from "../lib/supabase";
 
 export interface Customer {
   id: string;
@@ -17,8 +17,13 @@ interface CustomerState {
   isLoading: boolean;
 
   fetchCustomers: () => Promise<void>;
-  addCustomer: (payload: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
-  updateCustomer: (id: string, payload: Partial<Omit<Customer, 'id'>>) => Promise<Customer>;
+  addCustomer: (
+    payload: Omit<Customer, "id" | "created_at" | "updated_at">,
+  ) => Promise<Customer>;
+  updateCustomer: (
+    id: string,
+    payload: Partial<Omit<Customer, "id">>,
+  ) => Promise<Customer>;
   deleteCustomer: (id: string) => Promise<void>;
 }
 
@@ -29,11 +34,11 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   fetchCustomers: async () => {
     set({ isLoading: true });
     const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('company_name', { ascending: true });
+      .from("customers")
+      .select("*")
+      .order("company_name", { ascending: true });
     if (error) {
-      console.error('Error fetching customers:', error);
+      console.error("Error fetching customers:", error);
       set({ isLoading: false });
       return;
     }
@@ -42,7 +47,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
   addCustomer: async (payload) => {
     const { data, error } = await supabase
-      .from('customers')
+      .from("customers")
       .insert([payload])
       .select()
       .single();
@@ -53,9 +58,9 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
   updateCustomer: async (id, payload) => {
     const { data, error } = await supabase
-      .from('customers')
+      .from("customers")
       .update(payload)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
     if (error) throw error;
@@ -64,10 +69,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   },
 
   deleteCustomer: async (id) => {
-    const { error } = await supabase
-      .from('customers')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("customers").delete().eq("id", id);
     if (error) throw error;
     await get().fetchCustomers();
   },

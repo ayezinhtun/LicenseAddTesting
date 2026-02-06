@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { Button } from "../common/Button";
+import { Input } from "../common/Input";
+import toast from "react-hot-toast";
 
 export const SignUp: React.FC = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -19,32 +19,30 @@ export const SignUp: React.FC = () => {
   const navigate = useNavigate();
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error("Password must be at least 6 characters");
       return;
     }
 
     try {
       await signup(formData.name, formData.email, formData.password);
-      toast.success('Verification email sent! Please check your inbox.');
-      navigate('/verify-email');
+      toast.success("Verification email sent! Please check your inbox.");
+      navigate("/verify-email");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Signup failed');
+      toast.error(error instanceof Error ? error.message : "Signup failed");
     }
   };
-
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -69,7 +67,7 @@ export const SignUp: React.FC = () => {
               label="Full Name"
               type="text"
               value={formData.name}
-              onChange={(value) => handleChange('name', value)}
+              onChange={(value) => handleChange("name", value)}
               placeholder="Enter your full name"
               required
               icon={User}
@@ -79,7 +77,7 @@ export const SignUp: React.FC = () => {
               label="Email Address"
               type="email"
               value={formData.email}
-              onChange={(value) => handleChange('email', value)}
+              onChange={(value) => handleChange("email", value)}
               placeholder="Enter your email"
               required
               icon={Mail}
@@ -92,9 +90,9 @@ export const SignUp: React.FC = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) => handleChange('password', e.target.value)}
+                  onChange={(e) => handleChange("password", e.target.value)}
                   placeholder="Create a password"
                   required
                   className="block w-full pl-10 pr-10 py-2 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -104,7 +102,11 @@ export const SignUp: React.FC = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -116,9 +118,11 @@ export const SignUp: React.FC = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
-                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                  onChange={(e) =>
+                    handleChange("confirmPassword", e.target.value)
+                  }
                   placeholder="Confirm your password"
                   required
                   className="block w-full pl-10 pr-10 py-2 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -128,7 +132,11 @@ export const SignUp: React.FC = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -145,8 +153,11 @@ export const SignUp: React.FC = () => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Sign in
               </Link>
             </p>

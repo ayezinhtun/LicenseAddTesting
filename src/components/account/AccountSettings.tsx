@@ -234,22 +234,6 @@ export const AccountSettings: React.FC = () => {
               <div className="flex justify-end">
                 <Button onClick={handlePasswordChange}>Change Password</Button>
               </div>
-
-              {/* <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Two-Factor Authentication</h3>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Enable 2FA</p>
-                    <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={preferences.twoFactorAuth}
-                    onChange={(e) => setPreferences(prev => ({ ...prev, twoFactorAuth: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </div>
-              </div> */}
             </div>
           )}
 

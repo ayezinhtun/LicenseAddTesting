@@ -1,14 +1,14 @@
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
-import { Button } from './Button';
+import React, { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import { Button } from "./Button";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -19,43 +19,43 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  maxWidth = 'md',
+  maxWidth = "md",
   showCloseButton = true,
   closeOnOverlayClick = true,
-  closeOnEscape = true
+  closeOnEscape = true,
 }) => {
   const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    '3xl': 'max-w-3xl',
-    '4xl': 'max-w-4xl'
+    sm: "max-w-sm",
+    md: "max-w-md",
+    lg: "max-w-lg",
+    xl: "max-w-xl",
+    "2xl": "max-w-2xl",
+    "3xl": "max-w-3xl",
+    "4xl": "max-w-4xl",
   };
 
   useEffect(() => {
     if (!closeOnEscape) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose, closeOnEscape]);
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
@@ -72,7 +72,7 @@ export const Modal: React.FC<ModalProps> = ({
               className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
               onClick={closeOnOverlayClick ? onClose : undefined}
             />
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -93,10 +93,8 @@ export const Modal: React.FC<ModalProps> = ({
                   />
                 )}
               </div>
-              
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
-                {children}
-              </div>
+
+              <div className="p-6 max-h-[70vh] overflow-y-auto">{children}</div>
             </motion.div>
           </div>
         </div>

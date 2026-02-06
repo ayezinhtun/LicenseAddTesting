@@ -275,7 +275,7 @@ interface LicenseState {
 
   loadVendors: () => Promise<void>;
 
-  checkSerialExpiryNotifications: () => Promise<void>;
+  // checkSerialExpiryNotifications: () => Promise<void>;
 
   // Comments
 
@@ -1703,180 +1703,180 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
   },
 
   // to send notification every day until renew but the notification is will not send when the expiry is 30 days
-  checkSerialExpiryNotifications: async () => {
-    try {
-      const todayStr = format(new Date(), "yyyy-MM-dd");
+  // checkSerialExpiryNotifications: async () => {
+  //   try {
+  //     const todayStr = format(new Date(), "yyyy-MM-dd");
 
-      const { data, error } = await supabase
+  //     const { data, error } = await supabase
 
-        .from("license_serials")
+  //       .from("license_serials")
 
-        .select(
-          `
+  //       .select(
+  //         `
 
-        id, license_id, serial_or_contract, end_date, notify_before_days, last_notified_on, renewal,
+  //       id, license_id, serial_or_contract, end_date, notify_before_days, last_notified_on, renewal,
 
-        licenses!inner(id, item_description, project_name, vendor, status, created_by)
+  //       licenses!inner(id, item_description, project_name, vendor, status, created_by)
 
-      `,
-        )
+  //     `,
+  //       )
 
-        .not("end_date", "is", null);
+  //       .not("end_date", "is", null);
 
-      const rows: SerialWithLicense[] = (data ?? []) as any[];
-      const due = rows.filter((r) => {
-        if (r.renewal === true) return false; // skip renewed
-        if (!r.notify_before_days || !r.end_date) return false;
-        const end = parseISO(r.end_date);
-        const target = subDays(end, r.notify_before_days);
-        return format(target, "yyyy-MM-dd") <= todayStr;
-      });
-      if (due.length > 0) {
-        const notificationStore = useNotificationStore.getState();
-        const currentUser = await get().getCurrentUser();
-        const actorUserId = currentUser?.id || "system";
+  //     const rows: SerialWithLicense[] = (data ?? []) as any[];
+  //     const due = rows.filter((r) => {
+  //       if (r.renewal === true) return false; // skip renewed
+  //       if (!r.notify_before_days || !r.end_date) return false;
+  //       const end = parseISO(r.end_date);
+  //       const target = subDays(end, r.notify_before_days);
+  //       return format(target, "yyyy-MM-dd") <= todayStr;
+  //     });
+  //     if (due.length > 0) {
+  //       const notificationStore = useNotificationStore.getState();
+  //       const currentUser = await get().getCurrentUser();
+  //       const actorUserId = currentUser?.id || "system";
 
-        for (const r of due) {
-          const lic = r.licenses;
-          const actionUrl = `/licenses/${r.license_id}?serial=${r.id}`;
+  //       for (const r of due) {
+  //         const lic = r.licenses;
+  //         const actionUrl = `/licenses/${r.license_id}?serial=${r.id}`;
 
-          const { data: exists } = await supabase
-            .from("notifications")
-            .select("id")
-            .eq("type", "expiry")
-            .eq("license_id", lic.id)
-            .eq("action_url", actionUrl)
-            .limit(1)
-            .maybeSingle();
+  //         const { data: exists } = await supabase
+  //           .from("notifications")
+  //           .select("id")
+  //           .eq("type", "expiry")
+  //           .eq("license_id", lic.id)
+  //           .eq("action_url", actionUrl)
+  //           .limit(1)
+  //           .maybeSingle();
 
-          if (exists) {
-            continue; // A reminder exists; do not create another
-          }
+  //         if (exists) {
+  //           continue; // A reminder exists; do not create another
+  //         }
 
-          await notificationStore.createNotification({
-            type: "expiry",
+  //         await notificationStore.createNotification({
+  //           type: "expiry",
 
-            title: "Serial approaching expiry",
+  //           title: "Serial approaching expiry",
 
-            message: `${lic.item_description || "Product"} (${r.serial_or_contract}) will expire on ${format(parseISO(r.end_date), "MMM dd, yyyy")} — reminder ${r.notify_before_days} days before`,
-            license_id: r.license_id,
+  //           message: `${lic.item_description || "Product"} (${r.serial_or_contract}) will expire on ${format(parseISO(r.end_date), "MMM dd, yyyy")} — reminder ${r.notify_before_days} days before`,
+  //           license_id: r.license_id,
 
-            user_id: actorUserId,
+  //           user_id: actorUserId,
 
-            is_read: false,
+  //           is_read: false,
 
-            priority: "high",
+  //           priority: "high",
 
-            action_required: false,
+  //           action_required: false,
 
-            action_url: actionUrl,
+  //           action_url: actionUrl,
 
-            expires_at: null,
-          });
+  //           expires_at: null,
+  //         });
 
-          await supabase
+  //         await supabase
 
-            .from("license_serials")
+  //           .from("license_serials")
 
-            .update({ last_notified_on: todayStr })
+  //           .update({ last_notified_on: todayStr })
 
-            .eq("id", r.id);
-        }
-      }
+  //           .eq("id", r.id);
+  //       }
+  //     }
 
-      // Daily reminders after expiry until 30 days, unless renewed
+  //     // Daily reminders after expiry until 30 days, unless renewed
 
-      const postDue = rows.filter((r) => {
-        if (r.renewal === true) return false; // stop if marked renewed
+  //     const postDue = rows.filter((r) => {
+  //       if (r.renewal === true) return false; // stop if marked renewed
 
-        if (!r.end_date) return false;
+  //       if (!r.end_date) return false;
 
-        const end = parseISO(r.end_date);
+  //       const end = parseISO(r.end_date);
 
-        const daysSince = Math.floor(
-          (new Date().getTime() - end.getTime()) / (1000 * 60 * 60 * 24),
-        );
+  //       const daysSince = Math.floor(
+  //         (new Date().getTime() - end.getTime()) / (1000 * 60 * 60 * 24),
+  //       );
 
-        if (daysSince < 0 || daysSince > 30) return false; // only day 0..30 after expiry
+  //       if (daysSince < 0 || daysSince > 30) return false; // only day 0..30 after expiry
 
-        if (r.last_notified_on && r.last_notified_on === todayStr) return false; // once per day
+  //       if (r.last_notified_on && r.last_notified_on === todayStr) return false; // once per day
 
-        return true;
-      });
+  //       return true;
+  //     });
 
-      if (postDue.length > 0) {
-        const notificationStore = useNotificationStore.getState();
+  //     if (postDue.length > 0) {
+  //       const notificationStore = useNotificationStore.getState();
 
-        const currentUser = await get().getCurrentUser();
+  //       const currentUser = await get().getCurrentUser();
 
-        const actorUserId = currentUser?.id || "system";
+  //       const actorUserId = currentUser?.id || "system";
 
-        for (const r of postDue) {
-          const lic = r.licenses;
+  //       for (const r of postDue) {
+  //         const lic = r.licenses;
 
-          const end = parseISO(r.end_date!);
+  //         const end = parseISO(r.end_date!);
 
-          const daysSince = Math.floor(
-            (new Date().getTime() - end.getTime()) / (1000 * 60 * 60 * 24),
-          );
+  //         const daysSince = Math.floor(
+  //           (new Date().getTime() - end.getTime()) / (1000 * 60 * 60 * 24),
+  //         );
 
-          const actionUrl = `/licenses/${r.license_id}?serial=${r.id}&expired=true`;
+  //         const actionUrl = `/licenses/${r.license_id}?serial=${r.id}&expired=true`;
 
-          const { data: exists } = await supabase
+  //         const { data: exists } = await supabase
 
-            .from("notifications")
+  //           .from("notifications")
 
-            .select("id, created_at")
+  //           .select("id, created_at")
 
-            .eq("type", "expired_reminder")
+  //           .eq("type", "expired_reminder")
 
-            .eq("license_id", lic.id)
+  //           .eq("license_id", lic.id)
 
-            .eq("action_url", actionUrl)
+  //           .eq("action_url", actionUrl)
 
-            .order("created_at", { ascending: false })
+  //           .order("created_at", { ascending: false })
 
-            .limit(1)
+  //           .limit(1)
 
-            .maybeSingle();
+  //           .maybeSingle();
 
-          if (!exists || exists.created_at?.slice(0, 10) !== todayStr) {
-            await notificationStore.createNotification({
-              type: "expired_reminder",
+  //         if (!exists || exists.created_at?.slice(0, 10) !== todayStr) {
+  //           await notificationStore.createNotification({
+  //             type: "expired_reminder",
 
-              title: "Serial expired",
+  //             title: "Serial expired",
 
-              message: `${lic.item_description || "Product"} (${r.serial_or_contract}) expired on ${format(end, "MMM dd, yyyy")} • ${daysSince} day(s) ago`,
+  //             message: `${lic.item_description || "Product"} (${r.serial_or_contract}) expired on ${format(end, "MMM dd, yyyy")} • ${daysSince} day(s) ago`,
 
-              license_id: r.license_id,
+  //             license_id: r.license_id,
 
-              user_id: actorUserId,
+  //             user_id: actorUserId,
 
-              is_read: false,
+  //             is_read: false,
 
-              priority: "high",
+  //             priority: "high",
 
-              action_required: true,
+  //             action_required: true,
 
-              action_url: actionUrl,
+  //             action_url: actionUrl,
 
-              expires_at: null,
-            });
-          }
+  //             expires_at: null,
+  //           });
+  //         }
 
-          await supabase
+  //         await supabase
 
-            .from("license_serials")
+  //           .from("license_serials")
 
-            .update({ last_notified_on: todayStr })
+  //           .update({ last_notified_on: todayStr })
 
-            .eq("id", r.id);
-        }
-      }
-    } catch (e) {
-      console.error("checkSerialExpiryNotifications failed:", e);
-    }
-  },
+  //           .eq("id", r.id);
+  //       }
+  //     }
+  //   } catch (e) {
+  //     console.error("checkSerialExpiryNotifications failed:", e);
+  //   }
+  // },
 
   deleteLicense: async (id) => {
     try {
@@ -2041,8 +2041,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         user_name: "",
 
         search: "",
-
-        serial: "",
 
         serial_number: "", // legacy key, keep empty to avoid stray server params
 
@@ -2650,23 +2648,11 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
       await get().fetchLicenses(get().currentPage);
 
-      // Build change set for audit (just compute diffs; no try/catch here)
+      // Build change set for audit (just compute diffs)
 
       const auditStore = useAuditStore.getState();
 
       const changes: Record<string, { old: any; new: any }> = {};
-
-      if (currentLicense) {
-        Object.keys(sanitized).forEach((key) => {
-          if ((currentLicense as any)[key] !== (sanitized as any)[key]) {
-            changes[key] = {
-              old: (currentLicense as any)[key],
-
-              new: (sanitized as any)[key],
-            };
-          }
-        });
-      }
 
       // Apply serial changes — LET ERRORS BUBBLE UP
 
@@ -2675,7 +2661,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         | undefined;
 
       if (serialsIncoming) {
-        // 1) existing ids
+        //  existing ids
 
         const { data: existingSerials, error: exErr } = await supabase
 

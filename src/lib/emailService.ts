@@ -1,15 +1,15 @@
-import { supabase } from './supabase';
+import { supabase } from "./supabase";
 
 interface EmailNotification {
   to: string;
   subject: string;
   html: string;
-  type: 'expiry' | 'renewal' | 'comment' | 'system' | 'warning' | 'info';
+  type: "expiry" | "renewal" | "comment" | "system" | "warning" | "info";
 }
 
 export class EmailService {
   private static instance: EmailService;
-  
+
   static getInstance(): EmailService {
     if (!EmailService.instance) {
       EmailService.instance = new EmailService();
@@ -20,33 +20,48 @@ export class EmailService {
   async sendNotificationEmail(notification: EmailNotification): Promise<void> {
     try {
       // Call Supabase Edge Function for email sending
-      const { data, error } = await supabase.functions.invoke('send-email', {
+      const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
           to: notification.to,
           subject: notification.subject,
           html: notification.html,
-          from: 'notification@1cloudtechnology.com',
-          type: notification.type
-        }
+          from: "notification@1cloudtechnology.com",
+          type: notification.type,
+        },
       });
 
       if (error) {
-        console.error('Email sending failed:', error);
+        console.error("Email sending failed:", error);
         throw error;
       }
 
-      console.log('Email sent successfully:', data);
+      console.log("Email sent successfully:", data);
     } catch (error) {
-      console.error('Email service error:', error);
+      console.error("Email service error:", error);
       // Don't throw to prevent breaking the main functionality
-      console.log('Email notification failed, but continuing with in-app notification');
+      console.log(
+        "Email notification failed, but continuing with in-app notification",
+      );
     }
   }
 
-  async sendLicenseExpiryAlert(license: any, daysUntilExpiry: number): Promise<void> {
-    const urgencyLevel = daysUntilExpiry <= 7 ? 'URGENT' : daysUntilExpiry <= 30 ? 'IMPORTANT' : 'NOTICE';
-    const urgencyColor = daysUntilExpiry <= 7 ? '#dc3545' : daysUntilExpiry <= 30 ? '#fd7e14' : '#ffc107';
-    
+  async sendLicenseExpiryAlert(
+    license: any,
+    daysUntilExpiry: number,
+  ): Promise<void> {
+    const urgencyLevel =
+      daysUntilExpiry <= 7
+        ? "URGENT"
+        : daysUntilExpiry <= 30
+          ? "IMPORTANT"
+          : "NOTICE";
+    const urgencyColor =
+      daysUntilExpiry <= 7
+        ? "#dc3545"
+        : daysUntilExpiry <= 30
+          ? "#fd7e14"
+          : "#ffc107";
+
     const subject = `${urgencyLevel}: ${license.item} License Expires in ${daysUntilExpiry} Days`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
@@ -89,11 +104,13 @@ export class EmailService {
               </div>
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ffeaa7;">
                 <strong style="color: #856404;">Expiry Date:</strong>
-                <span style="color: #dc3545; font-weight: 600;">${new Date(license.license_end_date).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+                <span style="color: #dc3545; font-weight: 600;">${new Date(
+                  license.license_end_date,
+                ).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}</span>
               </div>
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ffeaa7;">
@@ -150,11 +167,14 @@ export class EmailService {
       to: license.user_name,
       subject,
       html,
-      type: 'expiry'
+      type: "expiry",
     });
   }
 
-  async sendRenewalConfirmation(license: any, renewalDetails: any): Promise<void> {
+  async sendRenewalConfirmation(
+    license: any,
+    renewalDetails: any,
+  ): Promise<void> {
     const subject = `✅ License Renewed Successfully: ${license.item}`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
@@ -205,12 +225,16 @@ export class EmailService {
               </div>
             </div>
             
-            ${renewalDetails.notes ? `
+            ${
+              renewalDetails.notes
+                ? `
               <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #c3e6cb;">
                 <strong style="color: #155724;">Notes:</strong>
                 <p style="margin: 5px 0 0 0; color: #155724;">${renewalDetails.notes}</p>
               </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
           
           <!-- Next Steps -->
@@ -252,11 +276,15 @@ export class EmailService {
       to: license.user_name,
       subject,
       html,
-      type: 'renewal'
+      type: "renewal",
     });
   }
 
-  async sendCommentNotification(license: any, comment: any, mentionedUsers: string[] = []): Promise<void> {
+  async sendCommentNotification(
+    license: any,
+    comment: any,
+    mentionedUsers: string[] = [],
+  ): Promise<void> {
     const subject = `💬 New Comment on ${license.item} License`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
@@ -324,7 +352,7 @@ export class EmailService {
       to: license.user_name,
       subject,
       html,
-      type: 'comment'
+      type: "comment",
     });
 
     // Send to mentioned users
@@ -334,7 +362,7 @@ export class EmailService {
           to: userEmail,
           subject: `💬 You were mentioned in a comment on ${license.item} License`,
           html,
-          type: 'comment'
+          type: "comment",
         });
       }
     }

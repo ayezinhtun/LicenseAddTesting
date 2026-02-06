@@ -1,13 +1,11 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { OverviewCards } from './OverviewCards';
-import { NotificationsList } from './NotificationsList';
-// import { CalendarWidget } from './CalendarWidget';
-// import { ChartWidget } from './ChartWidget';
-import { RecentActivity } from './RecentActivity';
-import { QuickActions } from './QuickActions';
-import { useLicenseStore } from '../../store/licenseStore';
-import { useAuthStore } from '../../store/authStore';
+import React, { useEffect } from "react";
+import { motion } from "framer-motion";
+import { OverviewCards } from "./OverviewCards";
+import { NotificationsList } from "./NotificationsList";
+import { RecentActivity } from "./RecentActivity";
+import { QuickActions } from "./QuickActions";
+import { useLicenseStore } from "../../store/licenseStore";
+import { useAuthStore } from "../../store/authStore";
 
 export const Dashboard: React.FC = () => {
   const { fetchLicenses } = useLicenseStore();
@@ -18,9 +16,9 @@ export const Dashboard: React.FC = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   };
 
   return (
@@ -34,7 +32,7 @@ export const Dashboard: React.FC = () => {
       >
         <div>
           <h1 className="text-4xl font-bold text-gray-900">
-            {getGreeting()}, {user?.name?.split(' ')[0]}! 👋
+            {getGreeting()}, {user?.name?.split(" ")[0]}! 👋
           </h1>
           <p className="text-gray-600 mt-2 text-lg">
             Here's what's happening with your licenses today
@@ -42,11 +40,11 @@ export const Dashboard: React.FC = () => {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             })}
           </p>
         </div>

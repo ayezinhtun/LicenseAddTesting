@@ -1,0 +1,2 @@
+name = "daily-license-check"
+cron = "0 9 * * *"  # Every day at 9 AM UTC

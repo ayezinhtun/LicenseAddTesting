@@ -1,143 +1,155 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, AlertTriangle, CheckCircle, MessageSquare, Calendar, RefreshCw, Info, AlertCircle } from 'lucide-react';
-import { useLicenseStore } from '../../store/licenseStore';
-import { useNotificationStore } from '../../store/notificationStore';
-import { parseISO, differenceInDays } from 'date-fns';
-import type { Notification } from '../../store/notificationStore';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import {
+  Bell,
+  AlertTriangle,
+  CheckCircle,
+  MessageSquare,
+  Calendar,
+  RefreshCw,
+  Info,
+  AlertCircle,
+} from "lucide-react";
+import { useLicenseStore } from "../../store/licenseStore";
+import { useNotificationStore } from "../../store/notificationStore";
+import { parseISO, differenceInDays } from "date-fns";
+import type { Notification } from "../../store/notificationStore";
+import { useNavigate } from "react-router-dom";
 
-
-const getNotificationIcon = (type: Notification['type']) => {
+const getNotificationIcon = (type: Notification["type"]) => {
   switch (type) {
-    case 'expiry':
+    case "expiry":
       return AlertTriangle;
-    case 'renewal':
+    case "renewal":
       return RefreshCw;
-    case 'comment':
+    case "comment":
       return MessageSquare;
-    case 'system':
+    case "system":
       return CheckCircle;
-    case 'warning':
+    case "warning":
       return AlertCircle;
-    case 'info':
+    case "info":
     default:
       return Info;
   }
 };
 
-const getNotificationColor = (type: Notification['type'], priority: Notification['priority']) => {
-  if (priority === 'high') {
+const getNotificationColor = (
+  type: Notification["type"],
+  priority: Notification["priority"],
+) => {
+  if (priority === "high") {
     return {
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
+      color: "text-red-600",
+      bgColor: "bg-red-50",
     };
   }
-  
+
   switch (type) {
-    case 'expiry':
-    case 'warning':
+    case "expiry":
+    case "warning":
       return {
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-50'
+        color: "text-orange-600",
+        bgColor: "bg-orange-50",
       };
-    case 'renewal':
+    case "renewal":
       return {
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50'
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
       };
-    case 'comment':
+    case "comment":
       return {
-        color: 'text-purple-600',
-        bgColor: 'bg-purple-50'
+        color: "text-purple-600",
+        bgColor: "bg-purple-50",
       };
-    case 'system':
+    case "system":
       return {
-        color: 'text-green-600',
-        bgColor: 'bg-green-50'
+        color: "text-green-600",
+        bgColor: "bg-green-50",
       };
-    case 'info':
+    case "info":
     default:
       return {
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-50'
+        color: "text-gray-600",
+        bgColor: "bg-gray-50",
       };
   }
 };
 
 export const NotificationsList: React.FC = () => {
-
   const navigate = useNavigate();
-  
 
-  const { getSerialsNearExpiry } = useLicenseStore();  
-
-
+  const { getSerialsNearExpiry } = useLicenseStore();
 
   const { notifications } = useNotificationStore();
 
-  const [nearSerials, setNearSerials] = useState<Array<{ license: any; serial: any }>>([]);
-
+  const [nearSerials, setNearSerials] = useState<
+    Array<{ license: any; serial: any }>
+  >([]);
 
   useEffect(() => {
-      let mounted = true;
-        (async () => {
-          const rows = await getSerialsNearExpiry(30);
-          console.debug('nearSerials count:', rows.length, rows); // debug
-        if (mounted) setNearSerials(rows);
-        })();
-        return () => { mounted = false; };
-     }, [getSerialsNearExpiry]);
+    let mounted = true;
+    (async () => {
+      const rows = await getSerialsNearExpiry(30);
+      console.debug("nearSerials count:", rows.length, rows); // debug
+      if (mounted) setNearSerials(rows);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [getSerialsNearExpiry]);
 
- // Normalize real notifications to have `isRead`
-const normalizedNotifications = notifications.map(n => ({
-  ...n,
-  isRead: n.is_read, 
-}));
+  // Normalize real notifications to have `isRead`
+  const normalizedNotifications = notifications.map((n) => ({
+    ...n,
+    isRead: n.is_read,
+  }));
 
-// const allNotifications = [
-//   ...normalizedNotifications.slice(0, 3),
-//   ...licensesNearExpiry.slice(0, 2).map(license => ({
-//     id: `expiry-${license.id}`,
-//     type: 'expiry' as const,
-//     title: 'License Expiring Soon',
-//     message: `${license.item_description || 'This'} license expires on ${format(parseISO(license.license_end_date), 'MMM dd, yyyy')}`,
-//     time: 'Today',
-//     priority: 'high' as const,
-//     isRead: false, // consistent flag name for synthetic
-//   })),
-//   ...(notifications.length === 0 ? [
-//     { id: 'welcome', type: 'system' as const, title: 'Welcome to License Manager', message: 'Your license management system is ready to use', time: '2 hours ago', priority: 'medium' as const, isRead: true },
-//     { id: 'sync', type: 'system' as const, title: 'Data Synchronized', message: 'All license data has been synchronized successfully', time: '1 day ago', priority: 'medium' as const, isRead: false },
-//   ] : [])
-// ].slice(0, 5);
+  const serialExpiryNotifications = nearSerials
+    .slice(0, 2)
+    .map(({ license, serial }) => {
+      const days = differenceInDays(parseISO(serial.end_date), new Date());
+      const daysText =
+        days <= 0 ? "Expired" : days === 1 ? "1 day" : `${days} days`;
 
-const serialExpiryNotifications = nearSerials.slice(0, 2).map(({ license, serial }) => {
-  const days = differenceInDays(parseISO(serial.end_date), new Date());
-  const daysText = days <= 0 ? 'Expired' : (days === 1 ? '1 day' : `${days} days`);
+      return {
+        id: `serial-expiry-${serial.id}`,
+        type: "expiry" as const,
+        title: "Serial Expiring Soon",
+        message: `${serial.serial_or_contract} expires in ${daysText}`,
+        time: "Today",
+        priority: "high" as const,
+        isRead: false,
+      };
+    });
 
-  return {
-    id: `serial-expiry-${serial.id}`,
-    type: 'expiry' as const,
-    title: 'Serial Expiring Soon',
-    message: `${serial.serial_or_contract} expires in ${daysText}`,
-    time: 'Today',
-    priority: 'high' as const,
-    isRead: false,
-  };
-});
+  const allNotifications = [
+    ...normalizedNotifications.slice(0, 3),
+    ...serialExpiryNotifications,
+    ...(notifications.length === 0
+      ? [
+          {
+            id: "welcome",
+            type: "system" as const,
+            title: "Welcome to License Manager",
+            message: "Your license management system is ready to use",
+            time: "2 hours ago",
+            priority: "medium" as const,
+            isRead: true,
+          },
+          {
+            id: "sync",
+            type: "system" as const,
+            title: "Data Synchronized",
+            message: "All license data has been synchronized successfully",
+            time: "1 day ago",
+            priority: "medium" as const,
+            isRead: false,
+          },
+        ]
+      : []),
+  ].slice(0, 5);
 
-
-
-const allNotifications = [
-  ...normalizedNotifications.slice(0, 3),
-  ...serialExpiryNotifications,
-  ...(notifications.length === 0 ? [
-    { id: 'welcome', type: 'system' as const, title: 'Welcome to License Manager', message: 'Your license management system is ready to use', time: '2 hours ago', priority: 'medium' as const, isRead: true },
-    { id: 'sync', type: 'system' as const, title: 'Data Synchronized', message: 'All license data has been synchronized successfully', time: '1 day ago', priority: 'medium' as const, isRead: false },
-  ] : [])
-].slice(0, 5);
-
-const unreadCount = allNotifications.filter(n => !n.isRead).length;
+  const unreadCount = allNotifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -153,28 +165,39 @@ const unreadCount = allNotifications.filter(n => !n.isRead).length;
                 {unreadCount} unread
               </span>
             )}
-            <span className="text-sm text-gray-500">{allNotifications.length} total</span>
+            <span className="text-sm text-gray-500">
+              {allNotifications.length} total
+            </span>
           </div>
         </div>
       </div>
-      
+
       <div className="divide-y divide-gray-100">
         {allNotifications.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <h3 className="text-sm font-medium text-gray-900 mb-1">No notifications yet</h3>
-            <p className="text-xs text-gray-500">You'll see important updates here</p>
+            <h3 className="text-sm font-medium text-gray-900 mb-1">
+              No notifications yet
+            </h3>
+            <p className="text-xs text-gray-500">
+              You'll see important updates here
+            </p>
           </div>
         ) : (
           allNotifications.map((notification) => {
             const IconComponent = getNotificationIcon(notification.type);
-            const { color, bgColor } = getNotificationColor(notification.type, notification.priority);
-            
+            const { color, bgColor } = getNotificationColor(
+              notification.type,
+              notification.priority,
+            );
+
             return (
-              <div 
-                key={notification.id} 
+              <div
+                key={notification.id}
                 className={`p-4 hover:bg-gray-50 transition-colors duration-150 ${
-                  !notification.isRead ? 'bg-blue-50/30 border-l-4 border-l-blue-500' : ''
+                  !notification.isRead
+                    ? "bg-blue-50/30 border-l-4 border-l-blue-500"
+                    : ""
                 }`}
               >
                 <div className="flex items-start space-x-3">
@@ -190,13 +213,15 @@ const unreadCount = allNotifications.filter(n => !n.isRead).length;
                         <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{notification.message}</p>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                      {notification.message}
+                    </p>
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-500 flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
-                        {notification.time || 'Just now'}
+                        {notification.time || "Just now"}
                       </p>
-                      {notification.type === 'expiry' && (
+                      {notification.type === "expiry" && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                           Action Required
                         </span>
@@ -209,10 +234,13 @@ const unreadCount = allNotifications.filter(n => !n.isRead).length;
           })
         )}
       </div>
-      
+
       {allNotifications.length > 0 && (
         <div className="p-4 border-t border-gray-100">
-          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200" onClick={() => navigate('/notifications')}>
+          <button
+            className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+            onClick={() => navigate("/notifications")}
+          >
             View all notifications
           </button>
         </div>

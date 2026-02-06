@@ -68,22 +68,8 @@ export const Reports: React.FC = () => {
       return false;
     }
 
-    // if (filters.dateFrom && license.license_end_date < filters.dateFrom) {
-
-    //   return false;
-
-    // }
-
-    // if (filters.dateTo && license.license_end_date > filters.dateTo) {
-
-    //   return false;
-
-    // }
-
     return true;
   });
-
-  // license_cost removed from schema; compute 0 for now (can be derived from serials later)
 
   const totalCost = 0;
 
@@ -321,30 +307,6 @@ export const Reports: React.FC = () => {
             }
             placeholder="Filter by project..."
           />
-
-          {/* <Input
-
-            label="Date From"
-
-            type="date"
-
-            value={filters.dateFrom}
-
-            onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
-
-          />
-
-          <Input
-
-            label="Date To"
-
-            type="date"
-
-            value={filters.dateTo}
-
-            onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
-
-          /> */}
         </div>
       </div>
 
@@ -384,28 +346,6 @@ export const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-
-              <p className="text-sm font-medium text-gray-600">Projects</p>
-
-              <p className="text-2xl font-bold text-gray-900">{uniqueProjects}</p>
-
-            </div>
-
-            <div className="bg-indigo-50 p-3 rounded-lg">
-
-              <Calendar className="h-6 w-6 text-indigo-600" />
-
-            </div>
-
-          </div>
-
-        </div> */}
       </div>
 
       {/* Licenses Table */}

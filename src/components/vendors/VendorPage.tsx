@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useVendorStore } from '../../store/vendorStore';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
-import { Select } from '../common/Select';
-import { Modal } from '../common/Modal';
-import { Card } from '../common/Card';
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { useVendorStore } from "../../store/vendorStore";
+import { Button } from "../common/Button";
+import { Input } from "../common/Input";
+import { Select } from "../common/Select";
+import { Modal } from "../common/Modal";
+import { Card } from "../common/Card";
 import {
   Plus,
   Search,
@@ -15,24 +15,31 @@ import {
   Trash2,
   SortAsc,
   SortDesc,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+} from "lucide-react";
+import toast from "react-hot-toast";
 
-type SortOrder = 'asc' | 'desc';
+type SortOrder = "asc" | "desc";
 
 export const VendorPage: React.FC = () => {
-  const { vendors, isLoading, fetchVendors, addVendor, updateVendor, deleteVendor } = useVendorStore();
+  const {
+    vendors,
+    isLoading,
+    fetchVendors,
+    addVendor,
+    updateVendor,
+    deleteVendor,
+  } = useVendorStore();
 
   // UI state
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
 
   // Filters/sort (client-side, mirrors LicenseManagement feel)
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<'name' | 'created_at'>('name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortBy, setSortBy] = useState<"name" | "created_at">("name");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   // Simple client-side pagination
   const [page, setPage] = useState(1);
@@ -44,7 +51,7 @@ export const VendorPage: React.FC = () => {
 
   const resetForm = () => {
     setEditingId(null);
-    setName('');
+    setName("");
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -53,15 +60,15 @@ export const VendorPage: React.FC = () => {
     try {
       if (editingId) {
         await updateVendor(editingId, name.trim());
-        toast.success('Vendor updated successfully');
+        toast.success("Vendor updated successfully");
       } else {
         await addVendor(name.trim());
-        toast.success('Vendor added successfully');
+        toast.success("Vendor added successfully");
       }
       resetForm();
       setShowForm(false);
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
@@ -70,12 +77,12 @@ export const VendorPage: React.FC = () => {
 
     if (search.trim()) {
       const s = search.toLowerCase();
-      list = list.filter(v => v.name.toLowerCase().includes(s));
+      list = list.filter((v) => v.name.toLowerCase().includes(s));
     }
 
     list = [...list].sort((a, b) => {
-      const dir = sortOrder === 'asc' ? 1 : -1;
-      if (sortBy === 'name') {
+      const dir = sortOrder === "asc" ? 1 : -1;
+      if (sortBy === "name") {
         return a.name.localeCompare(b.name) * dir;
       }
       const aT = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -95,12 +102,12 @@ export const VendorPage: React.FC = () => {
     return filtered.slice(start, start + pageSize);
   }, [filtered, currentPage]);
 
-  const handleSort = (field: 'name' | 'created_at') => {
+  const handleSort = (field: "name" | "created_at") => {
     if (sortBy === field) {
-      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(field);
-      setSortOrder('asc');
+      setSortOrder("asc");
     }
   };
 
@@ -114,13 +121,21 @@ export const VendorPage: React.FC = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Vendor Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Vendor Management
+          </h1>
           <p className="text-gray-600 mt-1">
             Manage your approved vendor list used in licenses
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button icon={Plus} onClick={() => { resetForm(); setShowForm(true); }}>
+          <Button
+            icon={Plus}
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+          >
             Add Vendor
           </Button>
         </div>
@@ -136,8 +151,12 @@ export const VendorPage: React.FC = () => {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Vendors</p>
-                <p className="text-2xl font-bold text-gray-900">{vendors.length}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Vendors
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {vendors.length}
+                </p>
               </div>
               <div className="bg-blue-50 p-3 rounded-lg">
                 {/* Using Plus icon as a placeholder badge */}
@@ -169,7 +188,9 @@ export const VendorPage: React.FC = () => {
                 variant="secondary"
                 icon={Filter}
                 onClick={() => setShowFilters(!showFilters)}
-                className={showFilters ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}
+                className={
+                  showFilters ? "bg-blue-50 text-blue-600 border-blue-200" : ""
+                }
               >
                 Filters
               </Button>
@@ -178,7 +199,7 @@ export const VendorPage: React.FC = () => {
             {showFilters && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
                 className="border-t border-gray-200 pt-4"
@@ -187,10 +208,12 @@ export const VendorPage: React.FC = () => {
                   <Select
                     label="Sort by"
                     value={sortBy}
-                    onChange={(value) => setSortBy(value as 'name' | 'created_at')}
+                    onChange={(value) =>
+                      setSortBy(value as "name" | "created_at")
+                    }
                     options={[
-                      { value: 'name', label: 'Name' },
-                      { value: 'created_at', label: 'Created' },
+                      { value: "name", label: "Name" },
+                      { value: "created_at", label: "Created" },
                     ]}
                   />
                   <Select
@@ -198,8 +221,8 @@ export const VendorPage: React.FC = () => {
                     value={sortOrder}
                     onChange={(value) => setSortOrder(value as SortOrder)}
                     options={[
-                      { value: 'asc', label: 'Ascending' },
-                      { value: 'desc', label: 'Descending' },
+                      { value: "asc", label: "Ascending" },
+                      { value: "desc", label: "Descending" },
                     ]}
                   />
                 </div>
@@ -208,18 +231,26 @@ export const VendorPage: React.FC = () => {
 
             <div className="flex items-center justify-between border-t border-gray-200 pt-4">
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Sort by:</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Sort by:
+                </span>
                 <div className="flex space-x-2">
                   {[
-                    { field: 'name' as const, label: 'Name' },
-                    { field: 'created_at' as const, label: 'Created' },
+                    { field: "name" as const, label: "Name" },
+                    { field: "created_at" as const, label: "Created" },
                   ].map(({ field, label }) => (
                     <Button
                       key={field}
-                      variant={sortBy === field ? 'primary' : 'ghost'}
+                      variant={sortBy === field ? "primary" : "ghost"}
                       size="sm"
                       onClick={() => handleSort(field)}
-                      icon={sortBy === field ? (sortOrder === 'asc' ? SortAsc : SortDesc) : undefined}
+                      icon={
+                        sortBy === field
+                          ? sortOrder === "asc"
+                            ? SortAsc
+                            : SortDesc
+                          : undefined
+                      }
                     >
                       {label}
                     </Button>
@@ -253,7 +284,13 @@ export const VendorPage: React.FC = () => {
                 Add your first vendor to get started.
               </p>
               <div className="mt-6">
-                <Button icon={Plus} onClick={() => { resetForm(); setShowForm(true); }}>
+                <Button
+                  icon={Plus}
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(true);
+                  }}
+                >
                   Add Vendor
                 </Button>
               </div>
@@ -267,12 +304,18 @@ export const VendorPage: React.FC = () => {
               </div>
 
               {/* Rows */}
-              {paged.map(v => (
-                <div key={v.id} className="px-4 py-3 grid grid-cols-12 items-center">
+              {paged.map((v) => (
+                <div
+                  key={v.id}
+                  className="px-4 py-3 grid grid-cols-12 items-center"
+                >
                   <div className="col-span-8">
                     <div className="font-medium text-gray-900">{v.name}</div>
                     <div className="text-xs text-gray-500">
-                      Created {v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}
+                      Created{" "}
+                      {v.created_at
+                        ? new Date(v.created_at).toLocaleDateString()
+                        : "-"}
                     </div>
                   </div>
                   <div className="col-span-4">
@@ -297,48 +340,27 @@ export const VendorPage: React.FC = () => {
                         onClick={async (e) => {
                           e.stopPropagation();
 
-                          if (!window.confirm('Are you sure you want to delete this vendor?')) return;
+                          if (
+                            !window.confirm(
+                              "Are you sure you want to delete this vendor?",
+                            )
+                          )
+                            return;
 
                           try {
                             await deleteVendor(v.id);
-                            toast.success('Vendor deleted successfully');
+                            toast.success("Vendor deleted successfully");
                           } catch (error) {
-                            toast.error('Failed to delete vendor');
+                            toast.error("Failed to delete vendor");
                           }
                         }}
                         className="text-gray-400 hover:text-red-600"
                         title="Delete Vendor"
                       />
-
                     </div>
                   </div>
                 </div>
               ))}
-
-              {/* Pagination footer */}
-              {/* <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div> */}
             </div>
           )}
         </Card>
@@ -347,8 +369,11 @@ export const VendorPage: React.FC = () => {
       {/* Add/Edit Modal */}
       <Modal
         isOpen={showForm}
-        onClose={() => { setShowForm(false); resetForm(); }}
-        title={editingId ? 'Edit Vendor' : 'Add New Vendor'}
+        onClose={() => {
+          setShowForm(false);
+          resetForm();
+        }}
+        title={editingId ? "Edit Vendor" : "Add New Vendor"}
         maxWidth="lg"
       >
         <form onSubmit={onSubmit} className="space-y-4">
@@ -363,12 +388,15 @@ export const VendorPage: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => { setShowForm(false); resetForm(); }}
+              onClick={() => {
+                setShowForm(false);
+                resetForm();
+              }}
             >
               Cancel
             </Button>
             <Button type="submit">
-              {editingId ? 'Update Vendor' : 'Create Vendor'}
+              {editingId ? "Update Vendor" : "Create Vendor"}
             </Button>
           </div>
         </form>

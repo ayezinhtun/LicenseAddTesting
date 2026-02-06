@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '../../store/authStore';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from "react";
+import { useAuthStore } from "../../store/authStore";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Edit,
@@ -18,19 +18,23 @@ import {
   UserIcon,
   Mail,
   Phone,
-  MapIcon
-} from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useLicenseStore } from '../../store/licenseStore';
-import { supabase } from '../../lib/supabase';
-import type { LicenseSerial, LicenseCustomer, LicenseDistributor } from '../../store/licenseStore';
-import { Button } from '../common/Button';
-import { Card } from '../common/Card';
-import { Badge } from '../common/Badge';
-import { Modal } from '../common/Modal';
-import { Input } from '../common/Input';
-import { format, parseISO, differenceInDays } from 'date-fns';
-import toast from 'react-hot-toast';
+  MapIcon,
+} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useLicenseStore } from "../../store/licenseStore";
+import { supabase } from "../../lib/supabase";
+import type {
+  LicenseSerial,
+  LicenseCustomer,
+  LicenseDistributor,
+} from "../../store/licenseStore";
+import { Button } from "../common/Button";
+import { Card } from "../common/Card";
+import { Badge } from "../common/Badge";
+import { Modal } from "../common/Modal";
+import { Input } from "../common/Input";
+import { format, parseISO, differenceInDays } from "date-fns";
+import toast from "react-hot-toast";
 
 export const LicenseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +52,7 @@ export const LicenseDetails: React.FC = () => {
     downloadAttachment,
     fetchRenewalHistory,
     renewLicense,
-    deleteLicense
+    deleteLicense,
   } = useLicenseStore();
 
   const [attachments, setAttachments] = useState<any[]>([]);
@@ -60,16 +64,16 @@ export const LicenseDetails: React.FC = () => {
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [attachmentDescription, setAttachmentDescription] = useState('');
-  const [selectedSerialId, setSelectedSerialId] = useState<string>('');
+  const [attachmentDescription, setAttachmentDescription] = useState("");
+  const [selectedSerialId, setSelectedSerialId] = useState<string>("");
 
   const [renewalData, setRenewalData] = useState({
-    productName: '',
-    serialNo: '',
-    serialStartDate: '',
-    newEndDate: '',
+    productName: "",
+    serialNo: "",
+    serialStartDate: "",
+    newEndDate: "",
     cost: 0,
-    notes: ''
+    notes: "",
   });
 
   useEffect(() => {
@@ -86,24 +90,40 @@ export const LicenseDetails: React.FC = () => {
         setSelectedLicense(license);
         const [attachmentsData, renewalData] = await Promise.all([
           fetchAttachments(licenseId),
-          fetchRenewalHistory(licenseId)
+          fetchRenewalHistory(licenseId),
         ]);
         setAttachments(attachmentsData);
         setRenewalHistory(renewalData);
 
         // Fetch child tables directly
-        const [{ data: serialRows }, { data: customerRows }, { data: distributorRows }] = await Promise.all([
-          supabase.from('license_serials').select('*').eq('license_id', licenseId).order('start_date', { ascending: true }),
-          supabase.from('license_customers').select('*').eq('license_id', licenseId).order('company_name', { ascending: true }),
-          supabase.from('license_distributors').select('*').eq('license_id', licenseId).order('company_name', { ascending: true })
+        const [
+          { data: serialRows },
+          { data: customerRows },
+          { data: distributorRows },
+        ] = await Promise.all([
+          supabase
+            .from("license_serials")
+            .select("*")
+            .eq("license_id", licenseId)
+            .order("start_date", { ascending: true }),
+          supabase
+            .from("license_customers")
+            .select("*")
+            .eq("license_id", licenseId)
+            .order("company_name", { ascending: true }),
+          supabase
+            .from("license_distributors")
+            .select("*")
+            .eq("license_id", licenseId)
+            .order("company_name", { ascending: true }),
         ]);
         setSerials(serialRows || []);
         setCustomers(customerRows || []);
         setDistributors(distributorRows || []);
       }
     } catch (error) {
-      console.error('Error loading license details:', error);
-      toast.error('Failed to load license details');
+      console.error("Error loading license details:", error);
+      toast.error("Failed to load license details");
     } finally {
       setIsLoading(false);
     }
@@ -115,79 +135,103 @@ export const LicenseDetails: React.FC = () => {
     if (!selectedFile || !selectedLicense) return;
 
     try {
-      await addAttachment(selectedLicense.id, selectedFile, attachmentDescription);
+      await addAttachment(
+        selectedLicense.id,
+        selectedFile,
+        attachmentDescription,
+      );
       const updatedAttachments = await fetchAttachments(selectedLicense.id);
       setAttachments(updatedAttachments);
       setSelectedFile(null);
-      setAttachmentDescription('');
+      setAttachmentDescription("");
       setShowAttachmentModal(false);
-      toast.success('Attachment added successfully');
+      toast.success("Attachment added successfully");
     } catch (error) {
-      toast.error('Failed to add attachment');
+      toast.error("Failed to add attachment");
     }
   };
 
   // Build an HTML document for the current license
   const buildLicenseDetailHtml = () => {
-    if (!selectedLicense) return '';
+    if (!selectedLicense) return "";
 
     // Tables
-    const serialRows = (serials || [])
-      .map(s => `
+    const serialRows =
+      (serials || [])
+        .map(
+          (s) => `
       <tr>
-        <td>${s.serial_or_contract || ''}</td>
-        <td>${s.start_date || ''}</td>
-        <td>${s.end_date || ''}</td>
-        <td style="text-align:right">${s.qty ?? ''}</td>
-        <td>${s.currency || ''}</td>
-        <td style="text-align:right">${s.unit_price?.toLocaleString?.() || s.unit_price || ''}</td>
-        <td style="text-align:right">${((s.unit_price || 0) * (s.qty || 0)).toLocaleString?.() || ((s.unit_price || 0) * (s.qty || 0))}</td>
-        <td>${s.po_no || ''}</td>
+        <td>${s.serial_or_contract || ""}</td>
+        <td>${s.start_date || ""}</td>
+        <td>${s.end_date || ""}</td>
+        <td style="text-align:right">${s.qty ?? ""}</td>
+        <td>${s.currency || ""}</td>
+        <td style="text-align:right">${s.unit_price?.toLocaleString?.() || s.unit_price || ""}</td>
+        <td style="text-align:right">${((s.unit_price || 0) * (s.qty || 0)).toLocaleString?.() || (s.unit_price || 0) * (s.qty || 0)}</td>
+        <td>${s.po_no || ""}</td>
       </tr>
-    `).join('') || `<tr><td colspan="8" style="text-align:center;color:#777">No serials added</td></tr>`;
+    `,
+        )
+        .join("") ||
+      `<tr><td colspan="8" style="text-align:center;color:#777">No serials added</td></tr>`;
 
-    const customerRows = (customers || [])
-      .map(c => `
+    const customerRows =
+      (customers || [])
+        .map(
+          (c) => `
       <tr>
-        <td>${c.company_name || ''}</td>
-        <td>${c.contact_person || ''}</td>
-        <td>${c.contact_email || ''}</td>
-        <td>${c.contact_number || ''}</td>
-        <td>${c.address || ''}</td>
+        <td>${c.company_name || ""}</td>
+        <td>${c.contact_person || ""}</td>
+        <td>${c.contact_email || ""}</td>
+        <td>${c.contact_number || ""}</td>
+        <td>${c.address || ""}</td>
       </tr>
-    `).join('') || `<tr><td colspan="5" style="text-align:center;color:#777">No customers added</td></tr>`;
+    `,
+        )
+        .join("") ||
+      `<tr><td colspan="5" style="text-align:center;color:#777">No customers added</td></tr>`;
 
-    const distributorRows = (distributors || [])
-      .map(d => `
+    const distributorRows =
+      (distributors || [])
+        .map(
+          (d) => `
       <tr>
-        <td>${d.company_name || ''}</td>
-        <td>${d.contact_person || ''}</td>
-        <td>${d.contact_email || ''}</td>
-        <td>${d.contact_number || ''}</td>
+        <td>${d.company_name || ""}</td>
+        <td>${d.contact_person || ""}</td>
+        <td>${d.contact_email || ""}</td>
+        <td>${d.contact_number || ""}</td>
       </tr>
-    `).join('') || `<tr><td colspan="4" style="text-align:center;color:#777">No distributors added</td></tr>`;
+    `,
+        )
+        .join("") ||
+      `<tr><td colspan="4" style="text-align:center;color:#777">No distributors added</td></tr>`;
 
-    const renewalRows = (renewalHistory || [])
-      .map((r: any) => `
+    const renewalRows =
+      (renewalHistory || [])
+        .map(
+          (r: any) => `
     <tr>
-      <td>${r.renewal_date ? new Date(r.renewal_date).toLocaleDateString() : ''}</td>
-      <td>${r.previous_end_date ? new Date(r.previous_end_date).toLocaleDateString() : ''}</td>
-      <td>${r.prev_product_name || ''}</td>
-      <td>${r.prev_serial_no || ''}</td>
-      <td>${r.prev_serial_start_date ? new Date(r.prev_serial_start_date).toLocaleDateString() : ''}</td>
-      <td>${r.prev_serial_end_date ? new Date(r.prev_serial_end_date).toLocaleDateString() : ''}</td>
-      <td>${r.prev_remark || ''}</td>
+      <td>${r.renewal_date ? new Date(r.renewal_date).toLocaleDateString() : ""}</td>
+      <td>${r.previous_end_date ? new Date(r.previous_end_date).toLocaleDateString() : ""}</td>
+      <td>${r.prev_product_name || ""}</td>
+      <td>${r.prev_serial_no || ""}</td>
+      <td>${r.prev_serial_start_date ? new Date(r.prev_serial_start_date).toLocaleDateString() : ""}</td>
+      <td>${r.prev_serial_end_date ? new Date(r.prev_serial_end_date).toLocaleDateString() : ""}</td>
+      <td>${r.prev_remark || ""}</td>
     </tr>
-  `)
-      .join('')
-      || `<tr><td colspan="8" style="text-align:center;color:#777">No old data found</td></tr>`;
+  `,
+        )
+        .join("") ||
+      `<tr><td colspan="8" style="text-align:center;color:#777">No old data found</td></tr>`;
 
-    const product = selectedLicense.item_description?.trim() ? selectedLicense.item_description : selectedLicense.item;
+    const product = selectedLicense.item_description?.trim()
+      ? selectedLicense.item_description
+      : selectedLicense.item;
 
     return `
     <html>
       <head>
-        <title>License Detail - ${selectedLicense.vendor || ''}</title>
+        <title>License Detail - ${selectedLicense.vendor || ""}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
           h1,h2 { margin: 0; }
@@ -213,26 +257,30 @@ export const LicenseDetails: React.FC = () => {
           <div class="grid">
             <div>
               <div class="label">Vendor</div>
-              <div class="val">${selectedLicense.vendor || '-'}</div>
+              <div class="val">${selectedLicense.vendor || "-"}</div>
             </div>
             <div>
               <div class="label">Project</div>
-              <div class="val">${selectedLicense.project_name || '-'} ${(selectedLicense as any).project_assign ? `(${(selectedLicense as any).project_assign})` : ''}</div>
+              <div class="val">${selectedLicense.project_name || "-"} ${(selectedLicense as any).project_assign ? `(${(selectedLicense as any).project_assign})` : ""}</div>
             </div>
             <div>
               <div class="label">Product</div>
-              <div class="val">${product || '-'}</div>
+              <div class="val">${product || "-"}</div>
             </div>
             <div>
               <div class="label">Priority</div>
-              <div class="val">${selectedLicense.priority || '-'}</div>
+              <div class="val">${selectedLicense.priority || "-"}</div>
             </div>
           </div>
-          ${selectedLicense.remark ? `
+          ${
+            selectedLicense.remark
+              ? `
             <div style="margin-top:10px">
               <div class="label">Remarks</div>
               <div class="val" style="white-space:pre-line">${selectedLicense.remark}</div>
-            </div>` : ''}
+            </div>`
+              : ""
+          }
         </div>
 
         <div class="section">
@@ -319,13 +367,13 @@ export const LicenseDetails: React.FC = () => {
     const html = buildLicenseDetailHtml();
     if (!html) return;
 
-    const w = window.open('', '_blank');
+    const w = window.open("", "_blank");
     if (w) {
       w.document.write(html);
       w.document.close();
       w.print();
     } else {
-      toast.error('Popup blocked. Please allow popups for this site.');
+      toast.error("Popup blocked. Please allow popups for this site.");
     }
   };
 
@@ -338,99 +386,101 @@ export const LicenseDetails: React.FC = () => {
 
     // One CSV row per serial
     return (serials || []).map((s: any) => ({
-      vendorName: selectedLicense.vendor || '',
-      projectName: selectedLicense.project_name || '',
-      projectAssign: (selectedLicense as any).project_assign || '',
-      product: product || '',
-      serialContractNumber: s.serial_or_contract || '',
-      quantity: String(s.qty ?? ''),
-      startDate: s.start_date || '',
-      endDate: s.end_date || '',
+      vendorName: selectedLicense.vendor || "",
+      projectName: selectedLicense.project_name || "",
+      projectAssign: (selectedLicense as any).project_assign || "",
+      product: product || "",
+      serialContractNumber: s.serial_or_contract || "",
+      quantity: String(s.qty ?? ""),
+      startDate: s.start_date || "",
+      endDate: s.end_date || "",
       notifyBeforeDays: String(s.notify_before_days ?? 30),
-      status: selectedLicense.status || '',
-      remark: selectedLicense.remark || '',
+      status: selectedLicense.status || "",
+      remark: selectedLicense.remark || "",
 
       // optional: pack old data into one field
       oldLicenseData: (renewalHistory || [])
         .map((r: any) =>
           [
-            r.renewal_date || '',
-            r.previous_end_date || '',
-            r.prev_product_name || '',
-            r.prev_serial_no || '',
-            r.prev_serial_start_date || '',
-            r.prev_serial_end_date || '',
-            r.prev_remark || ''
-          ].join(' | ')
+            r.renewal_date || "",
+            r.previous_end_date || "",
+            r.prev_product_name || "",
+            r.prev_serial_no || "",
+            r.prev_serial_start_date || "",
+            r.prev_serial_end_date || "",
+            r.prev_remark || "",
+          ].join(" | "),
         )
-        .join(' ; ')
+        .join(" ; "),
     }));
   };
-
 
   const handleExportCSVDetail = () => {
     const rows = buildExportDetailRows();
     if (rows.length === 0) {
-      toast.error('No data to export');
+      toast.error("No data to export");
       return;
     }
 
     const header = [
-      'Vendor Name',
-      'Project Name',
-      'Project Assign',
-      'Product',
-      'Serial/Contract Number',
-      'Quantity',
-      'Start Date',
-      'End Date',
-      'Notify Before Days',
-      'Status',
-      'Remark',
-      'Old License Data'
+      "Vendor Name",
+      "Project Name",
+      "Project Assign",
+      "Product",
+      "Serial/Contract Number",
+      "Quantity",
+      "Start Date",
+      "End Date",
+      "Notify Before Days",
+      "Status",
+      "Remark",
+      "Old License Data",
     ];
 
-    const escapeCSV = (val: string) => `"${(val ?? '').replace(/"/g, '""')}"`;
+    const escapeCSV = (val: string) => `"${(val ?? "").replace(/"/g, '""')}"`;
 
     const csvContent = [
-      header.join(','),
-      ...rows.map(r => [
-        escapeCSV(r.vendorName),
-        escapeCSV(r.projectName),
-        escapeCSV(r.projectAssign),
-        escapeCSV(r.product),
-        escapeCSV(r.serialContractNumber),
-        escapeCSV(r.quantity),
-        escapeCSV(r.startDate),
-        escapeCSV(r.endDate),
-        escapeCSV(r.notifyBeforeDays),
-        escapeCSV(r.status),
-        escapeCSV(r.remark),
-        escapeCSV(r.oldLicenseData),
-      ].join(',')),
-    ].join('\n');
+      header.join(","),
+      ...rows.map((r) =>
+        [
+          escapeCSV(r.vendorName),
+          escapeCSV(r.projectName),
+          escapeCSV(r.projectAssign),
+          escapeCSV(r.product),
+          escapeCSV(r.serialContractNumber),
+          escapeCSV(r.quantity),
+          escapeCSV(r.startDate),
+          escapeCSV(r.endDate),
+          escapeCSV(r.notifyBeforeDays),
+          escapeCSV(r.status),
+          escapeCSV(r.remark),
+          escapeCSV(r.oldLicenseData),
+        ].join(","),
+      ),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `license-${selectedLicense?.id}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
-    toast.success('Exported CSV successfully');
+    toast.success("Exported CSV successfully");
   };
-  
+
   const handleDeleteAttachment = async (attachmentId: string) => {
-    if (!window.confirm('Are you sure you want to delete this attachment?')) return;
+    if (!window.confirm("Are you sure you want to delete this attachment?"))
+      return;
 
     try {
       await deleteAttachment(attachmentId);
       const updatedAttachments = await fetchAttachments(selectedLicense!.id);
       setAttachments(updatedAttachments);
-      toast.success('Attachment deleted successfully');
+      toast.success("Attachment deleted successfully");
     } catch (error) {
-      toast.error('Failed to delete attachment');
+      toast.error("Failed to delete attachment");
     }
   };
 
@@ -438,7 +488,7 @@ export const LicenseDetails: React.FC = () => {
     try {
       await downloadAttachment(attachment);
     } catch (error) {
-      toast.error('Failed to download attachment');
+      toast.error("Failed to download attachment");
     }
   };
 
@@ -451,7 +501,8 @@ export const LicenseDetails: React.FC = () => {
       !renewalData.serialStartDate ||
       !renewalData.newEndDate ||
       renewalData.cost === null
-    ) return;
+    )
+      return;
 
     try {
       await renewLicense(selectedLicense.id, {
@@ -462,53 +513,56 @@ export const LicenseDetails: React.FC = () => {
         newEndDate: renewalData.newEndDate,
         cost: renewalData.cost,
         notes: renewalData.notes,
-        remark: renewalData.notes
+        remark: renewalData.notes,
       });
       await loadLicenseDetails(selectedLicense.id);
       setShowRenewalModal(false);
-      setSelectedSerialId('');
+      setSelectedSerialId("");
       setRenewalData({
-        productName: '',
-        serialNo: '',
-        serialStartDate: '',
-        newEndDate: '',
+        productName: "",
+        serialNo: "",
+        serialStartDate: "",
+        newEndDate: "",
         cost: 0,
-        notes: ''
+        notes: "",
       });
-      toast.success('License renewed successfully');
+      toast.success("License renewed successfully");
     } catch {
-      toast.error('Failed to renew license');
+      toast.error("Failed to renew license");
     }
   };
 
   const handleDelete = async () => {
     if (!selectedLicense) return;
 
-    if (window.confirm('Are you sure you want to delete this license? This action cannot be undone.')) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this license? This action cannot be undone.",
+      )
+    ) {
       try {
         await deleteLicense(selectedLicense.id);
-        navigate('/licenses');
-        toast.success('License deleted successfully');
+        navigate("/licenses");
+        toast.success("License deleted successfully");
       } catch (error) {
-        toast.error('Failed to delete license');
+        toast.error("Failed to delete license");
       }
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+    toast.success("Copied to clipboard");
   };
-
 
   // Add this helper for a single serial end date
   const getSerialExpiryStatus = (endDate?: string | null) => {
     if (!endDate) {
       return {
-        status: 'Active',
-        color: 'text-green-600 bg-green-50 border-green-200',
+        status: "Active",
+        color: "text-green-600 bg-green-50 border-green-200",
         icon: CheckCircle,
-        days: 0
+        days: 0,
       };
     }
 
@@ -521,33 +575,58 @@ export const LicenseDetails: React.FC = () => {
 
     if (!dateObj) {
       return {
-        status: 'Active',
-        color: 'text-green-600 bg-green-50 border-green-200',
+        status: "Active",
+        color: "text-green-600 bg-green-50 border-green-200",
         icon: CheckCircle,
-        days: 0
+        days: 0,
       };
     }
 
     const daysUntilExpiry = differenceInDays(dateObj, new Date());
 
     if (daysUntilExpiry < 0) {
-      return { status: 'Expired', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle, days: Math.abs(daysUntilExpiry) };
+      return {
+        status: "Expired",
+        color: "text-red-600 bg-red-50 border-red-200",
+        icon: AlertTriangle,
+        days: Math.abs(daysUntilExpiry),
+      };
     } else if (daysUntilExpiry <= 7) {
-      return { status: 'Critical', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle, days: daysUntilExpiry };
+      return {
+        status: "Critical",
+        color: "text-red-600 bg-red-50 border-red-200",
+        icon: AlertTriangle,
+        days: daysUntilExpiry,
+      };
     } else if (daysUntilExpiry <= 30) {
-      return { status: 'Warning', color: 'text-orange-600 bg-orange-50 border-orange-200', icon: Clock, days: daysUntilExpiry };
+      return {
+        status: "Warning",
+        color: "text-orange-600 bg-orange-50 border-orange-200",
+        icon: Clock,
+        days: daysUntilExpiry,
+      };
     } else {
-      return { status: 'Active', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle, days: daysUntilExpiry };
+      return {
+        status: "Active",
+        color: "text-green-600 bg-green-50 border-green-200",
+        icon: CheckCircle,
+        days: daysUntilExpiry,
+      };
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'text-red-600 bg-red-50';
-      case 'high': return 'text-orange-600 bg-orange-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'low': return 'text-green-600 bg-green-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case "critical":
+        return "text-red-600 bg-red-50";
+      case "high":
+        return "text-orange-600 bg-orange-50";
+      case "medium":
+        return "text-yellow-600 bg-yellow-50";
+      case "low":
+        return "text-green-600 bg-green-50";
+      default:
+        return "text-gray-600 bg-gray-50";
     }
   };
 
@@ -562,10 +641,10 @@ export const LicenseDetails: React.FC = () => {
   if (!selectedLicense) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">License Not Found</h2>
-        <Button onClick={() => navigate('/licenses')}>
-          Back to Licenses
-        </Button>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          License Not Found
+        </h2>
+        <Button onClick={() => navigate("/licenses")}>Back to Licenses</Button>
       </div>
     );
   }
@@ -585,32 +664,37 @@ export const LicenseDetails: React.FC = () => {
           <Button
             variant="ghost"
             icon={ArrowLeft}
-            onClick={() => navigate('/licenses')}
+            onClick={() => navigate("/licenses")}
           >
             Back to Licenses
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">License Details</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              License Details
+            </h1>
             <p className="text-gray-600 mt-1">
               {selectedLicense.vendor} • {selectedLicense.project_name}
-              {((selectedLicense as any).project_assign) ? ` • ${(selectedLicense as any).project_assign}` : ''}
+              {(selectedLicense as any).project_assign
+                ? ` • ${(selectedLicense as any).project_assign}`
+                : ""}
             </p>
           </div>
         </div>
 
         <div className="flex space-x-3">
-          <Button variant="secondary" icon={Download} onClick={handleExportPDFDetail}>
+          <Button
+            variant="secondary"
+            icon={Download}
+            onClick={handleExportPDFDetail}
+          >
             Export PDF
           </Button>
 
-          <Button
-            icon={Download}
-            onClick={handleExportCSVDetail}
-          >
+          <Button icon={Download} onClick={handleExportCSVDetail}>
             Export CSV
           </Button>
 
-          {user?.role !== 'user' && (
+          {user?.role !== "user" && (
             // in header actions
             // Renew button in header
             <Button
@@ -619,15 +703,18 @@ export const LicenseDetails: React.FC = () => {
               onClick={() => {
                 setRenewalData({
                   // prefer item_description, fallback to item
-                  productName: selectedLicense?.item_description || selectedLicense?.item || '',
-                  serialNo: '',
-                  serialStartDate: '',
-                  newEndDate: '',
+                  productName:
+                    selectedLicense?.item_description ||
+                    selectedLicense?.item ||
+                    "",
+                  serialNo: "",
+                  serialStartDate: "",
+                  newEndDate: "",
                   cost: 0,
                   // prefill remark into notes textarea
-                  notes: selectedLicense?.remark || ''
+                  notes: selectedLicense?.remark || "",
                 });
-                setSelectedSerialId('');
+                setSelectedSerialId("");
                 setShowRenewalModal(true);
               }}
             >
@@ -636,13 +723,15 @@ export const LicenseDetails: React.FC = () => {
           )}
 
           {/* Show Edit for admin and super_user; hide for user */}
-          {user?.role !== 'user' && (
+          {user?.role !== "user" && (
             <Button
               variant="secondary"
               icon={Edit}
               onClick={() => {
                 if (!selectedLicense) return;
-                navigate('/licenses', { state: { editLicenseId: selectedLicense.id } });
+                navigate("/licenses", {
+                  state: { editLicenseId: selectedLicense.id },
+                });
               }}
             >
               Edit
@@ -650,7 +739,7 @@ export const LicenseDetails: React.FC = () => {
           )}
 
           {/* Show Delete for admin only; hide for super_user and user */}
-          {user?.role === 'admin' && (
+          {user?.role === "admin" && (
             <Button variant="danger" icon={Trash2} onClick={handleDelete}>
               Delete
             </Button>
@@ -659,7 +748,7 @@ export const LicenseDetails: React.FC = () => {
       </motion.div>
 
       {/* Status Banner */}
-      {/* 
+      {/*
        */}
 
       <div className="grid grid-cols-1 gap-6">
@@ -674,7 +763,9 @@ export const LicenseDetails: React.FC = () => {
           >
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">License Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  License Information
+                </h3>
 
                 {/* Top summary: Vendor and Project */}
                 <div className="mb-4">
@@ -699,13 +790,16 @@ export const LicenseDetails: React.FC = () => {
 
                 {/* Details grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                   {/* Right column */}
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-500">Priority</p>
-                      <Badge className={getPriorityColor(selectedLicense.priority)} size="sm">
-                        {selectedLicense.priority.charAt(0).toUpperCase() + selectedLicense.priority.slice(1)}
+                      <Badge
+                        className={getPriorityColor(selectedLicense.priority)}
+                        size="sm"
+                      >
+                        {selectedLicense.priority.charAt(0).toUpperCase() +
+                          selectedLicense.priority.slice(1)}
                       </Badge>
                     </div>
                   </div>
@@ -719,7 +813,6 @@ export const LicenseDetails: React.FC = () => {
                       <p className="text-sm text-gray-900 flex-1">
                         {selectedLicense.item_description}
                       </p>
-
                     </div>
                   </div>
                 )}
@@ -736,7 +829,6 @@ export const LicenseDetails: React.FC = () => {
             </Card>
           </motion.div>
 
-
           {/* Serial Number Information */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -745,7 +837,9 @@ export const LicenseDetails: React.FC = () => {
           >
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Serial Number Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Serial Number Information
+                </h3>
                 {serials.length === 0 ? (
                   <p className="text-sm text-gray-500">No serials added.</p>
                 ) : (
@@ -759,11 +853,17 @@ export const LicenseDetails: React.FC = () => {
                             const exp = getSerialExpiryStatus(s.end_date);
                             const Icon = exp.icon;
                             return (
-                              <div className={`mb-3 inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs ${exp.color}`}>
+                              <div
+                                className={`mb-3 inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs ${exp.color}`}
+                              >
                                 <Icon className="h-4 w-4" />
-                                <span className="font-medium">Status: {exp.status}</span>
+                                <span className="font-medium">
+                                  Status: {exp.status}
+                                </span>
                                 <span className="opacity-80">
-                                  {exp.status === 'Expired' ? `Expired ${exp.days}d ago` : `${exp.days}d remaining`}
+                                  {exp.status === "Expired"
+                                    ? `Expired ${exp.days}d ago`
+                                    : `${exp.days}d remaining`}
                                 </span>
                               </div>
                             );
@@ -771,19 +871,32 @@ export const LicenseDetails: React.FC = () => {
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                              <p className="text-xs text-gray-500">Serial/Contract</p>
-                              <p className="font-mono text-sm text-gray-900">{s.serial_or_contract}</p>
+                              <p className="text-xs text-gray-500">
+                                Serial/Contract
+                              </p>
+                              <p className="font-mono text-sm text-gray-900">
+                                {s.serial_or_contract}
+                              </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">Start Date</p>
+                              <p className="text-xs text-gray-500">
+                                Start Date
+                              </p>
                               <p className="text-gray-900">
-                                {s.start_date ? format(parseISO(s.start_date), 'MMM dd, yyyy') : '-'}
+                                {s.start_date
+                                  ? format(
+                                      parseISO(s.start_date),
+                                      "MMM dd, yyyy",
+                                    )
+                                  : "-"}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-500">End Date</p>
                               <p className="text-gray-900">
-                                {s.end_date ? format(parseISO(s.end_date), 'MMM dd, yyyy') : '-'}
+                                {s.end_date
+                                  ? format(parseISO(s.end_date), "MMM dd, yyyy")
+                                  : "-"}
                               </p>
                             </div>
                             <div>
@@ -792,7 +905,7 @@ export const LicenseDetails: React.FC = () => {
                             </div>
                             <div>
                               <p className="text-xs text-gray-500">PO No.</p>
-                              <p className="text-gray-900">{s.po_no || '-'}</p>
+                              <p className="text-gray-900">{s.po_no || "-"}</p>
                             </div>
                           </div>
                         </div>
@@ -812,20 +925,25 @@ export const LicenseDetails: React.FC = () => {
           >
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Customer Information
+                </h3>
 
                 {customers.length === 0 ? (
                   <p className="text-sm text-gray-500">No customers added.</p>
                 ) : (
                   <div className="space-y-4">
                     {customers.map((c, idx) => (
-                      <div key={c.id} className="p-5 border rounded-lg hover:shadow-sm transition">
+                      <div
+                        key={c.id}
+                        className="p-5 border rounded-lg hover:shadow-sm transition"
+                      >
                         {/* Header */}
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-5 w-5 text-gray-500" />
                             <span className="text-base font-medium text-gray-900">
-                              {c.company_name || '-'}
+                              {c.company_name || "-"}
                             </span>
                           </div>
                           {/* <div className="text-xs text-gray-500">Customer #{idx + 1}</div> */}
@@ -837,8 +955,12 @@ export const LicenseDetails: React.FC = () => {
                           <div className="flex items-start gap-3">
                             <UserIcon className="h-4 w-4 text-gray-500 mt-1" />
                             <div>
-                              <p className="text-xs text-gray-500">Contact Person</p>
-                              <p className="text-sm text-gray-900">{c.contact_person || '-'}</p>
+                              <p className="text-xs text-gray-500">
+                                Contact Person
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {c.contact_person || "-"}
+                              </p>
                             </div>
                           </div>
 
@@ -846,7 +968,9 @@ export const LicenseDetails: React.FC = () => {
                           <div className="flex items-start gap-3">
                             <Mail className="h-4 w-4 text-gray-500 mt-1" />
                             <div className="flex-1">
-                              <p className="text-xs text-gray-500">Contact Email</p>
+                              <p className="text-xs text-gray-500">
+                                Contact Email
+                              </p>
                               {c.contact_email ? (
                                 <div className="flex items-center gap-2">
                                   <a
@@ -859,7 +983,9 @@ export const LicenseDetails: React.FC = () => {
                                     variant="ghost"
                                     size="sm"
                                     icon={Copy}
-                                    onClick={() => copyToClipboard(c.contact_email!)}
+                                    onClick={() =>
+                                      copyToClipboard(c.contact_email!)
+                                    }
                                     title="Copy email"
                                   />
                                 </div>
@@ -873,7 +999,9 @@ export const LicenseDetails: React.FC = () => {
                           <div className="flex items-start gap-3">
                             <Phone className="h-4 w-4 text-gray-500 mt-1" />
                             <div className="flex-1">
-                              <p className="text-xs text-gray-500">Contact Number</p>
+                              <p className="text-xs text-gray-500">
+                                Contact Number
+                              </p>
                               {c.contact_number ? (
                                 <div className="flex items-center gap-2">
                                   <a
@@ -886,7 +1014,9 @@ export const LicenseDetails: React.FC = () => {
                                     variant="ghost"
                                     size="sm"
                                     icon={Copy}
-                                    onClick={() => copyToClipboard(c.contact_number!)}
+                                    onClick={() =>
+                                      copyToClipboard(c.contact_number!)
+                                    }
                                     title="Copy phone"
                                   />
                                 </div>
@@ -902,7 +1032,7 @@ export const LicenseDetails: React.FC = () => {
                             <div>
                               <p className="text-xs text-gray-500">Address</p>
                               <p className="text-sm text-gray-900 whitespace-pre-line break-words">
-                                {c.address || '-'}
+                                {c.address || "-"}
                               </p>
                             </div>
                           </div>
@@ -923,20 +1053,27 @@ export const LicenseDetails: React.FC = () => {
           >
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Distributor Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Distributor Information
+                </h3>
 
                 {distributors.length === 0 ? (
-                  <p className="text-sm text-gray-500">No distributors added.</p>
+                  <p className="text-sm text-gray-500">
+                    No distributors added.
+                  </p>
                 ) : (
                   <div className="space-y-4">
                     {distributors.map((d, idx) => (
-                      <div key={d.id} className="p-5 border rounded-lg hover:shadow-sm transition">
+                      <div
+                        key={d.id}
+                        className="p-5 border rounded-lg hover:shadow-sm transition"
+                      >
                         {/* Header */}
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-5 w-5 text-gray-500" />
                             <span className="text-base font-medium text-gray-900">
-                              {d.company_name || '-'}
+                              {d.company_name || "-"}
                             </span>
                           </div>
                           {/* <div className="text-xs text-gray-500">Distributor #{idx + 1}</div> */}
@@ -948,8 +1085,12 @@ export const LicenseDetails: React.FC = () => {
                           <div className="flex items-start gap-3">
                             <UserIcon className="h-4 w-4 text-gray-500 mt-1" />
                             <div>
-                              <p className="text-xs text-gray-500">Contact Person</p>
-                              <p className="text-sm text-gray-900">{d.contact_person || '-'}</p>
+                              <p className="text-xs text-gray-500">
+                                Contact Person
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {d.contact_person || "-"}
+                              </p>
                             </div>
                           </div>
 
@@ -957,7 +1098,9 @@ export const LicenseDetails: React.FC = () => {
                           <div className="flex items-start gap-3">
                             <Mail className="h-4 w-4 text-gray-500 mt-1" />
                             <div className="flex-1">
-                              <p className="text-xs text-gray-500">Contact Email</p>
+                              <p className="text-xs text-gray-500">
+                                Contact Email
+                              </p>
                               {d.contact_email ? (
                                 <div className="flex items-center gap-2">
                                   <a
@@ -970,7 +1113,9 @@ export const LicenseDetails: React.FC = () => {
                                     variant="ghost"
                                     size="sm"
                                     icon={Copy}
-                                    onClick={() => copyToClipboard(d.contact_email!)}
+                                    onClick={() =>
+                                      copyToClipboard(d.contact_email!)
+                                    }
                                     title="Copy email"
                                   />
                                 </div>
@@ -984,7 +1129,9 @@ export const LicenseDetails: React.FC = () => {
                           <div className="flex items-start gap-3">
                             <Phone className="h-4 w-4 text-gray-500 mt-1" />
                             <div className="flex-1">
-                              <p className="text-xs text-gray-500">Contact Number</p>
+                              <p className="text-xs text-gray-500">
+                                Contact Number
+                              </p>
                               {d.contact_number ? (
                                 <div className="flex items-center gap-2">
                                   <a
@@ -997,7 +1144,9 @@ export const LicenseDetails: React.FC = () => {
                                     variant="ghost"
                                     size="sm"
                                     icon={Copy}
-                                    onClick={() => copyToClipboard(d.contact_number!)}
+                                    onClick={() =>
+                                      copyToClipboard(d.contact_number!)
+                                    }
                                     title="Copy phone"
                                   />
                                 </div>
@@ -1024,7 +1173,9 @@ export const LicenseDetails: React.FC = () => {
             <Card>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Attachments ({attachments.length})</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Attachments ({attachments.length})
+                  </h3>
                   <Button
                     variant="primary"
                     size="sm"
@@ -1043,17 +1194,28 @@ export const LicenseDetails: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {attachments.map((attachment) => (
-                      <div key={attachment.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div
+                        key={attachment.id}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                      >
                         <div className="flex items-center space-x-3">
                           <Paperclip className="h-5 w-5 text-gray-400" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{attachment.file_name}</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {attachment.file_name}
+                            </p>
                             <p className="text-xs text-gray-500">
-                              {(attachment.file_size / 1024 / 1024).toFixed(2)} MB •
-                              {format(new Date(attachment.uploaded_at), 'MMM dd, yyyy')}
+                              {(attachment.file_size / 1024 / 1024).toFixed(2)}{" "}
+                              MB •
+                              {format(
+                                new Date(attachment.uploaded_at),
+                                "MMM dd, yyyy",
+                              )}
                             </p>
                             {attachment.description && (
-                              <p className="text-xs text-gray-600 mt-1">{attachment.description}</p>
+                              <p className="text-xs text-gray-600 mt-1">
+                                {attachment.description}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -1068,7 +1230,9 @@ export const LicenseDetails: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             icon={Trash2}
-                            onClick={() => handleDeleteAttachment(attachment.id)}
+                            onClick={() =>
+                              handleDeleteAttachment(attachment.id)
+                            }
                             className="text-red-600 hover:text-red-700"
                           />
                         </div>
@@ -1089,17 +1253,27 @@ export const LicenseDetails: React.FC = () => {
             >
               <Card>
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Old License Data</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Old License Data
+                  </h3>
                   {renewalHistory.length === 0 ? (
                     <p className="text-sm text-gray-500">No old data found.</p>
                   ) : (
                     <div className="space-y-3">
                       {renewalHistory.map((renewal: any) => (
-                        <div key={renewal.id} className="border rounded-md bg-gray-50">
+                        <div
+                          key={renewal.id}
+                          className="border rounded-md bg-gray-50"
+                        >
                           <div className="px-3 py-2 border-b text-xs text-gray-600 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
-                                Renewal Date - {renewal.renewal_date ? new Date(renewal.renewal_date).toLocaleDateString() : '-'}
+                                Renewal Date -{" "}
+                                {renewal.renewal_date
+                                  ? new Date(
+                                      renewal.renewal_date,
+                                    ).toLocaleDateString()
+                                  : "-"}
                               </span>
                               {/* <span className="text-gray-500">• Old cost:</span>
                               <span className="font-medium">{Number(renewal.cost ?? 0).toLocaleString()}</span> */}
@@ -1111,20 +1285,41 @@ export const LicenseDetails: React.FC = () => {
 
                           <div className="px-3 py-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div>
-                              <div className="text-xs text-gray-500">Product</div>
-                              <div className="text-gray-900">{renewal.prev_product_name || '-'}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-500">Serial</div>
-                              <div className="text-gray-900">{renewal.prev_serial_no || '-'}</div>
-                              <div className="text-[11px] text-gray-500">
-                                Start Date - {renewal.prev_serial_start_date ? new Date(renewal.prev_serial_start_date).toLocaleDateString() : '-'} <br />
-                                End Date - {renewal.prev_serial_end_date ? ` ${new Date(renewal.prev_serial_end_date).toLocaleDateString()}` : ' -'}
+                              <div className="text-xs text-gray-500">
+                                Product
+                              </div>
+                              <div className="text-gray-900">
+                                {renewal.prev_product_name || "-"}
                               </div>
                             </div>
                             <div>
-                              <div className="text-xs text-gray-500">Remark</div>
-                              <div className="text-gray-900 whitespace-pre-line">{renewal.prev_remark || '-'}</div>
+                              <div className="text-xs text-gray-500">
+                                Serial
+                              </div>
+                              <div className="text-gray-900">
+                                {renewal.prev_serial_no || "-"}
+                              </div>
+                              <div className="text-[11px] text-gray-500">
+                                Start Date -{" "}
+                                {renewal.prev_serial_start_date
+                                  ? new Date(
+                                      renewal.prev_serial_start_date,
+                                    ).toLocaleDateString()
+                                  : "-"}{" "}
+                                <br />
+                                End Date -{" "}
+                                {renewal.prev_serial_end_date
+                                  ? ` ${new Date(renewal.prev_serial_end_date).toLocaleDateString()}`
+                                  : " -"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">
+                                Remark
+                              </div>
+                              <div className="text-gray-900 whitespace-pre-line">
+                                {renewal.prev_remark || "-"}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1135,13 +1330,10 @@ export const LicenseDetails: React.FC = () => {
               </Card>
             </motion.div>
           )}
-
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-
-        </div>
+        <div className="space-y-6"></div>
       </div>
 
       {/* Comment modal removed */}
@@ -1152,7 +1344,7 @@ export const LicenseDetails: React.FC = () => {
         onClose={() => {
           setShowAttachmentModal(false);
           setSelectedFile(null);
-          setAttachmentDescription('');
+          setAttachmentDescription("");
         }}
         title="Add Attachment"
       >
@@ -1181,7 +1373,7 @@ export const LicenseDetails: React.FC = () => {
               onClick={() => {
                 setShowAttachmentModal(false);
                 setSelectedFile(null);
-                setAttachmentDescription('');
+                setAttachmentDescription("");
               }}
             >
               Cancel
@@ -1197,7 +1389,6 @@ export const LicenseDetails: React.FC = () => {
         </div>
       </Modal>
 
-
       <Modal
         isOpen={showRenewalModal}
         onClose={() => setShowRenewalModal(false)}
@@ -1206,10 +1397,14 @@ export const LicenseDetails: React.FC = () => {
         <div className="space-y-6">
           {/* Project Name - Editable */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Project Name</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Project Name
+            </label>
             <Input
               value={renewalData.productName}
-              onChange={(value) => setRenewalData({ ...renewalData, productName: value })}
+              onChange={(value) =>
+                setRenewalData({ ...renewalData, productName: value })
+              }
               placeholder="Enter product name"
               required
             />
@@ -1217,41 +1412,46 @@ export const LicenseDetails: React.FC = () => {
 
           {/* Serial Selection */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Select Serial <span className='text-red-400'>*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Select Serial <span className="text-red-400">*</span>
+            </label>
             <div className="mt-1 space-y-2 max-h-60 overflow-y-auto p-1">
               {serials.map((s) => (
                 <div
                   key={s.id || s.serial_or_contract}
                   onClick={() => {
-                    setSelectedSerialId(s.id || '');
-                    setRenewalData(prev => ({
+                    setSelectedSerialId(s.id || "");
+                    setRenewalData((prev) => ({
                       ...prev,
-                      serialNo: s.serial_or_contract || '',
-                      serialStartDate: s.start_date || '',
-                      newEndDate: s.end_date || '',
-                      cost: (s.unit_price || 0) * (s.qty || 0)
+                      serialNo: s.serial_or_contract || "",
+                      serialStartDate: s.start_date || "",
+                      newEndDate: s.end_date || "",
+                      cost: (s.unit_price || 0) * (s.qty || 0),
                     }));
                   }}
-                  className={`p-3 border rounded-md cursor-pointer transition-colors ${selectedSerialId === s.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                  className={`p-3 border rounded-md cursor-pointer transition-colors ${
+                    selectedSerialId === s.id
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <p className="text-xs text-gray-500">Serial No</p>
-                      <p className="font-medium">{s.serial_or_contract || 'N/A'}</p>
+                      <p className="font-medium">
+                        {s.serial_or_contract || "N/A"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Period</p>
                       <p className="font-medium">
-                        {s.start_date || 'N/A'} → {s.end_date || 'N/A'}
+                        {s.start_date || "N/A"} → {s.end_date || "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Qty × Price</p>
                       <p className="font-medium">
-                        {s.qty || '0'} × {s.currency} {s.unit_price || '0.00'}
+                        {s.qty || "0"} × {s.currency} {s.unit_price || "0.00"}
                       </p>
                     </div>
                   </div>
@@ -1262,47 +1462,63 @@ export const LicenseDetails: React.FC = () => {
 
           {/* Serial Information - Editable */}
           <div className="space-y-4 pt-2">
-            <h3 className="text-sm font-medium text-gray-700">Serial Information</h3>
+            <h3 className="text-sm font-medium text-gray-700">
+              Serial Information
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Serial No <span className='text-red-500'>*</span></label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Serial No <span className="text-red-500">*</span>
+                </label>
                 <Input
                   value={renewalData.serialNo}
-                  onChange={(value) => setRenewalData({ ...renewalData, serialNo: value })}
+                  onChange={(value) =>
+                    setRenewalData({ ...renewalData, serialNo: value })
+                  }
                   placeholder="Enter serial number"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Start Date <span className='text-red-500'>*</span></label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Start Date <span className="text-red-500">*</span>
+                </label>
                 <Input
                   type="date"
                   value={renewalData.serialStartDate}
-                  onChange={(value) => setRenewalData({ ...renewalData, serialStartDate: value })}
+                  onChange={(value) =>
+                    setRenewalData({ ...renewalData, serialStartDate: value })
+                  }
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">End Date <span className='text-red-400'>*</span></label>
+                <label className="block text-sm font-medium text-gray-700">
+                  End Date <span className="text-red-400">*</span>
+                </label>
                 <Input
                   type="date"
                   value={renewalData.newEndDate}
-                  onChange={(value) => setRenewalData({ ...renewalData, newEndDate: value })}
+                  onChange={(value) =>
+                    setRenewalData({ ...renewalData, newEndDate: value })
+                  }
                   required
                 />
               </div>
-
-
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Remarks</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Remarks
+              </label>
               <textarea
                 value={renewalData.notes}
-                onChange={(e) => setRenewalData({ ...renewalData, notes: e.target.value })}
+                onChange={(e) =>
+                  setRenewalData({ ...renewalData, notes: e.target.value })
+                }
                 rows={3}
                 className="block w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 placeholder="Add any notes..."

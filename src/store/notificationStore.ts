@@ -137,64 +137,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   fetchNotifications: async () => {
-    // set({ isLoading: true });
-
-    // try {
-
-    //   const currentUser = await get().getCurrentUser();
-
-    //   if (!currentUser) {
-
-    //     set({ notifications: [], unreadCount: 0, isLoading: false });
-
-    //     return;
-
-    //   }
-
-    //   const role = useAuthStore.getState().user?.role;
-
-    //   let query = supabase
-
-    //     .from('notifications')
-
-    //     .select('*')
-
-    //     .order('created_at', { ascending: false })
-
-    //     .limit(200);
-
-    //   // Admin sees all notifications, others only their own
-
-    //   if (role !== 'admin') {
-
-    //     query = query.eq('user_id', currentUser.id);
-
-    //   }
-
-    //   const { data, error } = await query;
-
-    //   if (error) throw error;
-
-    //   const unreadCount = data?.filter(n => !n.is_read).length || 0;
-
-    //   set({
-
-    //     notifications: data || [],
-
-    //     unreadCount,
-
-    //     isLoading: false
-
-    //   });
-
-    // } catch (error) {
-
-    //   console.error('Error fetching notifications:', error);
-
-    //   set({ isLoading: false });
-
-    // }
-
     try {
       const currentUser = await get().getCurrentUser();
 
@@ -364,7 +306,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
         .select("*")
 
-        .eq("user_id", currentUser.id)
+        .eq("user_id", currentUser!.id)
 
         .order("created_at", { ascending: false })
 
@@ -991,7 +933,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
           .eq("type", "expiry")
 
-          .eq("license_id", license.id)
+          .eq("license_id", (license as any).id)
 
           .eq("title", titleExpired)
 
@@ -1002,14 +944,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           .maybeSingle();
 
         if (!existsExpired) {
-          await get().sendNotificationToUser(license.created_by, {
+          await get().sendNotificationToUser((license as any).created_by, {
             type: "expiry",
 
             title: titleExpired,
 
-            message: `${serialNo} for ${license.item_description} expired ${daysOverdue} day(s) ago`,
+            message: `${serialNo} for ${(license as any).item_description} expired ${daysOverdue} day(s) ago`,
 
-            license_id: license.id,
+            license_id: (license as any).id,
 
             is_read: false,
 
@@ -1017,7 +959,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
             action_required: true,
 
-            action_url: `/licenses/${license.id}?serial=${serialId}`,
+            action_url: `/licenses/${(license as any).id}?serial=${serialId}`,
 
             expires_at: null,
           });
@@ -1027,11 +969,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             .from("notifications")
 
             .update({
-              message: `${serialNo} for ${license.item_description} expired ${daysOverdue} day(s) ago`,
+              message: `${serialNo} for ${(license as any).item_description} expired ${daysOverdue} day(s) ago`,
 
               priority: "high",
 
-              action_url: `/licenses/${license.id}?serial=${serialId}`,
+              action_url: `/licenses/${(license as any).id}?serial=${serialId}`,
             })
 
             .eq("id", existsExpired.id);
@@ -1082,7 +1024,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
           .eq("type", "expiry")
 
-          .eq("license_id", license.id)
+          .eq("license_id", (license as any).id)
 
           .eq("title", titleSoon)
 
@@ -1103,7 +1045,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
             .eq("type", "expiry")
 
-            .eq("license_id", license.id)
+            .eq("license_id", (license as any).id)
 
             .eq("title", "Serial Expiring Soon")
 
@@ -1119,14 +1061,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         }
 
         if (!existsSoon) {
-          await get().sendNotificationToUser(license.created_by, {
+          await get().sendNotificationToUser((license as any).created_by, {
             type: "expiry",
 
             title: titleSoon,
 
-            message: `${serialNo} for ${license.item_description} expires soon in ${daysUntil} day(s)`,
+            message: `${serialNo} for ${(license as any).item_description} expires soon in ${daysUntil} day(s)`,
 
-            license_id: license.id,
+            license_id: (license as any).id,
 
             is_read: false,
 
@@ -1134,7 +1076,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
             action_required: true,
 
-            action_url: `/licenses/${license.id}?serial=${serialId}`,
+            action_url: `/licenses/${(license as any).id}?serial=${serialId}`,
 
             expires_at: null,
           });
@@ -1146,11 +1088,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             .update({
               title: titleSoon, // migrate legacy to new per-serial title
 
-              message: `${serialNo} for ${license.item_description} expires soon in ${daysUntil} day(s)`,
+              message: `${serialNo} for ${(license as any).item_description} expires soon in ${daysUntil} day(s)`,
 
               priority: daysUntil <= 7 ? "high" : "medium",
 
-              action_url: `/licenses/${license.id}?serial=${serialId}`,
+              action_url: `/licenses/${(license as any).id}?serial=${serialId}`,
             })
 
             .eq("id", existsSoon.id);
@@ -1163,7 +1105,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       console.error("Error checking serial expiries:", err);
     }
   },
-  
 
   sendEmailNotification: async (notification, userEmail) => {
     try {

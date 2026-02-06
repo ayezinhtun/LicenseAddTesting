@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ChevronDown, DivideIcon as LucideIcon } from 'lucide-react';
+import React from "react";
+import { motion } from "framer-motion";
+import { ChevronDown, DivideIcon as LucideIcon } from "lucide-react";
 
 interface SelectOption {
   value: string;
@@ -29,22 +29,22 @@ export const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   options,
-  placeholder = 'Select an option',
+  placeholder = "Select an option",
   error,
   disabled = false,
   required = false,
   icon: Icon,
-  className = '',
+  className = "",
   helperText,
   multiple = false,
-  animate = true
+  animate = true,
 }) => {
   const selectClasses = `
     block w-full rounded-lg border-gray-300 shadow-sm
     focus:border-blue-500 focus:ring-blue-500
     disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
-    ${Icon ? 'pl-10' : 'pl-3'} pr-10 py-2.5
-    ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
+    ${Icon ? "pl-10" : "pl-3"} pr-10 py-2.5
+    ${error ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}
     appearance-none bg-white
     transition-all duration-200
   `;
@@ -57,14 +57,14 @@ export const Select: React.FC<SelectProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      
+
       <div className="relative">
         {Icon && (
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Icon className="h-4 w-4 text-gray-400" />
           </div>
         )}
-        
+
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -88,17 +88,15 @@ export const Select: React.FC<SelectProps> = ({
             </option>
           ))}
         </select>
-        
+
         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
           <ChevronDown className="h-4 w-4 text-gray-400" />
         </div>
       </div>
-      
+
       {(error || helperText) && (
         <div className="flex items-start space-x-1">
-          {error && (
-            <p className="text-sm text-red-600 flex-1">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600 flex-1">{error}</p>}
           {helperText && !error && (
             <p className="text-sm text-gray-500 flex-1">{helperText}</p>
           )}

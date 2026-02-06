@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   FileText,
@@ -19,33 +19,72 @@ import {
   Users,
   ClipboardList,
   Trash,
-  Clock
-} from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { Button } from '../common/Button';
-import { Badge } from '../common/Badge';
+  Clock,
+} from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { Button } from "../common/Button";
+import { Badge } from "../common/Badge";
 // import { useLicenseStore } from '../../store/licenseStore';
-import { useNotificationStore } from '../../store/notificationStore';
+import { useNotificationStore } from "../../store/notificationStore";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', badge: null },
-  { icon: Users, label: 'Vendor Manager', path: '/vendors', badge: null, adminOnly: true },
-  { icon: ClipboardList, label: 'Project Assign', path: '/project-assign', badge: null, adminOnly: true },
-  { icon: User, label: 'Customer Manager', path: '/customers', badge: null, adminOnly: true },
-  { icon: Building2, label: 'Distributor Manager', path: '/distributors', badge: null, adminOnly: true },
-  { icon: FileText, label: 'License Manager', path: '/licenses', badge: null },
-  { icon: Clock, label: 'Recent Deleted', path: '/licenses/deleted', badge: null, adminOnly: true },
-  { icon: BarChart3, label: 'Reports & Analytics', path: '/reports', badge: null },
-  { icon: Bell, label: 'Notifications', path: '/notifications', badge: 'notifications' },
-  { icon: Activity, label: 'Audit Logs', path: '/audit', badge: null },
-  { icon: Settings, label: 'Account Settings', path: '/account', badge: null }
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    path: "/dashboard",
+    badge: null,
+  },
+  {
+    icon: Users,
+    label: "Vendor Manager",
+    path: "/vendors",
+    badge: null,
+    adminOnly: true,
+  },
+  {
+    icon: ClipboardList,
+    label: "Project Assign",
+    path: "/project-assign",
+    badge: null,
+    adminOnly: true,
+  },
+  {
+    icon: User,
+    label: "Customer Manager",
+    path: "/customers",
+    badge: null,
+    adminOnly: true,
+  },
+  {
+    icon: Building2,
+    label: "Distributor Manager",
+    path: "/distributors",
+    badge: null,
+    adminOnly: true,
+  },
+  { icon: FileText, label: "License Manager", path: "/licenses", badge: null },
+  {
+    icon: Clock,
+    label: "Recent Deleted",
+    path: "/licenses/deleted",
+    badge: null,
+    adminOnly: true,
+  },
+  {
+    icon: BarChart3,
+    label: "Reports & Analytics",
+    path: "/reports",
+    badge: null,
+  },
+  {
+    icon: Bell,
+    label: "Notifications",
+    path: "/notifications",
+    badge: "notifications",
+  },
+  { icon: Activity, label: "Audit Logs", path: "/audit", badge: null },
+  { icon: Settings, label: "Account Settings", path: "/account", badge: null },
 ];
-
-// const quickActions = [
-//   { icon: Zap, label: 'Quick Add License', action: 'add-license' },
-//   { icon: Shield, label: 'Security Check', action: 'security-check' },
-//   { icon: HelpCircle, label: 'Help & Support', action: 'help' }
-// ];
 
 export const Sidebar: React.FC<{
   isCollapsed: boolean;
@@ -53,39 +92,26 @@ export const Sidebar: React.FC<{
   isHidden?: boolean;
   onHideToggle?: () => void;
 }> = ({ isCollapsed, onToggle, isHidden = false, onHideToggle }) => {
-
-  // const [showQuickActions, setShowQuickActions] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuthStore();
 
-  const visibleItems = menuItems.filter(item => !('adminOnly' in item) || !item.adminOnly || user?.role === 'admin');
+  const visibleItems = menuItems.filter(
+    (item) =>
+      !("adminOnly" in item) || !item.adminOnly || user?.role === "admin",
+  );
 
   // const { getLicensesNearExpiry } = useLicenseStore();
 
   const { notifications } = useNotificationStore();
-  const notificationCount = notifications.filter(n => !n.is_read).length;
+  const notificationCount = notifications.filter((n) => !n.is_read).length;
 
   const handleLogout = () => {
     logout();
   };
 
-  // const handleQuickAction = (action: string) => {
-  //   switch (action) {
-  //     case 'add-license':
-  //       // Navigate to add license
-  //       break;
-  //     case 'security-check':
-  //       // Run security check
-  //       break;
-  //     case 'help':
-  //       // Open help
-  //       break;
-  //   }
-  // };
-
   const getBadgeCount = (badgeType: string | null) => {
     switch (badgeType) {
-      case 'notifications':
+      case "notifications":
         return notificationCount > 0 ? notificationCount : null;
       default:
         return null;
@@ -96,9 +122,10 @@ export const Sidebar: React.FC<{
     <motion.div
       initial={{ x: -280 }}
       animate={{ x: isHidden ? -280 : 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${isHidden ? 'w-0 overflow-hidden' : (isCollapsed ? 'w-20' : 'w-72')
-        } flex flex-col min-h-0`}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className={`bg-white shadow-xl h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${
+        isHidden ? "w-0 overflow-hidden" : isCollapsed ? "w-20" : "w-72"
+      } flex flex-col min-h-0`}
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
@@ -118,7 +145,9 @@ export const Sidebar: React.FC<{
                   className="h-10 w-auto"
                 />
                 <div>
-                  <h1 className="font-bold text-gray-900 text-lg">License Manager</h1>
+                  <h1 className="font-bold text-gray-900 text-lg">
+                    License Manager
+                  </h1>
                   <p className="text-xs text-gray-500">1Cloud Technology</p>
                 </div>
               </motion.div>
@@ -164,7 +193,9 @@ export const Sidebar: React.FC<{
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {user.name}
+                </p>
                 <p className="text-xs text-gray-500 truncate">{user.email}</p>
                 <Badge variant="primary" size="sm" className="mt-1">
                   {user.role}
@@ -175,10 +206,8 @@ export const Sidebar: React.FC<{
         )}
       </AnimatePresence>
 
-
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-
         {visibleItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const badgeCount = getBadgeCount(item.badge);
@@ -192,17 +221,20 @@ export const Sidebar: React.FC<{
             >
               <Link
                 to={item.path}
-                className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${
+                  isActive
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                }`}
               >
-                <item.icon className={`${isCollapsed ? 'mx-auto' : 'mr-3'} h-5 w-5 flex-shrink-0`} />
+                <item.icon
+                  className={`${isCollapsed ? "mx-auto" : "mr-3"} h-5 w-5 flex-shrink-0`}
+                />
                 <AnimatePresence>
                   {!isCollapsed && (
                     <motion.div
                       initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
+                      animate={{ opacity: 1, width: "auto" }}
                       exit={{ opacity: 0, width: 0 }}
                       transition={{ duration: 0.2 }}
                       className="flex items-center justify-between flex-1"
@@ -222,7 +254,7 @@ export const Sidebar: React.FC<{
         })}
 
         {/* Admin-only: User Management */}
-        {user?.role === 'admin' && (
+        {user?.role === "admin" && (
           <motion.div
             key="/users"
             initial={{ opacity: 0, x: -20 }}
@@ -231,17 +263,20 @@ export const Sidebar: React.FC<{
           >
             <Link
               to="/users"
-              className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/users'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+              className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 group ${
+                location.pathname === "/users"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
-              <User className={`${isCollapsed ? 'mx-auto' : 'mr-3'} h-5 w-5 flex-shrink-0`} />
+              <User
+                className={`${isCollapsed ? "mx-auto" : "mr-3"} h-5 w-5 flex-shrink-0`}
+              />
               <AnimatePresence>
                 {!isCollapsed && (
                   <motion.div
                     initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
+                    animate={{ opacity: 1, width: "auto" }}
                     exit={{ opacity: 0, width: 0 }}
                     transition={{ duration: 0.2 }}
                     className="flex items-center justify-between flex-1"
@@ -255,60 +290,18 @@ export const Sidebar: React.FC<{
         )}
       </nav>
 
-      {/* Quick Actions */}
-      {/* <AnimatePresence>
-        {!isCollapsed && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="p-4 border-t border-gray-100"
-          >
-            <button
-              onClick={() => setShowQuickActions(!showQuickActions)}
-              className="w-full text-left text-sm font-medium text-gray-700 mb-2 hover:text-gray-900 transition-colors"
-            >
-              Quick Actions
-            </button>
-            
-            <AnimatePresence>
-              {showQuickActions && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-1"
-                >
-                  {quickActions.map((action) => (
-                    <button
-                      key={action.action}
-                      onClick={() => handleQuickAction(action.action)}
-                      className="flex items-center w-full px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <action.icon className="h-4 w-4 mr-2" />
-                      {action.label}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence> */}
-
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
         <Button
           variant="ghost"
           icon={LogOut}
           onClick={handleLogout}
-          className={`w-full text-gray-600 hover:text-red-600 hover:bg-red-50 ${isCollapsed ? 'px-0 justify-center' : 'justify-start'
-            }`}
+          className={`w-full text-gray-600 hover:text-red-600 hover:bg-red-50 ${
+            isCollapsed ? "px-0 justify-center" : "justify-start"
+          }`}
           animate={false}
         >
-          {!isCollapsed && 'Sign Out'}
+          {!isCollapsed && "Sign Out"}
         </Button>
       </div>
     </motion.div>

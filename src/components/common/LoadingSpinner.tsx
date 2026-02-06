@@ -1,37 +1,37 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
 
 interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  color?: 'blue' | 'gray' | 'white';
+  size?: "sm" | "md" | "lg" | "xl";
+  color?: "blue" | "gray" | "white";
   text?: string;
   fullScreen?: boolean;
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  size = 'md',
-  color = 'blue',
+  size = "md",
+  color = "blue",
   text,
-  fullScreen = false
+  fullScreen = false,
 }) => {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
-    xl: 'w-12 h-12'
+    sm: "w-4 h-4",
+    md: "w-6 h-6",
+    lg: "w-8 h-8",
+    xl: "w-12 h-12",
   };
 
   const colorClasses = {
-    blue: 'border-blue-600',
-    gray: 'border-gray-600',
-    white: 'border-white'
+    blue: "border-blue-600",
+    gray: "border-gray-600",
+    white: "border-white",
   };
 
   const spinner = (
     <div className="flex flex-col items-center justify-center space-y-3">
       <motion.div
         animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         className={`${sizeClasses[size]} border-2 ${colorClasses[color]} border-t-transparent rounded-full`}
       />
       {text && (
