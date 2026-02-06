@@ -1163,6 +1163,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       console.error("Error checking serial expiries:", err);
     }
   },
+  
 
   sendEmailNotification: async (notification, userEmail) => {
     try {

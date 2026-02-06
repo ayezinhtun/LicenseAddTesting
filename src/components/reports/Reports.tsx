@@ -1,36 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
-import { Download, FileText, BarChart3, Calendar, DollarSign } from 'lucide-react';
+import {
+  Download,
+  FileText,
+  BarChart3,
+  Calendar,
+  DollarSign,
+} from "lucide-react";
 
-import { Button } from '../common/Button';
+import { Button } from "../common/Button";
 
-import { Input } from '../common/Input';
+import { Input } from "../common/Input";
 
-import { useLicenseStore } from '../../store/licenseStore';
+import { useLicenseStore } from "../../store/licenseStore";
 
-import { format, parseISO } from 'date-fns';
+import { format, parseISO } from "date-fns";
 
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 
-import { supabase } from '../../lib/supabase';
-
-
+import { supabase } from "../../lib/supabase";
 
 export const Reports: React.FC = () => {
-
   const [filters, setFilters] = useState({
+    vendor: "",
 
-    vendor: '',
+    project: "",
 
-    project: '',
+    dateFrom: "",
 
-    dateFrom: '',
-
-    dateTo: ''
-
+    dateTo: "",
   });
-
-
 
   const { licenses, fetchLicenses } = useLicenseStore();
 
@@ -39,37 +38,34 @@ export const Reports: React.FC = () => {
   // fetch serials when component mounts
 
   React.useEffect(() => {
-
     const loadSerials = async () => {
-
       const { data } = await supabase
 
-        .from('license_serials')
+        .from("license_serials")
 
-        .select('*, licenses!inner(project_name)');
+        .select("*, licenses!inner(project_name)");
 
       setSerials(data || []);
-
     };
 
     loadSerials();
-
   }, []);
 
-
-
-  const filteredLicenses = licenses.filter(license => {
-
-    if (filters.vendor && !license.vendor.toLowerCase().includes(filters.vendor.toLowerCase())) {
-
+  const filteredLicenses = licenses.filter((license) => {
+    if (
+      filters.vendor &&
+      !license.vendor.toLowerCase().includes(filters.vendor.toLowerCase())
+    ) {
       return false;
-
     }
 
-    if (filters.project && !license.project_name.toLowerCase().includes(filters.project.toLowerCase())) {
-
+    if (
+      filters.project &&
+      !license.project_name
+        .toLowerCase()
+        .includes(filters.project.toLowerCase())
+    ) {
       return false;
-
     }
 
     // if (filters.dateFrom && license.license_end_date < filters.dateFrom) {
@@ -85,72 +81,69 @@ export const Reports: React.FC = () => {
     // }
 
     return true;
-
   });
-
-
 
   // license_cost removed from schema; compute 0 for now (can be derived from serials later)
 
   const totalCost = 0;
 
-  const uniqueVendors = new Set(filteredLicenses.map(license => license.vendor)).size;
+  const uniqueVendors = new Set(
+    filteredLicenses.map((license) => license.vendor),
+  ).size;
 
-  const uniqueProjects = new Set(filteredLicenses.map(license => license.project_name)).size;
+  const uniqueProjects = new Set(
+    filteredLicenses.map((license) => license.project_name),
+  ).size;
 
   const serialsByLicense = React.useMemo(() => {
     const grouped: Record<string, any[]> = {};
-    (serials as any[]).forEach(s => {
+    (serials as any[]).forEach((s) => {
       if (!grouped[s.license_id]) grouped[s.license_id] = [];
       grouped[s.license_id].push(s);
     });
     return grouped;
   }, [serials]);
 
-
   const handleExportCSV = () => {
     const rows: string[][] = [];
 
-    filteredLicenses.forEach(license => {
+    filteredLicenses.forEach((license) => {
       const licenseSerials = serialsByLicense[license.id] || [];
       if (licenseSerials.length === 0) {
         // License with no serials
         rows.push([
           `"${license.project_name}"`,
           `"${license.vendor}"`,
-          `"No serials"`
+          `"No serials"`,
         ]);
       } else {
-        licenseSerials.forEach(serial => {
+        licenseSerials.forEach((serial) => {
           rows.push([
             `"${license.project_name}"`,
             `"${license.vendor}"`,
-            `"${serial.serial_or_contract} - Start: ${serial.start_date || '-'} → End: ${serial.end_date || '-'}"`
+            `"${serial.serial_or_contract} - Start: ${serial.start_date || "-"} → End: ${serial.end_date || "-"}"`,
           ]);
         });
       }
     });
 
     const csvContent = [
-      'Project Name,Vendor,Serial',
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+      "Project Name,Vendor,Serial",
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `license-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `license-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
-    toast.success('Report exported to CSV successfully');
+    toast.success("Report exported to CSV successfully");
   };
 
-
-
   const handleExportPDF = () => {
-
     // Simple PDF export simulation
 
     const printContent = `
@@ -187,7 +180,7 @@ export const Reports: React.FC = () => {
 
             <h1>1Cloud Technology License Report</h1>
 
-            <p>Generated on ${format(new Date(), 'MMMM dd, yyyy')}</p>
+            <p>Generated on ${format(new Date(), "MMMM dd, yyyy")}</p>
 
           </div>
 
@@ -241,23 +234,29 @@ export const Reports: React.FC = () => {
 
             <tbody>
 
-                ${filteredLicenses.map(license => {
-      const licenseSerials = serialsByLicense[license.id] || [];
-      return `
+                ${filteredLicenses
+                  .map((license) => {
+                    const licenseSerials = serialsByLicense[license.id] || [];
+                    return `
                             <tr>
                               <td>${license.project_name}</td>
                               <td>${license.vendor}</td>
                               <td>
-                                ${licenseSerials.length > 0
-          ? licenseSerials.map(serial =>
-            `<div class="serial-item">${serial.serial_or_contract} - Start: ${serial.start_date || '-'} → End: ${serial.end_date || '-'}</div>`
-          ).join('')
-          : 'No serials'
-        }
+                                ${
+                                  licenseSerials.length > 0
+                                    ? licenseSerials
+                                        .map(
+                                          (serial) =>
+                                            `<div class="serial-item">${serial.serial_or_contract} - Start: ${serial.start_date || "-"} → End: ${serial.end_date || "-"}</div>`,
+                                        )
+                                        .join("")
+                                    : "No serials"
+                                }
                               </td>
                             </tr>
                           `;
-    }).join('')}
+                  })
+                  .join("")}
 
 
             </tbody>
@@ -270,104 +269,57 @@ export const Reports: React.FC = () => {
 
     `;
 
-
-
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
 
     if (printWindow) {
-
       printWindow.document.write(printContent);
 
       printWindow.document.close();
 
       printWindow.print();
-
     }
 
-
-
-    toast.success('Report opened for printing/PDF export');
-
+    toast.success("Report opened for printing/PDF export");
   };
 
-
-
-
-
-
-
   return (
-
     <div className="space-y-6">
-
       <div className="flex items-center justify-between">
-
         <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
 
         <div className="flex space-x-3">
-
-          <Button
-
-            variant="secondary"
-
-            icon={FileText}
-
-            onClick={handleExportPDF}
-
-          >
-
+          <Button variant="secondary" icon={FileText} onClick={handleExportPDF}>
             Export PDF
-
           </Button>
 
-          <Button
-
-            icon={Download}
-
-            onClick={handleExportCSV}
-
-          >
-
+          <Button icon={Download} onClick={handleExportCSV}>
             Export CSV
-
           </Button>
-
         </div>
-
       </div>
-
-
 
       {/* Filters */}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-
           <Input
-
             label="Vendor"
-
             value={filters.vendor}
-
-            onChange={(value) => setFilters(prev => ({ ...prev, vendor: value }))}
-
+            onChange={(value) =>
+              setFilters((prev) => ({ ...prev, vendor: value }))
+            }
             placeholder="Filter by vendor..."
-
           />
 
           <Input
-
             label="Project"
-
             value={filters.project}
-
-            onChange={(value) => setFilters(prev => ({ ...prev, project: value }))}
-
+            onChange={(value) =>
+              setFilters((prev) => ({ ...prev, project: value }))
+            }
             placeholder="Filter by project..."
-
           />
 
           {/* <Input
@@ -393,68 +345,45 @@ export const Reports: React.FC = () => {
             onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
 
           /> */}
-
         </div>
-
       </div>
-
-
 
       {/* Summary Stats */}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
           <div className="flex items-center justify-between">
-
             <div>
+              <p className="text-sm font-medium text-gray-600">
+                Total Licenses
+              </p>
 
-              <p className="text-sm font-medium text-gray-600">Total Licenses</p>
-
-              <p className="text-2xl font-bold text-gray-900">{filteredLicenses.length}</p>
-
+              <p className="text-2xl font-bold text-gray-900">
+                {filteredLicenses.length}
+              </p>
             </div>
 
             <div className="bg-blue-50 p-3 rounded-lg">
-
               <FileText className="h-6 w-6 text-blue-600" />
-
             </div>
-
           </div>
-
         </div>
 
-
-
-
-
-
-
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
           <div className="flex items-center justify-between">
-
             <div>
-
               <p className="text-sm font-medium text-gray-600">Vendors</p>
 
-              <p className="text-2xl font-bold text-gray-900">{uniqueVendors}</p>
-
+              <p className="text-2xl font-bold text-gray-900">
+                {uniqueVendors}
+              </p>
             </div>
 
             <div className="bg-purple-50 p-3 rounded-lg">
-
               <BarChart3 className="h-6 w-6 text-purple-600" />
-
             </div>
-
           </div>
-
         </div>
-
-
 
         {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
 
@@ -477,55 +406,36 @@ export const Reports: React.FC = () => {
           </div>
 
         </div> */}
-
       </div>
-
-
 
       {/* Licenses Table */}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-
         <div className="p-6 border-b border-gray-200">
-
-          <h2 className="text-lg font-semibold text-gray-900">License Details</h2>
-
+          <h2 className="text-lg font-semibold text-gray-900">
+            License Details
+          </h2>
         </div>
 
         <div className="overflow-x-auto">
-
           <table className="min-w-full divide-y divide-gray-200">
-
             <thead className="bg-gray-50">
-
               <tr>
-
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-
                   Project Name
-
                 </th>
 
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-
                   Vendor
-
                 </th>
-
 
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Serials
                 </th>
-
-
-
-
               </tr>
-
             </thead>
 
             <tbody className="bg-white divide-y divide-gray-200">
-
               {filteredLicenses.map((license) => {
                 const licenseSerials = serialsByLicense[license.id] || [];
                 return (
@@ -542,7 +452,16 @@ export const Reports: React.FC = () => {
                           {licenseSerials.map((serial, index) => (
                             <div key={serial.id}>
                               <span className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-1 py-0.5">
-                                {serial.serial_or_contract} - Start: {format(parseISO(serial.start_date), 'dd MMM yyyy')} → End: {format(parseISO(serial.end_date), 'dd MMM yyyy')}
+                                {serial.serial_or_contract} - Start:{" "}
+                                {format(
+                                  parseISO(serial.start_date),
+                                  "dd MMM yyyy",
+                                )}{" "}
+                                → End:{" "}
+                                {format(
+                                  parseISO(serial.end_date),
+                                  "dd MMM yyyy",
+                                )}
                               </span>
                               {index < licenseSerials.length - 1 && <br />}
                             </div>
@@ -556,15 +475,9 @@ export const Reports: React.FC = () => {
                 );
               })}
             </tbody>
-
           </table>
-
         </div>
-
       </div>
-
     </div>
-
   );
-
 };

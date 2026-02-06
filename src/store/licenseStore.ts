@@ -1703,7 +1703,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
   },
 
   // to send notification every day until renew but the notification is will not send when the expiry is 30 days
-
   checkSerialExpiryNotifications: async () => {
     try {
       const todayStr = format(new Date(), "yyyy-MM-dd");
