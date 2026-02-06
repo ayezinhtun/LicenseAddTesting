@@ -137,6 +137,64 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   fetchNotifications: async () => {
+    // set({ isLoading: true });
+
+    // try {
+
+    //   const currentUser = await get().getCurrentUser();
+
+    //   if (!currentUser) {
+
+    //     set({ notifications: [], unreadCount: 0, isLoading: false });
+
+    //     return;
+
+    //   }
+
+    //   const role = useAuthStore.getState().user?.role;
+
+    //   let query = supabase
+
+    //     .from('notifications')
+
+    //     .select('*')
+
+    //     .order('created_at', { ascending: false })
+
+    //     .limit(200);
+
+    //   // Admin sees all notifications, others only their own
+
+    //   if (role !== 'admin') {
+
+    //     query = query.eq('user_id', currentUser.id);
+
+    //   }
+
+    //   const { data, error } = await query;
+
+    //   if (error) throw error;
+
+    //   const unreadCount = data?.filter(n => !n.is_read).length || 0;
+
+    //   set({
+
+    //     notifications: data || [],
+
+    //     unreadCount,
+
+    //     isLoading: false
+
+    //   });
+
+    // } catch (error) {
+
+    //   console.error('Error fetching notifications:', error);
+
+    //   set({ isLoading: false });
+
+    // }
+
     try {
       const currentUser = await get().getCurrentUser();
 
@@ -1245,11 +1303,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
               `
                   : ""
               }
-
-              
-
               <!-- Additional Info -->
-
               ${
                 notification.action_required
                   ? `
@@ -1323,3 +1377,32 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 }));
+
+
+
+
+// re_Zxfxh9hr_H1nSKytMbix9C1VzgeBULbXe
+
+
+// supabase functions deploy daily-notifications
+
+
+// curl -X POST "https://<project-ref>.functions.supabase.co/daily-notifications" \
+//   -H "x-daily-secret: my_daily_secret_123"
+
+
+// name: Daily Notifications
+
+// on:
+//   schedule:
+//     - cron: "0 2 * * *" # daily at 02:00 UTC
+//   workflow_dispatch:
+
+// jobs:
+//   run:
+//     runs-on: ubuntu-latest
+//     steps:
+//       - name: Call Edge Function
+//         run: |
+//           curl -sS -X POST "${{ secrets.DAILY_FUNCTION_URL }}" \
+//             -H "x-daily-secret: ${{ secrets.DAILY_SECRET }}"
