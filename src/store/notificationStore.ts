@@ -138,267 +138,243 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   fetchNotifications: async () => {
     try {
-      const currentUser = await get().getCurrentUser();
+      set({ isLoading: true });
 
+      const currentUser = await get().getCurrentUser();
       if (!currentUser) {
         set({ notifications: [], unreadCount: 0, isLoading: false });
-
         return;
       }
 
       const { user, assignments } = useAuthStore.getState();
-
       const role = user?.role;
 
-      // Admin: all notifications
+      let baseNotifications: any[] = [];
 
       if (role === "admin") {
         const { data, error } = await supabase
-
           .from("notifications")
-
           .select("*")
-
           .order("created_at", { ascending: false })
-
           .limit(200);
 
         if (error) throw error;
 
-        const unreadCount = data?.filter((n) => !n.is_read).length || 0;
-
-        set({ notifications: data || [], unreadCount, isLoading: false });
-
-        return;
+        baseNotifications = data || [];
       }
 
-      // Super user: expiry for assigned projects + non-expiry for self
-      else {
+      else if (role === "super_user" || role === "user") {
+
         const assignList =
           assignments && assignments.length > 0 ? assignments : [];
 
-        // 1) Expiry notifications in assigned projects
-
         let expiryRows: any[] = [];
 
+        // 🔹 Expiry notifications for assigned projects
         if (assignList.length > 0) {
-          // Try relational join (requires notifications.license_id -> licenses.id in Supabase)
-
           const { data: joined, error: joinErr } = await supabase
-
             .from("notifications")
-
-            .select(
-              `
-
-              *,
-
-              licenses!inner(
-
-                id,
-
-                project_assign
-
-              )
-
-            `,
+            .select(`
+            *,
+            licenses!inner(
+              id,
+              project_assign
             )
-
+          `)
             .eq("type", "expiry")
-
             .in("licenses.project_assign", assignList as any)
-
             .order("created_at", { ascending: false })
-
             .limit(200);
 
-          if (joinErr) {
-            // Fallback: two-step if relationship not configured
-
-            const { data: expOnly, error: expErr } = await supabase
-
-              .from("notifications")
-
-              .select("*")
-
-              .eq("type", "expiry")
-
-              .not("license_id", "is", null)
-
-              .order("created_at", { ascending: false })
-
-              .limit(500);
-
-            if (expErr) throw expErr;
-
-            const licIds = Array.from(
-              new Set((expOnly || []).map((n: any) => n.license_id)),
-            );
-
-            let allowedSet = new Set<string>();
-
-            if (licIds.length > 0) {
-              const { data: licRows, error: licErr } = await supabase
-
-                .from("licenses")
-
-                .select("id, project_assign")
-
-                .in("id", licIds as any);
-
-              if (licErr) throw licErr;
-
-              allowedSet = new Set(
-                (licRows || [])
-
-                  .filter((l: any) => assignList.includes(l.project_assign))
-
-                  .map((l: any) => l.id),
-              );
-            }
-
-            expiryRows = (expOnly || []).filter((n: any) =>
-              allowedSet.has(n.license_id),
-            );
-          } else {
-            expiryRows = joined || [];
+          if (!joinErr && joined) {
+            expiryRows = joined;
           }
         }
 
-        // 2) Non-expiry only for the current user
-
+        // 🔹 Non-expiry notifications for self
         const { data: ownRows, error: ownErr } = await supabase
-
           .from("notifications")
-
           .select("*")
-
           .neq("type", "expiry")
-
           .eq("user_id", currentUser.id)
-
           .order("created_at", { ascending: false })
-
           .limit(200);
 
         if (ownErr) throw ownErr;
 
-        // Merge, sort and set
-
-        const merged = [...expiryRows, ...(ownRows || [])]
-
-          .sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
-
+        baseNotifications = [...expiryRows, ...(ownRows || [])]
+          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
           .slice(0, 200);
-
-        const unreadCount = merged.filter((n) => !n.is_read).length;
-
-        set({ notifications: merged, unreadCount, isLoading: false });
-
-        return;
       }
 
-      // user/viewer: only own notifications
+      else {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false })
+          .limit(200);
 
-      const { data, error } = await supabase
+        if (error) throw error;
 
-        .from("notifications")
+        baseNotifications = data || [];
+      }
 
-        .select("*")
 
-        .eq("user_id", currentUser!.id)
+      const notificationIds = baseNotifications.map(n => n.id);
 
-        .order("created_at", { ascending: false })
+      let readMap: Record<string, boolean> = {};
+      let deletedMap: Record<string, boolean> = {};
 
-        .limit(200);
+      if (notificationIds.length > 0) {
 
-      if (error) throw error;
+        // Get read notifications
+        const { data: readData } = await supabase
+          .from("notification_reads")
+          .select("notification_id")
+          .eq("user_id", currentUser.id)
+          .in("notification_id", notificationIds);
 
-      const unreadCount = data?.filter((n) => !n.is_read).length || 0;
+        readMap = (readData || []).reduce((acc: any, item: any) => {
+          acc[item.notification_id] = true;
+          return acc;
+        }, {});
 
-      set({ notifications: data || [], unreadCount, isLoading: false });
+        // Get deleted notifications
+        const { data: deletedData } = await supabase
+          .from("notification_deletions")
+          .select("notification_id")
+          .eq("user_id", currentUser.id)
+          .in("notification_id", notificationIds);
+
+        deletedMap = (deletedData || []).reduce((acc: any, item: any) => {
+          acc[item.notification_id] = true;
+          return acc;
+        }, {});
+      }
+
+      const finalNotifications = baseNotifications
+        .map(n => ({
+          ...n,
+          is_read: readMap[n.id] || false,
+        }))
+        .filter(n => {
+          // 🔥 If expiry → always show
+          if (n.type === "expiry") return true;
+
+          // Other types → hide if deleted
+          return !deletedMap[n.id];
+        });
+
+
+      const unreadCount = finalNotifications.filter(
+        n => !n.is_read
+      ).length;
+
+      set({
+        notifications: finalNotifications,
+        unreadCount,
+        isLoading: false,
+      });
+
     } catch (error) {
       console.error("Error fetching notifications:", error);
-
       set({ isLoading: false });
     }
   },
 
+
   markAsRead: async (id) => {
     try {
+      const { user } = useAuthStore.getState();
+      if (!user) return;
+
       const { error } = await supabase
-
-        .from("notifications")
-
-        .update({ is_read: true })
-
-        .eq("id", id);
+        .from('notification_reads')
+        .upsert(
+          {
+            notification_id: id,
+            user_id: user.id
+          },
+          {
+            onConflict: 'notification_id,user_id'
+          }
+        );
 
       if (error) throw error;
 
-      set((state) => ({
-        notifications: state.notifications.map((n) =>
-          n.id === id ? { ...n, is_read: true } : n,
+      set(state => ({
+        notifications: state.notifications.map(n =>
+          n.id === id ? { ...n, is_read: true } : n
         ),
-
-        unreadCount: Math.max(0, state.unreadCount - 1),
+        unreadCount: Math.max(0, state.unreadCount - 1)
       }));
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
 
-      throw error;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   },
+
 
   markAllAsRead: async () => {
     try {
       const currentUser = await get().getCurrentUser();
-
       if (!currentUser) return;
 
-      const { error } = await supabase
+      // Get all unread notifications for current user
+      const unreadNotifications = get().notifications.filter(n => !n.is_read);
 
-        .from("notifications")
+      // Insert read records for current user ONLY
+      const readRecords = unreadNotifications.map(n => ({
+        notification_id: n.id,
+        user_id: currentUser.id
+      }));
 
-        .update({ is_read: true })
+      if (readRecords.length > 0) {
+        const { error } = await supabase
+          .from('notification_reads')
+          .insert(readRecords);
 
-        .eq("user_id", currentUser.id)
+        if (error) throw error;
+      }
 
-        .eq("is_read", false);
-
-      if (error) throw error;
-
-      set((state) => ({
-        notifications: state.notifications.map((n) => ({
-          ...n,
-          is_read: true,
-        })),
-
-        unreadCount: 0,
+      // Update local state
+      set(state => ({
+        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
+        unreadCount: 0
       }));
     } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-
-      throw error;
+      console.error('Error marking all notifications as read:', error);
     }
   },
 
   deleteNotification: async (id) => {
     try {
+      const currentUser = await get().getCurrentUser();
+      if (!currentUser) return;
+
+      // Insert per-user deletion record
       const { error } = await supabase
-
-        .from("notifications")
-
-        .delete()
-
-        .eq("id", id);
+        .from("notification_deletions")
+        .upsert(
+          {
+            notification_id: id,
+            user_id: currentUser.id,
+          },
+          {
+            onConflict: "notification_id,user_id",
+          }
+        );
 
       if (error) throw error;
 
+      // Remove from local state only
       set((state) => {
-        const notification = state.notifications.find((n) => n.id === id);
+        const notification = state.notifications.find(n => n.id === id);
 
-        const newNotifications = state.notifications.filter((n) => n.id !== id);
+        const updatedNotifications = state.notifications.filter(
+          n => n.id !== id
+        );
 
         const newUnreadCount =
           notification && !notification.is_read
@@ -406,17 +382,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             : state.unreadCount;
 
         return {
-          notifications: newNotifications,
-
+          notifications: updatedNotifications,
           unreadCount: newUnreadCount,
         };
       });
+
     } catch (error) {
       console.error("Error deleting notification:", error);
-
-      throw error;
     }
   },
+
 
   createNotification: async (notificationData) => {
     try {
@@ -426,35 +401,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         throw new Error("No authenticated user found");
       }
 
-      const todayStr = new Date().toISOString().slice(0, 10);
-
-      const actionUrl = notificationData.action_url || "null";
-
-      const licId = notificationData.license_id ?? "null";
-
-      const dedupeKey = `${licId}|${notificationData.type}|${actionUrl}|${todayStr}`;
-
       const { data, error } = await supabase
 
         .from("notifications")
 
-        .upsert(
-          [
-            {
-              ...notificationData,
-
-              user_id: currentUser.id,
-
-              dedupe_key: dedupeKey,
-            },
-          ],
-          {
-            onConflict: "dedupe_key",
-          },
-        )
-
+        .insert({
+          ...notificationData,
+          user_id: currentUser.id,
+        })
         .select()
-
         .single();
 
       if (error) throw error;
@@ -771,7 +726,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         const daysUntilExpiry = Math.ceil(
           (new Date(license.license_end_date).getTime() -
             new Date().getTime()) /
-            (1000 * 60 * 60 * 24),
+          (1000 * 60 * 60 * 24),
         );
 
         // Check if notification already exists - use maybeSingle() instead of single()
@@ -840,7 +795,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   checkSerialExpiries: async () => {
     try {
-      // Helpers for yyyy-MM-dd (date columns in license_serials)
 
       const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
@@ -857,11 +811,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       const endStr = toYMD(end);
 
-      const sevenDaysAgo = new Date(today);
-
-      sevenDaysAgo.setDate(today.getDate() - 7);
-
-      const sevenDaysAgoStr = toYMD(sevenDaysAgo);
 
       const dedupeSinceISO = new Date(
         Date.now() - 24 * 60 * 60 * 1000,
@@ -893,7 +842,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       `;
 
-      // 1) Serial Expired (in the last 7 days)
+      // Serial Expired (in the last 7 days)
 
       const { data: expired, error: expErr } = await supabase
 
@@ -902,8 +851,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         .select(selectCols)
 
         .lt("end_date", todayStr)
-
-        .gte("end_date", sevenDaysAgoStr)
 
         .order("end_date", { ascending: true });
 
@@ -918,7 +865,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
         const daysOverdue = Math.ceil(
           (Date.now() - new Date(row.end_date).getTime()) /
-            (1000 * 60 * 60 * 24),
+          (1000 * 60 * 60 * 24),
         );
 
         const titleExpired = `Serial ${serialNo} Expired`;
@@ -1203,7 +1150,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
               </div>
 
               
-
               <!-- Notification Content -->
 
               <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid ${priorityColor}; margin-bottom: 25px;">
@@ -1226,9 +1172,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
               <!-- Action Button -->
 
-              ${
-                notification.action_url
-                  ? `
+              ${notification.action_url
+            ? `
 
                 <div style="text-align: center; margin: 30px 0;">
 
@@ -1243,16 +1188,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 </div>
 
               `
-                  : ""
-              }
+            : ""
+          }
 
               
 
               <!-- Additional Info -->
 
-              ${
-                notification.action_required
-                  ? `
+              ${notification.action_required
+            ? `
 
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-top: 20px;">
 
@@ -1265,8 +1209,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 </div>
 
               `
-                  : ""
-              }
+            : ""
+          }
 
             </div>
 
