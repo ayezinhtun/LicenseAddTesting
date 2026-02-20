@@ -68,7 +68,9 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     try {
       const end = parseISO(endDate);
 
-      const on = subDays(end, notifyBeforeDays);
+      const offsetEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+      const on = subDays(offsetEnd, notifyBeforeDays);
 
       return format(on, "yyyy-MM-dd");
     } catch {

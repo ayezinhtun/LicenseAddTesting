@@ -1,0 +1,284 @@
+create table public.notifications (
+  id uuid not null default gen_random_uuid (),
+  type public.notification_type not null,
+  title text not null,
+  message text not null,
+  license_id uuid null,
+  user_id text not null,
+  is_read boolean not null default false,
+  priority public.notification_priority not null default 'medium'::notification_priority,
+  action_required boolean not null default false,
+  action_url text null,
+  created_at timestamp with time zone null default now(),
+  expires_at timestamp with time zone null,
+  serial_id uuid null,
+  constraint notifications_pkey primary key (id),
+  constraint notifications_license_id_fkey foreign KEY (license_id) references licenses (id) on delete CASCADE,
+  constraint notifications_serial_id_fkey foreign KEY (serial_id) references license_serials (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_notifications_user_id on public.notifications using btree (user_id) TABLESPACE pg_default;
+
+create index IF not exists idx_notifications_is_read on public.notifications using btree (is_read) TABLESPACE pg_default;
+
+create index IF not exists idx_notifications_created_at on public.notifications using btree (created_at) TABLESPACE pg_default;
+
+create trigger trg_audit_notifications
+after INSERT
+or DELETE
+or
+update on notifications for EACH row
+execute FUNCTION audit_log_row ();
+
+create trigger trigger_cleanup_notification_reads
+after DELETE on notifications for EACH row
+execute FUNCTION cleanup_notification_reads ();
+
+
+create table public.licenses (
+  id uuid not null default gen_random_uuid (),
+  vendor text not null,
+  item_description text not null,
+  project_name text not null,
+  license_start_date date null,
+  license_end_date date null,
+  remark text null,
+  priority public.priority_level not null default 'medium'::priority_level,
+  status public.license_status not null default 'active'::license_status,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  created_by text not null,
+  last_modified_by text not null,
+  user_id uuid null,
+  project_assign text null,
+  deleted_at timestamp with time zone null,
+  constraint licenses_pkey primary key (id),
+  constraint licenses_project_assign_fk foreign KEY (project_assign) references project_assigns (name) on update CASCADE on delete RESTRICT,
+  constraint licenses_user_id_fkey foreign KEY (user_id) references auth.users (id),
+  constraint licenses_vendor_name_fkey foreign KEY (vendor) references vendors (name) on update CASCADE on delete RESTRICT,
+  constraint licenses_status_check check (
+    (
+      status = any (
+        array[
+          'active'::license_status,
+          'expired'::license_status,
+          'suspended'::license_status,
+          'pending'::license_status,
+          'in_progress'::license_status,
+          'completed'::license_status
+        ]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_vendor on public.licenses using btree (vendor) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_project_name on public.licenses using btree (project_name) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_end_date on public.licenses using btree (license_end_date) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_status on public.licenses using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_priority on public.licenses using btree (priority) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_created_at on public.licenses using btree (created_at) TABLESPACE pg_default;
+
+create index IF not exists idx_licenses_project_assign on public.licenses using btree (project_assign) TABLESPACE pg_default;
+
+create trigger trg_audit_licenses
+after INSERT
+or DELETE
+or
+update on licenses for EACH row
+execute FUNCTION audit_log_row ();
+
+create trigger update_licenses_updated_at BEFORE
+update on licenses for EACH row
+execute FUNCTION update_updated_at_column ();
+
+
+create table public.license_serials (
+  id uuid not null default gen_random_uuid (),
+  license_id uuid not null,
+  serial_or_contract text not null,
+  start_date date not null,
+  end_date date not null,
+  qty integer not null default 1,
+  unit_price numeric(12, 2) not null default 0,
+  currency text not null default 'MMK'::text,
+  po_no text null,
+  created_at timestamp with time zone null default now(),
+  notify_before_days integer null,
+  last_notified_on date null,
+  renewal boolean not null default false,
+  constraint license_serials_pkey primary key (id),
+  constraint license_serials_serial_or_contract_key unique (serial_or_contract),
+  constraint license_serials_license_id_fkey foreign KEY (license_id) references licenses (id) on delete CASCADE,
+  constraint license_serials_qty_check check ((qty > 0))
+) TABLESPACE pg_default;
+
+create index IF not exists idx_license_serials_license_id on public.license_serials using btree (license_id) TABLESPACE pg_default;
+
+create index IF not exists idx_license_serials_end_date on public.license_serials using btree (end_date) TABLESPACE pg_default;
+
+create trigger trg_audit_license_serials
+after INSERT
+or DELETE
+or
+update on license_serials for EACH row
+execute FUNCTION audit_log_row ();
+
+
+[
+  {
+    "id": "8945ecc5-c8dc-43e9-838e-b2076d255011",
+    "type": "expiry",
+    "title": "Serial License Expiring Soon",
+    "message": "HPE001 for HPEProduct expires in 1 day(s)",
+    "license_id": "611aeb9f-db39-41da-88c5-403642fe9d4e",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "is_read": false,
+    "priority": "high",
+    "action_required": true,
+    "action_url": "/licenses/611aeb9f-db39-41da-88c5-403642fe9d4e?serial=58a766c8-4b32-4e1a-9835-7541d27f4e71",
+    "created_at": "2026-02-20 04:48:11.348771+00",
+    "expires_at": null,
+    "serial_id": "58a766c8-4b32-4e1a-9835-7541d27f4e71"
+  },
+  {
+    "id": "6e41b8c0-fae7-4731-a51c-bd5cc7bcaa29",
+    "type": "expiry",
+    "title": "Serial License Expiring Soon",
+    "message": "HPE001 for HPEProduct expires in 1 day(s)",
+    "license_id": "611aeb9f-db39-41da-88c5-403642fe9d4e",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "is_read": false,
+    "priority": "high",
+    "action_required": true,
+    "action_url": "/licenses/611aeb9f-db39-41da-88c5-403642fe9d4e?serial=58a766c8-4b32-4e1a-9835-7541d27f4e71",
+    "created_at": "2026-02-20 04:48:26.737045+00",
+    "expires_at": null,
+    "serial_id": "58a766c8-4b32-4e1a-9835-7541d27f4e71"
+  },
+  {
+    "id": "d9e59704-5c40-450d-b002-78688a23ff2a",
+    "type": "expiry",
+    "title": "Serial License Expiring Soon",
+    "message": "HPE001 for HPEProduct expires in 1 day(s)",
+    "license_id": "611aeb9f-db39-41da-88c5-403642fe9d4e",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "is_read": false,
+    "priority": "high",
+    "action_required": true,
+    "action_url": "/licenses/611aeb9f-db39-41da-88c5-403642fe9d4e?serial=58a766c8-4b32-4e1a-9835-7541d27f4e71",
+    "created_at": "2026-02-20 04:48:37.33076+00",
+    "expires_at": null,
+    "serial_id": "58a766c8-4b32-4e1a-9835-7541d27f4e71"
+  },
+  {
+    "id": "a877b413-1bc7-477d-8409-d6281fad8808",
+    "type": "expiry",
+    "title": "Serial License Expiring Soon",
+    "message": "IBM001 for IBMProduct expires in 6 day(s)",
+    "license_id": "bb840e5d-954a-41e6-baa9-0f7ff235a28c",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "is_read": false,
+    "priority": "high",
+    "action_required": true,
+    "action_url": "/licenses/bb840e5d-954a-41e6-baa9-0f7ff235a28c?serial=2fcc7dd6-710e-4e2a-86db-acf8005be04a",
+    "created_at": "2026-02-20 04:46:32.060363+00",
+    "expires_at": null,
+    "serial_id": "2fcc7dd6-710e-4e2a-86db-acf8005be04a"
+  },
+  {
+    "id": "bae4b2b5-6086-4da7-a14a-40e424d55e75",
+    "type": "expiry",
+    "title": "Serial License Expiring Soon",
+    "message": "HPE001 for HPEProduct expires in 1 day(s)",
+    "license_id": "611aeb9f-db39-41da-88c5-403642fe9d4e",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "is_read": false,
+    "priority": "high",
+    "action_required": true,
+    "action_url": "/licenses/611aeb9f-db39-41da-88c5-403642fe9d4e?serial=58a766c8-4b32-4e1a-9835-7541d27f4e71",
+    "created_at": "2026-02-20 04:46:36.492612+00",
+    "expires_at": null,
+    "serial_id": "58a766c8-4b32-4e1a-9835-7541d27f4e71"
+  }
+]
+
+
+
+[
+  {
+    "id": "611aeb9f-db39-41da-88c5-403642fe9d4e",
+    "vendor": "HPE",
+    "item_description": "HPEProduct",
+    "project_name": "FY26/HPE",
+    "license_start_date": null,
+    "license_end_date": null,
+    "remark": "testing",
+    "priority": "medium",
+    "status": "pending",
+    "created_at": "2026-02-20 04:00:09.624249+00",
+    "updated_at": "2026-02-20 04:00:09.624249+00",
+    "created_by": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "last_modified_by": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "project_assign": "MPT",
+    "deleted_at": null
+  },
+  {
+    "id": "bb840e5d-954a-41e6-baa9-0f7ff235a28c",
+    "vendor": "IBM",
+    "item_description": "IBMProduct",
+    "project_name": "FY26/IBM",
+    "license_start_date": null,
+    "license_end_date": null,
+    "remark": "testing",
+    "priority": "medium",
+    "status": "pending",
+    "created_at": "2026-02-20 04:01:32.995628+00",
+    "updated_at": "2026-02-20 04:01:32.995628+00",
+    "created_by": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "last_modified_by": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "user_id": "be89de0c-f49f-4a48-a957-0de69db9c386",
+    "project_assign": "NPT",
+    "deleted_at": null
+  }
+]
+
+
+[
+  {
+    "id": "58a766c8-4b32-4e1a-9835-7541d27f4e71",
+    "license_id": "611aeb9f-db39-41da-88c5-403642fe9d4e",
+    "serial_or_contract": "HPE001",
+    "start_date": "2026-02-20",
+    "end_date": "2026-02-21",
+    "qty": 1,
+    "unit_price": "0.00",
+    "currency": "MMK",
+    "po_no": null,
+    "created_at": "2026-02-20 04:00:09.858558+00",
+    "notify_before_days": 1,
+    "last_notified_on": null,
+    "renewal": false
+  },
+  {
+    "id": "2fcc7dd6-710e-4e2a-86db-acf8005be04a",
+    "license_id": "bb840e5d-954a-41e6-baa9-0f7ff235a28c",
+    "serial_or_contract": "IBM001",
+    "start_date": "2026-02-20",
+    "end_date": "2026-02-26",
+    "qty": 1,
+    "unit_price": "0.00",
+    "currency": "MMK",
+    "po_no": null,
+    "created_at": "2026-02-20 04:01:33.104847+00",
+    "notify_before_days": 6,
+    "last_notified_on": null,
+    "renewal": false
+  }
+]

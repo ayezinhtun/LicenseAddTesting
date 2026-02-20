@@ -17,6 +17,8 @@ export interface Notification {
 
   license_id: string | null;
 
+  serial_id: string | null;
+
   user_id: string;
 
   is_read: boolean;
@@ -30,6 +32,7 @@ export interface Notification {
   created_at: string;
 
   expires_at: string | null;
+
 }
 
 interface NotificationState {
@@ -42,6 +45,8 @@ interface NotificationState {
   realtimeSubscription: any;
 
   emailNotificationsEnabled: boolean;
+
+  isProcessingReminders: boolean;
 
   // Actions
 
@@ -109,6 +114,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   realtimeSubscription: null,
 
   emailNotificationsEnabled: true,
+
+  isProcessingReminders: false,
 
   getCurrentUser: async () => {
     try {
@@ -696,109 +703,118 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 
-  
 
   sendDailyExpiryReminders: async () => {
-    try {
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
 
-      // Get all expired serials (end_date < today)
+    if (get().isProcessingReminders) {
+      console.log("Already processing reminders, skipping...");
+      return;
+    }
+
+    set({ isProcessingReminders: true });
+
+    try {
+      // Use UTC midnight to avoid timezone shifts
+      const today = new Date();
+      const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      const todayStr = todayUTC.toISOString().slice(0, 10);
+
+      // Expired serials (end_date < today)
       const { data: expiredSerials, error: expiredError } = await supabase
         .from("license_serials")
-        .select(`
-        *,
-        licenses!inner(created_by, item_description)
-      `)
+        .select(`*, licenses!inner(created_by, item_description)`)
         .lt("end_date", todayStr);
 
       if (expiredError) throw expiredError;
 
-      // Get all expiring soon serials (today to +30 days)
-      const thirtyDaysFromNow = new Date(today);
-      thirtyDaysFromNow.setDate(today.getDate() + 30);
-      const endStr = thirtyDaysFromNow.toISOString().slice(0, 10);
-
-      const { data: expiringSerials, error: expiringError } = await supabase
-        .from("license_serials")
-        .select(`
-        *,
-        licenses!inner(created_by, item_description)
-      `)
-        .gte("end_date", todayStr)
-        .lte("end_date", endStr);
-
-      if (expiringError) throw expiringError;
-
       // Process expired serials
       for (const serial of expiredSerials || []) {
         const daysOverdue = Math.ceil(
-          (today.getTime() - new Date(serial.end_date).getTime()) / (1000 * 60 * 60 * 24)
+          (todayUTC.getTime() - new Date(serial.end_date).getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        // SIMPLER CHECK: Get all notifications for this serial today
-        const { data: existingNotifications } = await supabase
+        const { data: todayNotifications } = await supabase
           .from("notifications")
-          .select("id, created_at")
+          .select("id")
           .eq("type", "expiry")
           .eq("license_id", serial.license_id)
+          .eq("serial_id", serial.id)
           .gte("created_at", todayStr + "T00:00:00.000Z");
 
-        // ONLY CREATE IF NO NOTIFICATIONS EXIST TODAY
-        if (!existingNotifications || existingNotifications.length === 0) {
+        if (!todayNotifications || todayNotifications.length === 0) {
           console.log("Creating expired notification for:", serial.serial_or_contract);
-
           await get().sendNotificationToUser(serial.licenses.created_by, {
             type: "expiry",
             title: "Serial License Expired",
             message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
             license_id: serial.license_id,
+            serial_id: serial.id,
             is_read: false,
             priority: "high",
             action_required: true,
             action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
             expires_at: null,
           });
-        } else {
-          console.log("Notification already exists for:", serial.serial_or_contract);
+
+          await supabase
+            .from("license_serials")
+            .update({ last_notified_on: todayStr })
+            .eq("id", serial.id);
         }
       }
 
-      // Process expiring soon serials
+      // Expiring soon serials based on notify_before_days
+      const { data: expiringSerials, error: expiringError } = await supabase
+        .from("license_serials")
+        .select(`*, licenses!inner(created_by, item_description)`);
+
+      if (expiringError) throw expiringError;
+
       for (const serial of expiringSerials || []) {
-        const daysUntil = Math.ceil(
-          (new Date(serial.end_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const notifyDays = serial.notify_before_days ?? 30; // default 30 if not set
+        const notifyDate = new Date(new Date(serial.end_date).getTime() - notifyDays * 24 * 60 * 60 * 1000);
 
-        // SIMPLER CHECK: Get all notifications for this serial today
-        const { data: existingNotifications } = await supabase
-          .from("notifications")
-          .select("id, created_at")
-          .eq("type", "expiry")
-          .eq("license_id", serial.license_id)
-          .gte("created_at", todayStr + "T00:00:00.000Z");
+        // Only send if today >= notify date and license not expired yet
+        if (todayUTC >= notifyDate && todayUTC <= new Date(serial.end_date)) {
+          const daysUntil = Math.ceil(
+            (new Date(serial.end_date).getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)
+          );
 
-        // ONLY CREATE IF NO NOTIFICATIONS EXIST TODAY
-        if (!existingNotifications || existingNotifications.length === 0) {
-          console.log("Creating expiring soon notification for:", serial.serial_or_contract);
+          const { data: todayNotifications } = await supabase
+            .from("notifications")
+            .select("id")
+            .eq("type", "expiry")
+            .eq("license_id", serial.license_id)
+            .eq("serial_id", serial.id)
+            .gte("created_at", todayStr + "T00:00:00.000Z");
+            
+          if (!todayNotifications || todayNotifications.length === 0) {
+            console.log("Creating expiring soon notification for:", serial.serial_or_contract);
+            await get().sendNotificationToUser(serial.licenses.created_by, {
+              type: "expiry",
+              title: "Serial License Expiring Soon",
+              message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
+              license_id: serial.license_id,
+              serial_id: serial.id,
+              is_read: false,
+              priority: daysUntil <= 7 ? "high" : "medium",
+              action_required: true,
+              action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+              expires_at: null,
+            });
 
-          await get().sendNotificationToUser(serial.licenses.created_by, {
-            type: "expiry",
-            title: "Serial License Expiring Soon",
-            message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
-            license_id: serial.license_id,
-            is_read: false,
-            priority: daysUntil <= 7 ? "high" : "medium",
-            action_required: true,
-            action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-            expires_at: null,
-          });
-        } else {
-          console.log("Expiring soon notification already exists for:", serial.serial_or_contract);
+            await supabase
+              .from("license_serials")
+              .update({ last_notified_on: todayStr })
+              .eq("id", serial.id);
+          }
         }
       }
+
     } catch (error) {
       console.error("Error sending daily expiry reminders:", error);
+    } finally {
+      set({ isProcessingReminders: false });
     }
   },
 
