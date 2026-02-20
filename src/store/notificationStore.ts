@@ -749,7 +749,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           .maybeSingle();
 
         if (!existingNotification) {
-          // Send notification to license creator (no email since we can't get it client-side)
+          // Send notification to license creator
 
           await get().sendNotificationToUser(license.created_by, {
             type: "expiry",
