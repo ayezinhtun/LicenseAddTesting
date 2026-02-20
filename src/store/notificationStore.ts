@@ -713,6 +713,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     set({ isProcessingReminders: true });
 
+
+
     try {
       // Use UTC midnight to avoid timezone shifts
       const today = new Date();
