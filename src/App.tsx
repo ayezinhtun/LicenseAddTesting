@@ -68,10 +68,11 @@ function App() {
   };
 
   // Call this when your app starts
-  setupDailyReminders();
+  useEffect(() => {
+    setupDailyReminders();
+  }, []);
 
   useEffect(() => {
-
     // Check authentication status on app load
 
     const checkAuth = async () => {
