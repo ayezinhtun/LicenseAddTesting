@@ -42,20 +42,33 @@ import { CustomerPage } from './components/customers/CustomerPage';
 
 import { DistributorPage } from './components/distributors/DistributorPage';
 
-import {RecentlyDeleted} from './components/licenses/RecentlyDeleted';
+import { RecentlyDeleted } from './components/licenses/RecentlyDeleted';
 
 
 function App() {
 
   const { isAuthenticated, getCurrentUser, user, profileStatus } = useAuthStore();
 
-  const { subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchNotifications,  checkSerialExpiries } = useNotificationStore();
+  const { subscribeToRealtime, unsubscribeFromRealtime, fetchNotifications, sendDailyExpiryReminders } = useNotificationStore();
 
   const { fetchLicenses } = useLicenseStore();
 
   // const checkSerials = useLicenseStore(s => s.checkSerialExpiryNotifications);
 
 
+  // Run daily at midnight
+  const setupDailyReminders = () => {
+    // Run immediately when app starts
+    sendDailyExpiryReminders();
+
+    // Then run every 24 hours
+    setInterval(() => {
+      sendDailyExpiryReminders();
+    }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+  };
+
+  // Call this when your app starts
+  setupDailyReminders();
 
   useEffect(() => {
 
@@ -82,23 +95,6 @@ function App() {
   }, [getCurrentUser]);
 
 
-
-  // useEffect(() => {
-
-  //   checkSerials(); // run at startup
-
-
-
-  //   const oneDayMs = 24 * 60 * 60 * 1000;
-
-  //   const id = setInterval(() => checkSerials(), oneDayMs);
-
-  //   return () => clearInterval(id);
-
-  // }, [checkSerials]);
-
-
-
   useEffect(() => {
 
     if (isAuthenticated) {
@@ -122,44 +118,7 @@ function App() {
 
 
           // Subscribe to real-time notifications
-
           subscribeToRealtime();
-
-          
-
-          // Check for license expiries on app load
-
-          checkLicenseExpiries();
-
-
-
-          checkSerialExpiries();
-
-          
-
-          // Set up periodic checks for license expiries (every hour)
-
-          // const interval = setInterval(checkLicenseExpiries, 60 * 60 * 1000);
-
-
-
-          const interval = setInterval(() => {
-
-            checkLicenseExpiries();
-
-            checkSerialExpiries();
-
-          }, 60 * 60 * 1000);
-
-          
-
-          return () => {
-
-            clearInterval(interval);
-
-            unsubscribeFromRealtime();
-
-          };
 
         } catch (error) {
 
@@ -175,7 +134,7 @@ function App() {
 
     }
 
-  }, [isAuthenticated, subscribeToRealtime, unsubscribeFromRealtime, checkLicenseExpiries, fetchLicenses, fetchNotifications, checkSerialExpiries]);
+  }, [isAuthenticated, subscribeToRealtime, unsubscribeFromRealtime, fetchLicenses, fetchNotifications]);
 
 
 
@@ -203,7 +162,7 @@ function App() {
 
         </Router>
 
-        <Toaster 
+        <Toaster
 
           position="top-right"
 
@@ -279,7 +238,7 @@ function App() {
 
         </Router>
 
-        <Toaster 
+        <Toaster
 
           position="top-right"
 
@@ -389,7 +348,7 @@ function App() {
 
       </Router>
 
-      <Toaster 
+      <Toaster
 
         position="top-right"
 
