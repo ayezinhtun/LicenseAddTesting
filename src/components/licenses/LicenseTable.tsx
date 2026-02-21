@@ -8,6 +8,7 @@ import { Badge } from "../common/Badge";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../../store/authStore";
+import { useNotificationStore } from "../../store/notificationStore";
 
 interface LicenseTableProps {
   licenses: License[];

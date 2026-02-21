@@ -19,29 +19,18 @@ export class EmailService {
 
   async sendNotificationEmail(notification: EmailNotification): Promise<void> {
     try {
-      // Call Supabase Edge Function for email sending
-      const { data, error } = await supabase.functions.invoke("send-email", {
+      const { data, error } = await supabase.functions.invoke("send-email-notification", {
         body: {
           to: notification.to,
           subject: notification.subject,
           html: notification.html,
-          from: "notification@1cloudtechnology.com",
-          type: notification.type,
         },
       });
 
-      if (error) {
-        console.error("Email sending failed:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       console.log("Email sent successfully:", data);
     } catch (error) {
-      console.error("Email service error:", error);
-      // Don't throw to prevent breaking the main functionality
-      console.log(
-        "Email notification failed, but continuing with in-app notification",
-      );
+      console.error("Email sending failed:", error);
     }
   }
 
@@ -105,13 +94,13 @@ export class EmailService {
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ffeaa7;">
                 <strong style="color: #856404;">Expiry Date:</strong>
                 <span style="color: #dc3545; font-weight: 600;">${new Date(
-                  license.license_end_date,
-                ).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}</span>
+      license.license_end_date,
+    ).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })}</span>
               </div>
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ffeaa7;">
                 <strong style="color: #856404;">License Cost:</strong>
@@ -225,16 +214,15 @@ export class EmailService {
               </div>
             </div>
             
-            ${
-              renewalDetails.notes
-                ? `
+            ${renewalDetails.notes
+        ? `
               <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #c3e6cb;">
                 <strong style="color: #155724;">Notes:</strong>
                 <p style="margin: 5px 0 0 0; color: #155724;">${renewalDetails.notes}</p>
               </div>
             `
-                : ""
-            }
+        : ""
+      }
           </div>
           
           <!-- Next Steps -->

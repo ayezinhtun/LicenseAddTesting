@@ -32,7 +32,6 @@ export interface Notification {
   created_at: string;
 
   expires_at: string | null;
-
 }
 
 interface NotificationState {
@@ -102,6 +101,16 @@ interface NotificationState {
   getUnreadNotifications: () => Notification[];
 
   searchNotifications: (query: string) => Notification[];
+
+  getUsersByProjectAssignment: (projectAssign: string) => Promise<
+    Array<{
+      user_id: string;
+      email: string;
+      name: string;
+    }>
+  >;
+
+  testEmailNotification: () => Promise<void>;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -166,10 +175,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         if (error) throw error;
 
         baseNotifications = data || [];
-      }
-
-      else if (role === "super_user" || role === "user") {
-
+      } else if (role === "super_user" || role === "user") {
         const assignList =
           assignments && assignments.length > 0 ? assignments : [];
 
@@ -179,13 +185,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         if (assignList.length > 0) {
           const { data: joined, error: joinErr } = await supabase
             .from("notifications")
-            .select(`
+            .select(
+              `
             *,
             licenses!inner(
               id,
               project_assign
             )
-          `)
+          `,
+            )
             .eq("type", "expiry")
             .in("licenses.project_assign", assignList as any)
             .order("created_at", { ascending: false })
@@ -210,9 +218,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         baseNotifications = [...expiryRows, ...(ownRows || [])]
           .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
           .slice(0, 200);
-      }
-
-      else {
+      } else {
         const { data, error } = await supabase
           .from("notifications")
           .select("*")
@@ -225,14 +231,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         baseNotifications = data || [];
       }
 
-
-      const notificationIds = baseNotifications.map(n => n.id);
+      const notificationIds = baseNotifications.map((n) => n.id);
 
       let readMap: Record<string, boolean> = {};
       let deletedMap: Record<string, boolean> = {};
 
       if (notificationIds.length > 0) {
-
         // Get read notifications
         const { data: readData } = await supabase
           .from("notification_reads")
@@ -259,11 +263,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }
 
       const finalNotifications = baseNotifications
-        .map(n => ({
+        .map((n) => ({
           ...n,
           is_read: readMap[n.id] || false,
         }))
-        .filter(n => {
+        .filter((n) => {
           // 🔥 If expiry → always show
           if (n.type === "expiry") return true;
 
@@ -271,55 +275,46 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           return !deletedMap[n.id];
         });
 
-
-      const unreadCount = finalNotifications.filter(
-        n => !n.is_read
-      ).length;
+      const unreadCount = finalNotifications.filter((n) => !n.is_read).length;
 
       set({
         notifications: finalNotifications,
         unreadCount,
         isLoading: false,
       });
-
     } catch (error) {
       console.error("Error fetching notifications:", error);
       set({ isLoading: false });
     }
   },
 
-
   markAsRead: async (id) => {
     try {
       const { user } = useAuthStore.getState();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('notification_reads')
-        .upsert(
-          {
-            notification_id: id,
-            user_id: user.id
-          },
-          {
-            onConflict: 'notification_id,user_id'
-          }
-        );
+      const { error } = await supabase.from("notification_reads").upsert(
+        {
+          notification_id: id,
+          user_id: user.id,
+        },
+        {
+          onConflict: "notification_id,user_id",
+        },
+      );
 
       if (error) throw error;
 
-      set(state => ({
-        notifications: state.notifications.map(n =>
-          n.id === id ? { ...n, is_read: true } : n
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.id === id ? { ...n, is_read: true } : n,
         ),
-        unreadCount: Math.max(0, state.unreadCount - 1)
+        unreadCount: Math.max(0, state.unreadCount - 1),
       }));
-
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error("Error marking notification as read:", error);
     }
   },
-
 
   markAllAsRead: async () => {
     try {
@@ -327,29 +322,32 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (!currentUser) return;
 
       // Get all unread notifications for current user
-      const unreadNotifications = get().notifications.filter(n => !n.is_read);
+      const unreadNotifications = get().notifications.filter((n) => !n.is_read);
 
       // Insert read records for current user ONLY
-      const readRecords = unreadNotifications.map(n => ({
+      const readRecords = unreadNotifications.map((n) => ({
         notification_id: n.id,
-        user_id: currentUser.id
+        user_id: currentUser.id,
       }));
 
       if (readRecords.length > 0) {
         const { error } = await supabase
-          .from('notification_reads')
+          .from("notification_reads")
           .insert(readRecords);
 
         if (error) throw error;
       }
 
       // Update local state
-      set(state => ({
-        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
-        unreadCount: 0
+      set((state) => ({
+        notifications: state.notifications.map((n) => ({
+          ...n,
+          is_read: true,
+        })),
+        unreadCount: 0,
       }));
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error("Error marking all notifications as read:", error);
     }
   },
 
@@ -359,26 +357,24 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (!currentUser) return;
 
       // Insert per-user deletion record
-      const { error } = await supabase
-        .from("notification_deletions")
-        .upsert(
-          {
-            notification_id: id,
-            user_id: currentUser.id,
-          },
-          {
-            onConflict: "notification_id,user_id",
-          }
-        );
+      const { error } = await supabase.from("notification_deletions").upsert(
+        {
+          notification_id: id,
+          user_id: currentUser.id,
+        },
+        {
+          onConflict: "notification_id,user_id",
+        },
+      );
 
       if (error) throw error;
 
       // Remove from local state only
       set((state) => {
-        const notification = state.notifications.find(n => n.id === id);
+        const notification = state.notifications.find((n) => n.id === id);
 
         const updatedNotifications = state.notifications.filter(
-          n => n.id !== id
+          (n) => n.id !== id,
         );
 
         const newUnreadCount =
@@ -391,12 +387,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           unreadCount: newUnreadCount,
         };
       });
-
     } catch (error) {
       console.error("Error deleting notification:", error);
     }
   },
-
 
   createNotification: async (notificationData) => {
     try {
@@ -421,11 +415,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       // Send email notification if enabled
 
-
       if (get().emailNotificationsEnabled && data) {
         await get().sendEmailNotification(data, currentUser.email);
       }
-
 
       set((state) => {
         if (state.notifications.some((n) => n.id === data.id)) return state;
@@ -446,6 +438,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   sendNotificationToUser: async (userId, notificationData, userEmail) => {
+    console.log("📧 sendNotificationToUser called with:", {
+      userId,
+      userEmail,
+      notificationType: notificationData.type,
+    });
     try {
       // Create notification in database
 
@@ -474,7 +471,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         await get().sendEmailNotification(data, userEmail);
       }
 
-      console.log("Email NOT sent - enabled:", get().emailNotificationsEnabled, "email:", !!userEmail, "data:", !!data);
+      console.log(
+        "Email NOT sent - enabled:",
+        get().emailNotificationsEnabled,
+        "email:",
+        !!userEmail,
+        "data:",
+        !!data,
+      );
       // Update local state if this is for the current user
 
       const currentUser = await get().getCurrentUser();
@@ -707,19 +711,24 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 
-
   sendDailyExpiryReminders: async () => {
+    console.log("🚀 sendDailyExpiryReminders called!");
 
     if (get().isProcessingReminders) {
+      console.log("⚠️ Already processing reminders, skipping");
       return;
     }
+
+    console.log("📅 Starting daily expiry reminder check...");
 
     set({ isProcessingReminders: true });
 
     try {
       // Use UTC midnight to avoid timezone shifts
       const today = new Date();
-      const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      const todayUTC = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+      );
       const todayStr = todayUTC.toISOString().slice(0, 10);
 
       // Expired serials (end_date < today)
@@ -733,7 +742,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // Process expired serials
       for (const serial of expiredSerials || []) {
         const daysOverdue = Math.ceil(
-          (todayUTC.getTime() - new Date(serial.end_date).getTime()) / (1000 * 60 * 60 * 24)
+          (todayUTC.getTime() - new Date(serial.end_date).getTime()) /
+          (1000 * 60 * 60 * 24),
         );
 
         const { data: todayNotifications } = await supabase
@@ -745,19 +755,33 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           .gte("created_at", todayStr + "T00:00:00.000Z");
 
         if (!todayNotifications || todayNotifications.length === 0) {
-          
-          await get().sendNotificationToUser(serial.licenses.created_by, {
-            type: "expiry",
-            title: "Serial License Expired",
-            message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
-            license_id: serial.license_id,
-            serial_id: serial.id,
-            is_read: false,
-            priority: "high",
-            action_required: true,
-            action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-            expires_at: null,
-          });
+          const assignedUsers = await get().getUsersByProjectAssignment(
+            serial.licenses.project_assign,
+          );
+          console.log(
+            "👥 Found assigned users:",
+            assignedUsers.length,
+            "for project:",
+            serial.licenses.project_assign,
+          );
+          for (const user of assignedUsers) {
+            await get().sendNotificationToUser(
+              user.user_id,
+              {
+                type: "expiry",
+                title: "Serial License Expired",
+                message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
+                license_id: serial.license_id,
+                serial_id: serial.id,
+                is_read: false,
+                priority: "high",
+                action_required: true,
+                action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+                expires_at: null,
+              },
+              user.email,
+            );
+          }
 
           await supabase
             .from("license_serials")
@@ -771,16 +795,24 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         .from("license_serials")
         .select(`*, licenses!inner(created_by, item_description)`);
 
-      if (expiringError) throw expiringError;
+      if (expiringError) {
+        // ✅ Correct variable name
+        console.log("❌ Expiring serials error:", expiringError); // ✅ Correct variable name
+        throw expiringError; // ✅ Correct variable name
+      }
 
       for (const serial of expiringSerials || []) {
         const notifyDays = serial.notify_before_days ?? 30; // default 30 if not set
-        const notifyDate = new Date(new Date(serial.end_date).getTime() - notifyDays * 24 * 60 * 60 * 1000);
+        const notifyDate = new Date(
+          new Date(serial.end_date).getTime() -
+          notifyDays * 24 * 60 * 60 * 1000,
+        );
 
         // Only send if today >= notify date and license not expired yet
         if (todayUTC >= notifyDate && todayUTC <= new Date(serial.end_date)) {
           const daysUntil = Math.ceil(
-            (new Date(serial.end_date).getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)
+            (new Date(serial.end_date).getTime() - todayUTC.getTime()) /
+            (1000 * 60 * 60 * 24),
           );
 
           const { data: todayNotifications } = await supabase
@@ -792,19 +824,32 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             .gte("created_at", todayStr + "T00:00:00.000Z");
 
           if (!todayNotifications || todayNotifications.length === 0) {
-            console.log("Creating expiring soon notification for:", serial.serial_or_contract);
-            await get().sendNotificationToUser(serial.licenses.created_by, {
-              type: "expiry",
-              title: "Serial License Expiring Soon",
-              message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
-              license_id: serial.license_id,
-              serial_id: serial.id,
-              is_read: false,
-              priority: daysUntil <= 7 ? "high" : "medium",
-              action_required: true,
-              action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-              expires_at: null,
-            });
+            const assignedUsers = await get().getUsersByProjectAssignment(
+              serial.licenses.project_assign,
+            );
+
+            console.log(
+              "Creating expiring soon notification for:",
+              serial.serial_or_contract,
+            );
+            for (const user of assignedUsers) {
+              await get().sendNotificationToUser(
+                user.user_id,
+                {
+                  type: "expiry",
+                  title: "Serial License Expired",
+                  message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
+                  license_id: serial.license_id,
+                  serial_id: serial.id,
+                  is_read: false,
+                  priority: "high",
+                  action_required: true,
+                  action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+                  expires_at: null,
+                },
+                user.email,
+              );
+            }
 
             await supabase
               .from("license_serials")
@@ -813,7 +858,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           }
         }
       }
-
     } catch (error) {
       console.error("Error sending daily expiry reminders:", error);
     } finally {
@@ -821,219 +865,85 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 
-  sendEmailNotification: async (notification, userEmail) => {
-    console.log("sendEmailNotification called with:", { to: notification.to, subject: notification.subject });
+
+  // Get users assigned to a specific project
+  getUsersByProjectAssignment: async (projectAssign: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_project_assigns")
+        .select(
+          `
+          user_id,
+          user_profiles!inner(
+            email,
+            name
+          )
+        `,
+        )
+        .eq("project_assign", projectAssign);
+
+      if (error) throw error;
+
+      return (data || []).map((item: any) => ({
+        user_id: item.user_id,
+        email: item.user_profiles.email,
+        name: item.user_profiles.name,
+      }));
+    } catch (error) {
+      console.error("Error getting users by project assignment:", error);
+      return [];
+    }
+  },
+
+
+  // Add to implementation (before the closing brace)
+  testEmailNotification: async () => {
+    console.log("🧪 Testing email notification system...");
 
     try {
-      if (!userEmail) {
-        console.log("No user email provided, skipping email notification");
-
-        return;
-      }
-
-      const emailService = EmailService.getInstance();
-
-      // Get notification priority styling
-
-      const getPriorityColor = (priority: string) => {
-        switch (priority) {
-          case "high":
-            return "#dc3545";
-
-          case "medium":
-            return "#fd7e14";
-
-          case "low":
-            return "#28a745";
-
-          default:
-            return "#6c757d";
-        }
-      };
-
-      const getPriorityIcon = (type: string) => {
-        switch (type) {
-          case "expiry":
-            return "⚠️";
-
-          case "renewal":
-            return "🔄";
-
-          case "comment":
-            return "💬";
-
-          case "system":
-            return "🔔";
-
-          case "warning":
-            return "⚠️";
-
-          case "info":
-            return "ℹ️";
-
-          default:
-            return "📢";
-        }
-      };
-
-      const priorityColor = getPriorityColor(notification.priority);
-
-      const typeIcon = getPriorityIcon(notification.type);
-
-      await emailService.sendNotificationEmail({
-        to: "ayezinhtun9@gmail.com",
-
-        subject: `${typeIcon} ${notification.title} - 1Cloud Technology`,
-
-        html: `
-
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-
-            <!-- Header -->
-
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
-
-              <img src="https://1cloudtechnology.com/assets/onecloudlogo.png" alt="1Cloud Technology" style="height: 50px; margin-bottom: 15px;">
-
-              <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
-
-              <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">Notification Alert</p>
-
-            </div>
-
-            
-
-            <!-- Content -->
-
-            <div style="padding: 30px 20px; background: white; margin: 0 20px;">
-
-              <!-- Priority Badge -->
-
-              <div style="text-align: center; margin-bottom: 25px;">
-
-                <span style="background: ${priorityColor}; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-
-                  ${notification.priority} Priority
-
-                </span>
-
-              </div>
-
-              
-              <!-- Notification Content -->
-
-              <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid ${priorityColor}; margin-bottom: 25px;">
-
-                <h2 style="color: #333; margin: 0 0 15px 0; font-size: 20px; font-weight: 600;">
-
-                  ${typeIcon} ${notification.title}
-
-                </h2>
-
-                <p style="color: #666; margin: 0; font-size: 16px; line-height: 1.6;">
-
-                  ${notification.message}
-
-                </p>
-
-              </div>
-
-              
-
-              <!-- Action Button -->
-
-              ${notification.action_url
-            ? `
-
-                <div style="text-align: center; margin: 30px 0;">
-
-                  <a href="${window.location.origin}${notification.action_url}" 
-
-                     style="background: ${priorityColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease;">
-
-                    View Details
-
-                  </a>
-
-                </div>
-
-              `
-            : ""
-          }
-
-              
-
-              <!-- Additional Info -->
-
-              ${notification.action_required
-            ? `
-
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-top: 20px;">
-
-                  <p style="margin: 0; color: #856404; font-size: 14px; font-weight: 500;">
-
-                    ⚡ Action Required: This notification requires your immediate attention.
-
-                  </p>
-
-                </div>
-
-              `
-            : ""
-          }
-
-            </div>
-
-            
-
-            <!-- Footer -->
-
-            <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
-
-              <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-
-                This is an automated notification from 1Cloud Technology License Management System.
-
-              </p>
-
-              <p style="margin: 0; font-size: 12px; color: #6c757d;">
-
-                © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
-
-              </p>
-
-              <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #495057;">
-
-                <p style="margin: 0; font-size: 11px; color: #6c757d;">
-
-                  If you no longer wish to receive these notifications, please contact your system administrator.
-
-                </p>
-
-              </div>
-
-            </div>
-
-            
-
-            <!-- Bottom Spacing -->
-
-            <div style="height: 20px;"></div>
-
-          </div>
-
-        `,
-
-        type: notification.type,
-      });
-
-      console.log(
-        `Email notification sent to ${userEmail} for: ${notification.title}`,
+      await get().sendEmailNotification(
+        {
+          id: "test-" + Date.now(),
+          type: "info" as const,
+          title: "Test Email",
+          message: "Test message from License System",
+          license_id: null,
+          serial_id: null,
+          user_id: "test-user",
+          is_read: false,
+          priority: "medium" as const,
+          action_required: false,
+          action_url: null,
+          created_at: new Date().toISOString(),
+          expires_at: null,
+        },
+        "ayezinhtun9@gmail.com"
       );
-    } catch (error) {
-      console.error("Error sending email notification:", error);
 
-      // Don't throw the error to prevent breaking the notification creation
+      console.log("✅ Test email sent successfully!");
+    } catch (error) {
+      console.error("❌ Test email failed:", error);
+    }
+  },
+
+  sendEmailNotification: async (notification, userEmail) => {
+    try {
+      const { error } = await supabase.functions.invoke(
+        "send-email-notification",
+        {
+          body: {
+            to: userEmail,
+            subject: notification.title,
+            html: `<p>${notification.message}</p>`,
+          },
+        },
+      );
+
+      if (error) throw error;
+
+      console.log("✅ Email sent");
+    } catch (err) {
+      console.error("❌ Email failed:", err);
     }
   },
 }));
