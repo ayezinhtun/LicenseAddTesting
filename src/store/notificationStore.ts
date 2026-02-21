@@ -421,9 +421,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       // Send email notification if enabled
 
+
       if (get().emailNotificationsEnabled && data) {
         await get().sendEmailNotification(data, currentUser.email);
       }
+
 
       set((state) => {
         if (state.notifications.some((n) => n.id === data.id)) return state;
@@ -464,6 +466,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         .single();
 
       if (error) throw error;
+      console.log("Sending email to:", userEmail);
 
       // Send email notification if enabled and user email is provided
 
@@ -471,6 +474,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         await get().sendEmailNotification(data, userEmail);
       }
 
+      console.log("Email NOT sent - enabled:", get().emailNotificationsEnabled, "email:", !!userEmail, "data:", !!data);
       // Update local state if this is for the current user
 
       const currentUser = await get().getCurrentUser();
@@ -707,13 +711,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   sendDailyExpiryReminders: async () => {
 
     if (get().isProcessingReminders) {
-      console.log("Already processing reminders, skipping...");
       return;
     }
 
     set({ isProcessingReminders: true });
-
-
 
     try {
       // Use UTC midnight to avoid timezone shifts
@@ -744,7 +745,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           .gte("created_at", todayStr + "T00:00:00.000Z");
 
         if (!todayNotifications || todayNotifications.length === 0) {
-          console.log("Creating expired notification for:", serial.serial_or_contract);
+          
           await get().sendNotificationToUser(serial.licenses.created_by, {
             type: "expiry",
             title: "Serial License Expired",
@@ -789,7 +790,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             .eq("license_id", serial.license_id)
             .eq("serial_id", serial.id)
             .gte("created_at", todayStr + "T00:00:00.000Z");
-            
+
           if (!todayNotifications || todayNotifications.length === 0) {
             console.log("Creating expiring soon notification for:", serial.serial_or_contract);
             await get().sendNotificationToUser(serial.licenses.created_by, {
@@ -821,6 +822,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   sendEmailNotification: async (notification, userEmail) => {
+    console.log("sendEmailNotification called with:", { to: notification.to, subject: notification.subject });
+
     try {
       if (!userEmail) {
         console.log("No user email provided, skipping email notification");
@@ -878,7 +881,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const typeIcon = getPriorityIcon(notification.type);
 
       await emailService.sendNotificationEmail({
-        to: userEmail,
+        to: "ayezinhtun9@gmail.com",
 
         subject: `${typeIcon} ${notification.title} - 1Cloud Technology`,
 
