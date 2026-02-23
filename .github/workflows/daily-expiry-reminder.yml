@@ -1,0 +1,21 @@
+name: Daily Expiry Reminder
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # daily at 00:00 UTC (midnight)
+  workflow_dispatch:      # allow manual run from GitHub UI
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - name: Run reminder script
+        run: node scripts/daily-expiry-reminder.js
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
