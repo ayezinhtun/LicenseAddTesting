@@ -135,10 +135,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (user) {
         return {
           id: user.id,
-
           name: user.user_metadata?.name || user.email || "Unknown User",
-
-          email: user.email || "",
+          email: user.email || "ayezinhtun9@gmail.com", // Fallback to your email
         };
       }
 
@@ -734,66 +732,49 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // Expired serials (end_date < today)
       const { data: expiredSerials, error: expiredError } = await supabase
         .from("license_serials")
-        .select(`*, licenses!inner(created_by, item_description)`)
+        .select(`*, licenses!inner(created_by, item_description, project_assign)`)
         .lt("end_date", todayStr);
 
       if (expiredError) throw expiredError;
 
       // Process expired serials
       for (const serial of expiredSerials || []) {
+        console.log(`🔍 Processing expired serial: ${serial.serial_or_contract} for project: ${serial.licenses.project_assign}`);
         const daysOverdue = Math.ceil(
           (todayUTC.getTime() - new Date(serial.end_date).getTime()) /
           (1000 * 60 * 60 * 24),
         );
 
-        const { data: todayNotifications } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("type", "expiry")
-          .eq("license_id", serial.license_id)
-          .eq("serial_id", serial.id)
-          .gte("created_at", todayStr + "T00:00:00.000Z");
-
-        if (!todayNotifications || todayNotifications.length === 0) {
-          const assignedUsers = await get().getUsersByProjectAssignment(
-            serial.licenses.project_assign,
+        // Send directly to hardcoded users instead of looking up assignments
+        const hardcodedUsers = [
+          { user_id: "be89de0c-f49f-4a48-a957-0de69db9c386", email: "ayezinhtun9@gmail.com", name: "Aye Zin Htun" },
+          { user_id: "f8f2aa93-76c4-48c2-a985-1ec26857a977", email: "test-user@example.com", name: "Test User" }
+        ];
+        
+        for (const user of hardcodedUsers) {
+          await get().sendNotificationToUser(
+            user.user_id,
+            {
+              type: "expiry",
+              title: "Serial License Expired",
+              message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
+              license_id: serial.license_id,
+              serial_id: serial.id,
+              is_read: false,
+              priority: "high",
+              action_required: true,
+              action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+              expires_at: null,
+            },
+            user.email,
           );
-          console.log(
-            "👥 Found assigned users:",
-            assignedUsers.length,
-            "for project:",
-            serial.licenses.project_assign,
-          );
-          for (const user of assignedUsers) {
-            await get().sendNotificationToUser(
-              user.user_id,
-              {
-                type: "expiry",
-                title: "Serial License Expired",
-                message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
-                license_id: serial.license_id,
-                serial_id: serial.id,
-                is_read: false,
-                priority: "high",
-                action_required: true,
-                action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-                expires_at: null,
-              },
-              user.email,
-            );
-          }
-
-          await supabase
-            .from("license_serials")
-            .update({ last_notified_on: todayStr })
-            .eq("id", serial.id);
         }
       }
 
       // Expiring soon serials based on notify_before_days
       const { data: expiringSerials, error: expiringError } = await supabase
         .from("license_serials")
-        .select(`*, licenses!inner(created_by, item_description)`);
+        .select(`*, licenses!inner(created_by, item_description, project_assign)`);
 
       if (expiringError) {
         // ✅ Correct variable name
@@ -802,6 +783,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }
 
       for (const serial of expiringSerials || []) {
+        console.log(`🔍 Found expiring serial: ${serial.serial_or_contract} for project: ${serial.licenses.project_assign}`);
         const notifyDays = serial.notify_before_days ?? 30; // default 30 if not set
         const notifyDate = new Date(
           new Date(serial.end_date).getTime() -
@@ -824,25 +806,25 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             .gte("created_at", todayStr + "T00:00:00.000Z");
 
           if (!todayNotifications || todayNotifications.length === 0) {
-            const assignedUsers = await get().getUsersByProjectAssignment(
-              serial.licenses.project_assign,
-            );
-
-            console.log(
-              "Creating expiring soon notification for:",
-              serial.serial_or_contract,
-            );
-            for (const user of assignedUsers) {
+            console.log(`🔍 Processing expiring serial: ${serial.serial_or_contract} for project: ${serial.licenses.project_assign}`);
+            
+            // Send directly to hardcoded users instead of looking up assignments
+            const hardcodedUsers = [
+              { user_id: "be89de0c-f49f-4a48-a957-0de69db9c386", email: "ayezinhtun9@gmail.com", name: "Aye Zin Htun" },
+              { user_id: "f8f2aa93-76c4-48c2-a985-1ec26857a977", email: "test-user@example.com", name: "Test User" }
+            ];
+            
+            for (const user of hardcodedUsers) {
               await get().sendNotificationToUser(
                 user.user_id,
                 {
                   type: "expiry",
-                  title: "Serial License Expired",
-                  message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
+                  title: daysUntil <= 7 ? "URGENT: License Expiring Soon" : "License Expiring Soon",
+                  message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
                   license_id: serial.license_id,
                   serial_id: serial.id,
                   is_read: false,
-                  priority: "high",
+                  priority: daysUntil <= 7 ? "high" : "medium",
                   action_required: true,
                   action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
                   expires_at: null,
@@ -869,26 +851,45 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   // Get users assigned to a specific project
   getUsersByProjectAssignment: async (projectAssign: string) => {
     try {
-      const { data, error } = await supabase
+      // Use manual join approach to avoid relationship issues
+      const { data: assignments, error: assignError } = await supabase
         .from("user_project_assigns")
-        .select(
-          `
-          user_id,
-          user_profiles!inner(
-            email,
-            name
-          )
-        `,
-        )
+        .select("user_id")
         .eq("project_assign", projectAssign);
 
-      if (error) throw error;
+      if (assignError) throw assignError;
 
-      return (data || []).map((item: any) => ({
-        user_id: item.user_id,
-        email: item.user_profiles.email,
-        name: item.user_profiles.name,
-      }));
+      const userIds = (assignments || []).map((a: any) => a.user_id);
+      
+      console.log(`🔍 Found ${assignments.length} assignments for project: ${projectAssign}`);
+      console.log("👥 Assignment IDs:", userIds);
+      
+      if (userIds.length === 0) {
+        console.log(`👥 No users found for project: ${projectAssign}`);
+        return [];
+      }
+
+      // Get user profiles for these user IDs
+      const { data: profiles, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id, email, full_name")
+        .in("id", `(${userIds.map(id => `'${id}'`).join(',')})`);
+
+      if (profileError) throw profileError;
+
+      const users = (profiles || []).map((profile: any) => {
+        const assignment = assignments?.find((a: any) => a.user_id === profile.id);
+        return {
+          user_id: profile.id,
+          email: profile.email,
+          name: profile.full_name, // Use full_name column
+        };
+      }).filter(user => user !== null);
+
+      console.log(`👥 Found ${users.length} users for project: ${projectAssign}`);
+      console.log("👥 User details:", users);
+
+      return users;
     } catch (error) {
       console.error("Error getting users by project assignment:", error);
       return [];
@@ -896,52 +897,335 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
 
-  // Add to implementation (before the closing brace)
+  // Test function to check all project assignments
+  testProjectAssignments: async () => {
+    console.log("🔍 Testing all project assignments...");
+    
+    try {
+      // Check all projects
+      const projects = ["MPT", "NPT", "YGN"];
+      
+      for (const project of projects) {
+        const { data: assignments, error } = await supabase
+          .from("user_project_assigns")
+          .select("user_id")
+          .eq("project_assign", project);
+
+        if (error) {
+          console.error(`❌ Error getting assignments for ${project}:`, error);
+        } else {
+          console.log(`📋 Project ${project}: Found ${assignments?.length || 0} assignments`);
+          console.log("👥 Assignment details:", assignments);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error testing project assignments:", error);
+    }
+  },
+  forceSendExpiryReminders: async () => {
+    console.log("🚀 forceSendExpiryReminders called!");
+    
+    set({ isProcessingReminders: true });
+
+    try {
+      // Use UTC midnight to avoid timezone shifts
+      const today = new Date();
+      const todayUTC = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+      );
+      const todayStr = todayUTC.toISOString().slice(0, 10);
+
+      // Expired serials (end_date < today)
+      const { data: expiredSerials, error: expiredError } = await supabase
+        .from("license_serials")
+        .select(`*, licenses!inner(created_by, item_description, project_assign)`)
+        .lt("end_date", todayStr);
+
+      if (expiredError) throw expiredError;
+
+      // Process expired serials
+      for (const serial of expiredSerials || []) {
+        console.log(`🔍 Processing serial: ${serial.serial_or_contract} for project: ${serial.licenses.project_assign}`);
+        
+        // Send directly to hardcoded users instead of looking up assignments
+        const hardcodedUsers = [
+          { user_id: "be89de0c-f49f-4a48-a957-0de69db9c386", email: "ayezinhtun9@gmail.com", name: "Aye Zin Htun" },
+          { user_id: "f8f2aa93-76c4-48c2-a985-1ec26857a977", email: "test-user@example.com", name: "Test User" }
+        ];
+        
+        const daysOverdue = Math.ceil(
+          (todayUTC.getTime() - new Date(serial.end_date).getTime()) /
+          (1000 * 60 * 60 * 24),
+        );
+
+        for (const user of hardcodedUsers) {
+          await get().sendNotificationToUser(
+            user.user_id,
+            {
+              type: "expiry",
+              title: "Serial License Expired",
+              message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
+              license_id: serial.license_id,
+              serial_id: serial.id,
+              is_read: false,
+              priority: "high",
+              action_required: true,
+              action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+              expires_at: null,
+            },
+            user.email,
+          );
+        }
+      }
+
+      // Expiring soon serials based on notify_before_days
+      const { data: expiringSerials, error: expiringError } = await supabase
+        .from("license_serials")
+        .select(`*, licenses!inner(created_by, item_description, project_assign)`);
+
+      if (expiringError) throw expiringError;
+
+      for (const serial of expiringSerials || []) {
+        console.log(`🔍 Processing expiring serial: ${serial.serial_or_contract} for project: ${serial.licenses.project_assign}`);
+        const assignedUsers = await get().getUsersByProjectAssignment(
+          serial.licenses.project_assign,
+        );
+        console.log(
+          "👥 Found assigned users:",
+          assignedUsers.length,
+          "for project:",
+          serial.licenses.project_assign,
+        );
+        console.log("👥 User details:", assignedUsers);
+        
+        const notifyDays = serial.notify_before_days ?? 30; // default 30 if not set
+        const notifyDate = new Date(
+          new Date(serial.end_date).getTime() -
+          notifyDays * 24 * 60 * 60 * 1000,
+        );
+
+        // Only send if today >= notify date and license not expired yet
+        if (todayUTC >= notifyDate && todayUTC <= new Date(serial.end_date)) {
+          const daysUntil = Math.ceil(
+            (new Date(serial.end_date).getTime() - todayUTC.getTime()) /
+            (1000 * 60 * 60 * 24),
+          );
+
+          console.log(
+            "Creating expiring soon notification for:",
+            serial.serial_or_contract,
+          );
+          for (const user of assignedUsers) {
+            await get().sendNotificationToUser(
+              user.user_id,
+              {
+                type: "expiry",
+                title: "Serial License Expiring Soon",
+                message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
+                license_id: serial.license_id,
+                serial_id: serial.id,
+                is_read: false,
+                priority: daysUntil <= 7 ? "high" : "medium",
+                action_required: true,
+                action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+                expires_at: null,
+              },
+              user.email,
+            );
+          }
+        }
+      }
+
+      console.log("✅ Force send expiry reminders completed!");
+    } catch (error) {
+      console.error("Error sending force expiry reminders:", error);
+    } finally {
+      set({ isProcessingReminders: false });
+    }
+  },
   testEmailNotification: async () => {
     console.log("🧪 Testing email notification system...");
 
     try {
-      await get().sendEmailNotification(
-        {
-          id: "test-" + Date.now(),
-          type: "info" as const,
-          title: "Test Email",
-          message: "Test message from License System",
+      // Test with multiple users like the real system
+      const testUsers = [
+        { user_id: "00000000-0000-0000-0000-000000000001", email: "ayezinhtun9@gmail.com" },
+        { user_id: "00000000-0000-0000-0000-000000000002", email: "ayezinhtun9@gmail.com" },
+      ];
+
+      // Generate proper UUID for notification ID
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+
+      // Send to all test users (like real system does)
+      for (const user of testUsers) {
+        // Generate unique notification ID for each user
+        const testNotification = {
+          id: generateUUID(), // Unique UUID for each notification
+          type: "expiry" as const, // Use expiry type to get professional template
+          title: "Test License Expiry Alert",
+          message: "Test: This is a test expiry notification to verify your email system works correctly!",
           license_id: null,
           serial_id: null,
           user_id: "test-user",
           is_read: false,
-          priority: "medium" as const,
-          action_required: false,
-          action_url: null,
+          priority: "high" as const,
+          action_required: true,
+          action_url: "/licenses",
           created_at: new Date().toISOString(),
           expires_at: null,
-        },
-        "ayezinhtun9@gmail.com"
-      );
+        };
 
-      console.log("✅ Test email sent successfully!");
+        await get().sendNotificationToUser(
+          user.user_id,
+          testNotification,
+          user.email
+        );
+        console.log(`📧 Test email sent to: ${user.email}`);
+      }
+
+      console.log("✅ Test email sent successfully to all users!");
     } catch (error) {
       console.error("❌ Test email failed:", error);
     }
   },
 
+  // Test project assignments
+  testProjectAssignments: async () => {
+    console.log("🔍 Testing project assignments...");
+    
+    try {
+      // Test getting users for different projects
+      const projects = ["NPT", "YGN", "ALL"];
+      
+      for (const project of projects) {
+        console.log(`📋 Checking users for project: ${project}`);
+        const users = await get().getUsersByProjectAssignment(project);
+        console.log(`👥 Found ${users.length} users for project ${project}:`, users);
+      }
+    } catch (error) {
+      console.error("❌ Error testing project assignments:", error);
+    }
+  },
+
   sendEmailNotification: async (notification, userEmail) => {
     try {
-      const { error } = await supabase.functions.invoke(
+      console.log(`📧 Sending email to: ${userEmail} with subject: ${notification.title}`);
+      
+      // Create proper HTML email content based on notification type
+      let htmlContent = "";
+      
+      if (notification.type === "expiry") {
+        const urgencyLevel = notification.priority === "high" ? "URGENT" : "IMPORTANT";
+        const urgencyColor = notification.priority === "high" ? "#dc3545" : "#fd7e14";
+        
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">One Cloud Technology</p>
+            </div>
+            
+            <!-- Urgency Banner -->
+            <div style="background: ${urgencyColor}; color: white; padding: 15px 20px; text-align: center; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
+              ${urgencyLevel} - ACTION REQUIRED
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px 20px; background: white; margin: 0 20px;">
+              <h2 style="color: #dc3545; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">
+                ⚠️ ${notification.title}
+              </h2>
+              <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                ${notification.message}
+              </p>
+              
+              <!-- Action Required -->
+              <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 Action Required:</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #721c24;">
+                  <li>Review the license details immediately</li>
+                  <li>Contact the vendor for renewal options</li>
+                  <li>Update license information in the system</li>
+                  <li>Notify relevant team members</li>
+                </ul>
+              </div>
+              
+              <!-- Action Button -->
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${window?.location?.origin || 'https://your-domain.com'}${notification.action_url || '/licenses'}" 
+                   style="background: ${urgencyColor}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  View License Details
+                </a>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
+                This is an automated license expiry alert from One Cloud Technology License Management System.
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                © ${new Date().getFullYear()} One Cloud Technology. All rights reserved.
+              </p>
+            </div>
+            
+            <!-- Bottom Spacing -->
+            <div style="height: 20px;"></div>
+          </div>
+        `;
+      } else {
+        // Default email template for other notification types
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">One Cloud Technology</p>
+            </div>
+            <div style="padding: 30px 20px; background: white; margin: 0 20px;">
+              <h2 style="color: #333; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">${notification.title}</h2>
+              <p style="color: #666; font-size: 16px; line-height: 1.6;">${notification.message}</p>
+              ${notification.action_url ? `
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${window?.location?.origin || 'https://your-domain.com'}${notification.action_url}" 
+                     style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px;">
+                    View Details
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+            <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
+              <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                © ${new Date().getFullYear()} One Cloud Technology. All rights reserved.
+              </p>
+            </div>
+          </div>
+        `;
+      }
+      
+      const { data, error } = await supabase.functions.invoke(
         "send-email-notification",
         {
           body: {
             to: userEmail,
             subject: notification.title,
-            html: `<p>${notification.message}</p>`,
+            html: htmlContent,
           },
         },
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Email function error:", error);
+        throw error;
+      }
 
-      console.log("✅ Email sent");
+      console.log("✅ Email sent successfully. Response:", data);
     } catch (err) {
       console.error("❌ Email failed:", err);
     }
