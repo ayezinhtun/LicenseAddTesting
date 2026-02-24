@@ -304,16 +304,7 @@ export const Sidebar: React.FC<{
           {!isCollapsed && "Sign Out"}
         </Button>
 
-        {!isCollapsed && (
-          <Button
-            variant="ghost"
-            onClick={() => useNotificationStore.getState().testEmailNotification()}
-            className="w-full mt-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 justify-start"
-            animate={false}
-          >
-            Test Email
-          </Button>
-        )}
+        
       </div>
     </motion.div>
   );

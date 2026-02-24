@@ -2,8 +2,8 @@ name: Daily License Expiry Reminders
 
 on:
   schedule:
-    # Run daily at 9:00 AM UTC (5:30 PM Myanmar Time)
-    - cron: '0 9 * * *'
+    # Run daily at midnight UTC (6:30 AM Myanmar Time)
+    - cron: '0 0 * * *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -17,10 +17,7 @@ jobs:
         SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
       run: |
-        curl -X POST "https://kioqpivshgtpacwklcho.supabase.co/functions/v1/send-email-notification" \
+        curl -X POST "https://kioqpivshgtpacwklcho.supabase.co/functions/v1/daily-reminders" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
           -H "Content-Type: application/json" \
-          -d '{
-            "to": "ayezinhtun9@gmail.com", 
-            "subject": "Daily Reminder Test", 
-            "html": "<h1>Daily reminders are working!</h1>"
-          }'
+          -d '{"name":"daily-reminder"}'
