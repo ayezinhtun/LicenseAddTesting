@@ -116,7 +116,7 @@ serve(async (req: Request) => {
             
             await supabase.functions.invoke('send-email-notification', {
               body: {
-                to: profile.email,
+                to: "ayezinhtun9@gmail.com",
                 subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
                 html: `
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
