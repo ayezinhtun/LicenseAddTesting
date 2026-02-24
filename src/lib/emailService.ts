@@ -1,5 +1,3 @@
-import { supabase } from "./supabase";
-
 interface EmailNotification {
   to: string;
   subject: string;
@@ -19,22 +17,29 @@ export class EmailService {
 
   async sendNotificationEmail(notification: EmailNotification): Promise<void> {
     try {
-      // Call Supabase Edge Function for email sending
-      const { data, error } = await supabase.functions.invoke("send-email", {
-        body: {
+      // Call Supabase Edge Function for email sending using direct HTTP
+      const response = await fetch('https://kioqpivshgtpacwklcho.supabase.co/functions/v1/send-email-notification', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI6InJlZiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI6InJlZiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI6InJlZiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI6InJlZiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI6InJlZiIsInR5cCI6IkpXVCJ9`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           to: notification.to,
           subject: notification.subject,
           html: notification.html,
           from: "notification@1cloudtechnology.com",
           type: notification.type,
-        },
+        })
       });
 
-      if (error) {
-        console.error("Email sending failed:", error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Email sending failed:", errorData);
+        throw new Error("Failed to send email");
       }
 
+      const data = await response.json();
       console.log("Email sent successfully:", data);
     } catch (error) {
       console.error("Email service error:", error);
