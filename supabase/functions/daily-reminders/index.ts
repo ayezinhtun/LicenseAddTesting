@@ -110,6 +110,44 @@ serve(async (req: Request) => {
 
             await supabase.from("notifications").insert(notificationData);
 
+            // Always send a daily status notification (independent of user interaction)
+            if (allNotifications.length === 0) {
+              console.log("📧 No expiring licenses found, sending daily status notification");
+              
+              await supabase.functions.invoke('send-email-notification', {
+                body: {
+                  to: "ayezinhtun9@gmail.com",
+                  subject: "Daily License Status Report",
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+                      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">One Cloud Technology</p>
+                      </div>
+                      <div style="padding: 30px 20px; background: white; margin: 0 20px;">
+                        <h2 style="color: #333; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">Daily Status Report</h2>
+                        <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                          Daily licence check completed on ${todayStr}. No licenses are expiring today.
+                        </p>
+                        <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                          <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 System Status:</h4>
+                          <ul style="margin: 0; padding-left: 20px; color: #721c24;">
+                            <li>All licenses are up to date</li>
+                            <li>No action required today</li>
+                          </ul>
+                        </div>
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                          <p style="margin: 0; color: #6c757d; font-size: 12px;">
+                            This is an automated daily report from 1Cloud Technology License Management System.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  `
+                }
+              });
+            }
+
             // Send email
             const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
             const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";

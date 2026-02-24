@@ -6,39 +6,13 @@ import { RecentActivity } from "./RecentActivity";
 import { QuickActions } from "./QuickActions";
 import { useLicenseStore } from "../../store/licenseStore";
 import { useAuthStore } from "../../store/authStore";
-import { useNotificationStore } from "../../store/notificationStore";
-import { createClient } from "@supabase/supabase-js";
 
 export const Dashboard: React.FC = () => {
   const { fetchLicenses } = useLicenseStore();
   const { user } = useAuthStore();
-  const { notifications, fetchNotifications } = useNotificationStore();
-
   useEffect(() => {
-    if (!user) return;
-
-    const supabaseUrl = process.env.SUPABASE_URL || Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY || Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const channel = supabase
-      .channel('notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      }, (payload: PostgresChangesPayload<any>) => {
-        console.log('New notification received:', payload);
-        // New notification received - fetch immediately
-        fetchNotifications();
-      })
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [user?.id]);
+    fetchLicenses();
+  }, [fetchLicenses]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
