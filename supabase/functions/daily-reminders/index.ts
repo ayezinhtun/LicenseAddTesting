@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
 };
 
 serve(async (req: Request) => {
@@ -18,7 +18,7 @@ serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
+
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -27,6 +27,8 @@ serve(async (req: Request) => {
       Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
     );
     const todayStr = todayUTC.toISOString().slice(0, 10);
+
+    console.log("📅 Today's date (UTC):", todayStr);
 
     // Find expired serials
     const { data: expiredSerials, error: expiredError } = await supabase
@@ -37,6 +39,7 @@ serve(async (req: Request) => {
     if (expiredError) throw expiredError;
 
     console.log(`🔍 Found ${expiredSerials?.length || 0} expired serials`);
+    console.log("📋 Expired serials:", expiredSerials);
 
     // Find expiring soon serials
     const { data: allSerials, error: allError } = await supabase
@@ -57,7 +60,7 @@ serve(async (req: Request) => {
 
     // Process all notifications
     const allNotifications = [...(expiredSerials || []), ...(expiringSoon || [])];
-    
+
     for (const serial of allNotifications) {
       const isExpired = new Date(serial.end_date) < todayUTC;
       const daysUntil = Math.ceil(
@@ -72,7 +75,7 @@ serve(async (req: Request) => {
         .eq("project_assign", serial.licenses.project_assign);
 
       const userIds = (assignments || []).map(a => a.user_id);
-      
+
       if (userIds.length > 0) {
         // Get user profiles
         const { data: profiles } = await supabase
@@ -110,50 +113,18 @@ serve(async (req: Request) => {
 
             await supabase.from("notifications").insert(notificationData);
 
-            // Always send a daily status notification (independent of user interaction)
-            if (allNotifications.length === 0) {
-              console.log("📧 No expiring licenses found, sending daily status notification");
-              
-              await supabase.functions.invoke('send-email-notification', {
-                body: {
-                  to: "ayezinhtun9@gmail.com",
-                  subject: "Daily License Status Report",
-                  html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-                      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
-                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
-                        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">One Cloud Technology</p>
-                      </div>
-                      <div style="padding: 30px 20px; background: white; margin: 0 20px;">
-                        <h2 style="color: #333; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">Daily Status Report</h2>
-                        <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-                          Daily licence check completed on ${todayStr}. No licenses are expiring today.
-                        </p>
-                        <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
-                          <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 System Status:</h4>
-                          <ul style="margin: 0; padding-left: 20px; color: #721c24;">
-                            <li>All licenses are up to date</li>
-                            <li>No action required today</li>
-                          </ul>
-                        </div>
-                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
-                          <p style="margin: 0; color: #6c757d; font-size: 12px;">
-                            This is an automated daily report from 1Cloud Technology License Management System.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  `
-                }
-              });
-            }
-
             // Send email
             const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
             const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
-            
-            await supabase.functions.invoke('send-email-notification', {
-              body: {
+
+            // Send email using direct HTTP call
+            const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
                 to: "ayezinhtun9@gmail.com",
                 subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
                 html: `
@@ -184,29 +155,77 @@ serve(async (req: Request) => {
                     </div>
                     <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
                       <p style="margin: 0; font-size: 12px; color: #6c757d;">
-                        © ${new Date().getFullYear()} One Cloud Technology. All rights reserved.
+                        &copy; ${new Date().getFullYear()} One Cloud Technology. All rights reserved.
                       </p>
                     </div>
                   </div>
                 `
-              }
+              })
             });
-            
-            console.log(`📧 Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${profile.email} for ${serial.serial_or_contract}`);
+
+            if (!response.ok) {
+              console.error("❌ Email function error:", await response.json());
+            } else {
+              console.log(`📧 Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${profile.email} for ${serial.serial_or_contract}`);
+            }
           }
         }
       }
     }
 
+    // Always send a daily status notification (independent of user interaction)
+    if (allNotifications.length === 0) {
+      console.log("📧 No expiring licenses found, sending daily status notification");
+
+      // Send email using direct HTTP call
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: "ayezinhtun9@gmail.com",
+          subject: "Daily License Status Report",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">One Cloud Technology</p>
+              </div>
+              <div style="padding: 30px 20px; background: white; margin: 0 20px;">
+                <h2 style="color: #333; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">Daily Status Report</h2>
+                <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                  Daily licence check completed on ${todayStr}. No licenses are expiring today.
+                </p>
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                  <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 System Status:</h4>
+                  <ul style="margin: 0; padding-left: 20px; color: #721c24;">
+                    <li>All licenses are up to date</li>
+                    <li>No action required today</li>
+                  </ul>
+                </div>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                  <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                    This is an automated daily report from 1Cloud Technology License Management System.
+                  </p>
+                </div>
+              </div>
+            </div>
+          `
+        }
+      });
+    }
+
     console.log("✅ Daily expiry reminders completed successfully!");
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: "Daily reminders sent successfully",
         expiredCount: expiredSerials?.length || 0,
         expiringSoonCount: expiringSoon?.length || 0,
         totalProcessed: allNotifications.length
-      }), 
+      }),
       {
         status: 200,
         headers: corsHeaders,
@@ -216,11 +235,11 @@ serve(async (req: Request) => {
   } catch (err) {
     console.error("❌ Error in daily reminders:", err);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: "Internal server error",
-        message: err.message 
-      }), 
-      { 
+        message: err.message
+      }),
+      {
         status: 500,
         headers: corsHeaders,
       }
@@ -251,7 +270,7 @@ async function query(table: string, columns: string, operator: string, column: s
       'Authorization': `Bearer ${key}`
     }
   });
-  
+
   const data = await response.json();
   return { data: single ? data[0] : data, error: response.ok ? null : data };
 }
@@ -266,7 +285,7 @@ async function insertMutation(table: string, data: any, url: string, key: string
     },
     body: JSON.stringify(data)
   });
-  
+
   const result = await response.json();
   return { data: result, error: response.ok ? null : result };
 }
