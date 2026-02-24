@@ -289,6 +289,7 @@ export const Sidebar: React.FC<{
           </motion.div>
         )}
       </nav>
+      
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
