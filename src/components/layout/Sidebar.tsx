@@ -303,6 +303,8 @@ export const Sidebar: React.FC<{
         >
           {!isCollapsed && "Sign Out"}
         </Button>
+
+        
       </div>
     </motion.div>
   );

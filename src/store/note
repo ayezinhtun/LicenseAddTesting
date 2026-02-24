@@ -203,6 +203,11 @@ interface NotificationState {
   searchNotifications: (query: string) => Notification[];
 
 
+
+  // Test function
+
+  testExpiryNotifications: () => Promise<void>;
+
 }
 
 
@@ -282,9 +287,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
 
   fetchNotifications: async () => {
-    set({isLoading: true});
 
     try {
+
+      set({ isLoading: true });
+
+
+
       const currentUser = await get().getCurrentUser();
 
       if (!currentUser) {
@@ -560,6 +569,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
 
     } catch (error) {
+
+      console.error("Error fetching notifications:", error);
 
       set({ isLoading: false });
 
@@ -1406,6 +1417,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
 
     if (get().isProcessingReminders) {
+
+      console.log("Already processing reminders, skipping...");
+
       return;
 
     }
@@ -1450,6 +1464,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
 
 
+      console.log(`🔍 Found ${expiredSerials?.length || 0} expired serials`);
+
+
+
       // Process expired serials
 
       for (const serial of expiredSerials || []) {
@@ -1479,7 +1497,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           .gte("created_at", todayStr + "T00:00:00.000Z");
 
 
+
+        console.log(`🔍 ${serial.serial_or_contract}: Already sent today? ${todayNotifications?.length || 0} notifications found`);
+
+
+
         if (!todayNotifications || todayNotifications.length === 0) {
+
+          console.log("📧 Creating NEW expired notification for:", serial.serial_or_contract);
+
           
 
           // ✅ Send to FIXED EMAIL (not created_by)
@@ -1492,7 +1518,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
               type: "expiry",
 
-              title: "License Status: Expired",
+              title: "License Alert: Expired",
 
               message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
 
@@ -1535,6 +1561,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (expiringError) throw expiringError;
 
 
+
+      console.log(`🔍 Found ${expiringSerials?.length || 0} total serials to check for expiry`);
+
+
+
       for (const serial of expiringSerials || []) {
 
         const notifyDays = serial.notify_before_days ?? 30; // default 30 if not set
@@ -1572,6 +1603,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             
 
           if (!todayNotifications || todayNotifications.length === 0) {
+
+            console.log(`📧 Creating expiring soon notification for: ${serial.serial_or_contract} (${daysUntil} days left)`);
+
             
 
             // ✅ Send to FIXED EMAIL (not created_by)
@@ -1584,7 +1618,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
                 type: "expiry",
 
-                title: daysUntil <= 7 ? "License Notice: Expiring Soon" : "License Notice: Expiring Soon",
+                title: daysUntil <= 7 ? "License Alert: Expiring Soon" : "License Notice: Expiring Soon",
 
                 message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
 
@@ -1633,7 +1667,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } finally {
 
       set({ isProcessingReminders: false });
-      await get().fetchNotifications(); 
 
     }
 
@@ -1646,9 +1679,17 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     try {
 
       if (!userEmail) {
+
+        console.log("No user email provided, skipping email notification");
+
         return;
 
       }
+
+
+
+      console.log(`📧 Sending email to: ${userEmail} for: ${notification.title}`);
+
 
 
       // ✅ KEY FIX: Use Supabase Edge Function directly (more reliable)
@@ -1669,7 +1710,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
                 <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
 
-                <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology</p>
+                <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology - Official System Notification</p>
 
               </div>
 
@@ -1701,6 +1742,17 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
 
+                  <p style="margin: 0; color: #6c757d; font-size: 12px;">
+
+                    This is an automated system notification from 1Cloud Technology License Management System.
+
+                  </p>
+
+                  <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 12px;">
+
+                    Sender: ayezinhtun9@10687643.brevosend.com
+
+                  </p>
 
                   <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 12px;">
 
@@ -1736,11 +1788,27 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       }
 
+
+
+      console.log("✅ Email sent successfully. Response:", data);
+
     } catch (err) {
 
       console.error("❌ Email failed:", err);
 
     }
+
+  },
+
+
+
+  // Test function to send expiry notifications
+
+  testExpiryNotifications: async () => {
+
+    console.log("🧪 Testing expiry notifications...");
+
+    await get().sendDailyExpiryReminders();
 
   },
 
