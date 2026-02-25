@@ -14,7 +14,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    console.log("🚀 Daily expiry reminders triggered at:", new Date().toISOString());
+    console.log("🚀 Daily expiry reminders:", new Date().toISOString());
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
