@@ -130,7 +130,7 @@ interface NotificationState {
 
 
 
-  sendDailyExpiryReminders: () => Promise<void>;
+  // sendDailyExpiryReminders removed - now handled by backend daily job
 
 
 
@@ -212,129 +212,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   emailNotificationsEnabled: true,
 
   isProcessingReminders: false,
-
-  sendDailyExpiryReminders: async () => {
-    if (get().isProcessingReminders) {
-      console.log("Already processing reminders, skipping...");
-      return;
-    }
-    set({ isProcessingReminders: true });
-    try {
-      // Use UTC midnight to avoid timezone shifts
-      const today = new Date();
-      const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-      const todayStr = todayUTC.toISOString().slice(0, 10);
-
-      // Expired serials (end_date < today)
-      const { data: expiredSerials, error: expiredError } = await supabase
-        .from("license_serials")
-        .select(`*, licenses!inner(created_by, item_description)`)
-        .lt("end_date", todayStr);
-
-      if (expiredError) throw expiredError;
-      console.log(`Found ${expiredSerials?.length || 0} expired serials`);
-
-      // Process expired serials
-      for (const serial of expiredSerials || []) {
-        const daysOverdue = Math.ceil(
-          (todayUTC.getTime() - new Date(serial.end_date).getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        // Check if notification already exists today
-        const { data: todayNotifications } = await supabase
-          .from("notifications")
-          .select("id, created_at")
-          .eq("type", "expiry")
-          .eq("license_id", serial.license_id)
-          .eq("serial_id", serial.id)
-          .gte("created_at", todayStr + "T00:00:00.000Z");
-
-        console.log(`Already sent today? ${todayNotifications?.length || 0} notifications found`);
-
-        if (!todayNotifications || todayNotifications.length === 0) {
-          console.log("Creating NEW expired notification for:", serial.serial_or_contract);
-          
-          // Send to FIXED EMAIL (not created_by)
-          await get().sendNotificationToUser(
-            "system-user", // Fixed user ID for notifications
-            {
-              type: "expiry",
-              title: "License Alert: Expired",
-              message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expired ${daysOverdue} day(s) ago`,
-              license_id: serial.license_id,
-              serial_id: serial.id,
-              is_read: false,
-              priority: "high",
-              action_required: true,
-              action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-              expires_at: null,
-            },
-            "ayezinhtun9@gmail.com" 
-          );
-        }
-      }
-
-      // Expiring soon serials based on notify_before_days
-      const { data: expiringSerials, error: expiringError } = await supabase
-        .from("license_serials")
-        .select(`*, licenses!inner(created_by, item_description)`);
-
-      if (expiringError) throw expiringError;
-      console.log(`Found ${expiringSerials?.length || 0} total serials to check for expiry`);
-
-      for (const serial of expiringSerials || []) {
-        const notifyDays = serial.notify_before_days ?? 30; // default 30 if not set
-        const notifyDate = new Date(new Date(serial.end_date).getTime() - notifyDays * 24 * 60 * 60 * 1000);
-
-        // Only send if today >= notify date and license not expired yet
-        if (todayUTC >= notifyDate && todayUTC <= new Date(serial.end_date)) {
-          const daysUntil = Math.ceil(
-            (new Date(serial.end_date).getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)
-          );
-
-          const { data: todayNotifications } = await supabase
-            .from("notifications")
-            .select("id")
-            .eq("type", "expiry")
-            .eq("license_id", serial.license_id)
-            .eq("serial_id", serial.id)
-            .gte("created_at", todayStr + "T00:00:00.000Z");
-            
-          if (!todayNotifications || todayNotifications.length === 0) {
-            console.log(`Creating expiring soon notification for: ${serial.serial_or_contract} (${daysUntil} days left)`);
-            
-            // Send to FIXED EMAIL (not created_by)
-            await get().sendNotificationToUser(
-              "system-user", // Fixed user ID for notifications
-              {
-                type: "expiry",
-                title: daysUntil <= 7 ? "License Alert: Expiring Soon" : "License Notice: Expiring Soon",
-                message: `${serial.serial_or_contract} for ${serial.licenses.item_description} expires in ${daysUntil} day(s)`,
-                license_id: serial.license_id,
-                serial_id: serial.id,
-                is_read: false,
-                priority: daysUntil <= 7 ? "high" : "medium",
-                action_required: true,
-                action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-                expires_at: null,
-              },
-              "ayezinhtun9@gmail.com" 
-            );
-
-            await supabase
-              .from("license_serials")
-              .update({ last_notified_on: todayStr })
-              .eq("id", serial.id);
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error("Error sending daily expiry reminders:", error);
-    } finally {
-      set({ isProcessingReminders: false });
-    }
-  },
 
   getCurrentUser: async () => {
     try {
