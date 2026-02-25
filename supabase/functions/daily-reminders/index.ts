@@ -27,6 +27,8 @@ serve(async (req: Request) => {
       Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
     );
     const todayStr = todayUTC.toISOString().slice(0, 10);
+    
+    console.log("📅 Today's date (UTC):", todayStr);
 
     console.log("📅 Today's date (UTC):", todayStr);
 
@@ -116,7 +118,11 @@ serve(async (req: Request) => {
             // Send email
             const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
             const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 80b8110c5a9325a6938891ab1be15cf868137d2c
             // Send email using direct HTTP call
             const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
               method: 'POST',
@@ -162,7 +168,11 @@ serve(async (req: Request) => {
                 `
               })
             });
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 80b8110c5a9325a6938891ab1be15cf868137d2c
             if (!response.ok) {
               console.error("❌ Email function error:", await response.json());
             } else {
@@ -176,7 +186,11 @@ serve(async (req: Request) => {
     // Always send a daily status notification (independent of user interaction)
     if (allNotifications.length === 0) {
       console.log("📧 No expiring licenses found, sending daily status notification");
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> 80b8110c5a9325a6938891ab1be15cf868137d2c
       // Send email using direct HTTP call
       const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
         method: 'POST',

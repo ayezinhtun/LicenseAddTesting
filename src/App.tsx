@@ -49,28 +49,12 @@ function App() {
 
   const { isAuthenticated, getCurrentUser, user, profileStatus } = useAuthStore();
 
-  const { subscribeToRealtime, unsubscribeFromRealtime, fetchNotifications, sendDailyExpiryReminders } = useNotificationStore();
+  const { subscribeToRealtime, unsubscribeFromRealtime, fetchNotifications } = useNotificationStore();
 
   const { fetchLicenses } = useLicenseStore();
 
   // const checkSerials = useLicenseStore(s => s.checkSerialExpiryNotifications);
 
-
-  // Run daily at midnight
-  const setupDailyReminders = () => {
-    // Run immediately when app starts
-    sendDailyExpiryReminders();
-
-    // Then run every 24 hours
-    setInterval(() => {
-      sendDailyExpiryReminders();
-    }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
-  };
-
-  // Call this when your app starts
-  useEffect(() => {
-    setupDailyReminders();
-  }, []);
 
   useEffect(() => {
     // Check authentication status on app load
