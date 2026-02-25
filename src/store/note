@@ -1,0 +1,16 @@
+What you must do on GitHub (required to make it run)
+Add these GitHub Actions secrets:
+
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+Path:
+
+GitHub repo
+Settings
+Secrets and variables
+Actions
+New repository secret
+Then:
+
+commit + push your changes
+go to Actions → Daily Expiry Reminder → Run workflow (manual test)
