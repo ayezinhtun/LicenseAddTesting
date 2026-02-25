@@ -269,7 +269,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
               action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
               expires_at: null,
             },
-            "ayezinhtun9@gmail.com" // Send to fixed email
+            "ayezinhtun9@gmail.com" 
           );
         }
       }
@@ -318,7 +318,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
                 expires_at: null,
               },
-              "ayezinhtun9@gmail.com" // Send to fixed email
+              "ayezinhtun9@gmail.com" 
             );
 
             await supabase
