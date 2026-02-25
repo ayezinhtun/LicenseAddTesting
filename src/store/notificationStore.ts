@@ -343,8 +343,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       } = await supabase.auth.getUser();
 
-
-
       if (user) {
 
         return {
