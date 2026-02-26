@@ -1,9 +1,10 @@
 name: Daily Expiry Reminder
 
 on:
-  schedule:
-    - cron: "30 17 * * *" # 00:00 Myanmar time (UTC+06:30)
   workflow_dispatch:
+  schedule:
+    # Run every day at midnight (18:30 UTC previous day)
+    - cron: '30 18 * * *'
 
 jobs:
   run:
@@ -11,7 +12,9 @@ jobs:
     steps:
       - name: Trigger Daily Reminders
         run: |
+          echo "🚀 Starting daily expiry reminder check at $(date)"
           curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/daily-reminders" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"name":"daily-reminder"}'
+          echo "✅ Daily reminder trigger completed at $(date)"
