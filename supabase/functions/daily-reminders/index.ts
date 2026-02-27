@@ -205,13 +205,8 @@ serve(async (req: Request) => {
                       This is an automated notification from 1Cloud Technology License Management System.
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
-                      &copy; ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
+                      © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
                     </p>
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #495057;">
-                      <p style="margin: 0; font-size: 11px; color: #6c757d;">
-                        All expiry notifications are sent to: ${user.email}
-                      </p>
-                    </div>
                   </div>
                 </div>
               `
