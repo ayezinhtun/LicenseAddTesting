@@ -81,9 +81,10 @@ serve(async (req: Request) => {
       );
       const daysOverdue = Math.abs(daysUntil);
 
-      console.log(`🔔 Processing: ${serial.serial_or_contract} for ${serial.licenses.item_description}`);
+      console.log("🔔 Processing: ${serial.serial_or_contract} for ${serial.licenses.item_description} (${serial.licenses.project_assign})");
 
       // Get all users assigned to this project
+      console.log(`🔍 Looking for users assigned to project: ${serial.licenses.project_assign}`);
       const { data: projectAssignments, error: assignError } = await supabase
         .from("user_project_assigns")
         .select("user_id")
@@ -94,6 +95,8 @@ serve(async (req: Request) => {
         continue;
       }
 
+      console.log(`📋 Found ${projectAssignments?.length || 0} project assignments:`, projectAssignments);
+
       if (!projectAssignments || projectAssignments.length === 0) {
         console.log(`⚠️ No users assigned to project: ${serial.licenses.project_assign}`);
         continue;
@@ -103,16 +106,22 @@ serve(async (req: Request) => {
       const userIds = projectAssignments.map((a: any) => a.user_id);
       console.log("🔍 User IDs to lookup:", userIds);
       
-      // Build OR query instead of .in() for better UUID support
-      const orConditions = userIds.map((id: string) => `id.eq.${id}`).join(',');
-      const { data: userProfiles, error: userError } = await supabase
-        .from("user_profiles")
-        .select("id, email, full_name")
-        .or(orConditions);
-
-      if (userError) {
-        console.error("❌ Error getting user profiles:", userError);
-        continue;
+      // Try individual queries instead of OR query
+      const userProfiles: any[] = [];
+      for (const userId of userIds) {
+        console.log(`🔍 Looking up user: ${userId}`);
+        const { data: userProfile, error: singleUserError } = await supabase
+          .from("user_profiles")
+          .select("id, email, full_name")
+          .eq("user_id", userId)  // ✅ FIXED: Use user_id instead of id
+          .single();
+        
+        if (singleUserError) {
+          console.error(`❌ Error getting user ${userId}:`, singleUserError);
+        } else if (userProfile) {
+          console.log(`✅ Found user: ${userProfile.email}`);
+          userProfiles.push(userProfile);
+        }
       }
 
       console.log("👤 User profiles found:", userProfiles);
