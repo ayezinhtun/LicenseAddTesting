@@ -51,7 +51,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         sender: {
           name: "One Cloud Technology",
-          email: "tech@onecloud.com.mm",
+          email: "noreply@onecloud.com.mm"
         },
         to: [{ email: to }],
         subject: subject,
