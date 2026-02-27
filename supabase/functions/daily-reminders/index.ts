@@ -100,18 +100,21 @@ serve(async (req: Request) => {
       }
 
       // Get user details for all assigned users
-      const userIds = projectAssignments.map(a => a.user_id);
+      const userIds = projectAssignments.map((a: any) => a.user_id);
+      console.log("🔍 User IDs to lookup:", userIds);
+      
       const { data: userProfiles, error: userError } = await supabase
         .from("user_profiles")
         .select("id, email, full_name")
-        .in("id", `(${userIds.map(id => `'${id}'`).join(',')})`);
+        .in("id", userIds);
 
       if (userError) {
         console.error("❌ Error getting user profiles:", userError);
         continue;
       }
 
-      console.log(`👥 Found ${userProfiles?.length || 0} users for project ${serial.licenses.project_assign}:`, userProfiles?.map(u => u.email));
+      console.log("👤 User profiles found:", userProfiles);
+      console.log(`👥 Found ${userProfiles?.length || 0} users for project ${serial.licenses.project_assign}:`, userProfiles?.map((u: any) => u.email));
 
       // Send to each assigned user
       for (const user of userProfiles || []) {
