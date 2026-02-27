@@ -103,10 +103,12 @@ serve(async (req: Request) => {
       const userIds = projectAssignments.map((a: any) => a.user_id);
       console.log("🔍 User IDs to lookup:", userIds);
       
+      // Build OR query instead of .in() for better UUID support
+      const orConditions = userIds.map((id: string) => `id.eq.${id}`).join(',');
       const { data: userProfiles, error: userError } = await supabase
         .from("user_profiles")
         .select("id, email, full_name")
-        .in("id", userIds);
+        .or(`(${orConditions})`);
 
       if (userError) {
         console.error("❌ Error getting user profiles:", userError);
