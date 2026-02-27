@@ -108,7 +108,7 @@ serve(async (req: Request) => {
       const { data: userProfiles, error: userError } = await supabase
         .from("user_profiles")
         .select("id, email, full_name")
-        .or(`(${orConditions})`);
+        .or(orConditions);
 
       if (userError) {
         console.error("❌ Error getting user profiles:", userError);
