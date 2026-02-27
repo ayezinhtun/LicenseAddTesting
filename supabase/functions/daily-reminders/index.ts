@@ -83,63 +83,92 @@ serve(async (req: Request) => {
 
       console.log(`🔔 Processing: ${serial.serial_or_contract} for ${serial.licenses.item_description}`);
 
-      // ✅ FIXED: Always send to ayezinhtun9@gmail.com
-      const fixedEmail = "ayezinhtun9@gmail.com";
-      const fixedUserId = "system-user";
+      // Get all users assigned to this project
+      const { data: projectAssignments, error: assignError } = await supabase
+        .from("user_project_assigns")
+        .select("user_id")
+        .eq("project_assign", serial.licenses.project_assign);
 
-      // Check if notification already sent today
-      const { data: existingNotif } = await supabase
-        .from("notifications")
-        .select("id")
-        .eq("type", "expiry")
-        .eq("license_id", serial.license_id)
-        .eq("serial_id", serial.id)
-        .eq("user_id", fixedUserId)
-        .gte("created_at", todayStr + "T00:00:00.000Z")
-        .maybeSingle();
+      if (assignError) {
+        console.error("❌ Error getting project assignments:", assignError);
+        continue;
+      }
 
-      if (!existingNotif) {
-        // Create notification
-        const notificationData = {
-          type: "expiry",
-          title: isExpired ? "Serial License Expired" : "Serial License Expiring Soon",
-          message: `${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}`,
-          license_id: serial.license_id,
-          serial_id: serial.id,
-          user_id: fixedUserId,
-          is_read: false,
-          priority: daysUntil <= 7 || isExpired ? "high" : "medium",
-          action_required: true,
-          action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-          expires_at: null,
-        };
+      if (!projectAssignments || projectAssignments.length === 0) {
+        console.log(`⚠️ No users assigned to project: ${serial.licenses.project_assign}`);
+        continue;
+      }
 
-        const { error: insertError } = await supabase
+      // Get user details for all assigned users
+      const userIds = projectAssignments.map(a => a.user_id);
+      const { data: userProfiles, error: userError } = await supabase
+        .from("user_profiles")
+        .select("id, email, full_name")
+        .in("id", `(${userIds.map(id => `'${id}'`).join(',')})`);
+
+      if (userError) {
+        console.error("❌ Error getting user profiles:", userError);
+        continue;
+      }
+
+      console.log(`👥 Found ${userProfiles?.length || 0} users for project ${serial.licenses.project_assign}:`, userProfiles?.map(u => u.email));
+
+      // Send to each assigned user
+      for (const user of userProfiles || []) {
+
+        // Check if notification already sent today
+        const { data: existingNotif } = await supabase
           .from("notifications")
-          .insert(notificationData);
+          .select("id")
+          .eq("type", "expiry")
+          .eq("license_id", serial.license_id)
+          .eq("serial_id", serial.id)
+          .eq("user_id", user.id)
+          .gte("created_at", todayStr + "T00:00:00.000Z")
+          .maybeSingle();
 
-        if (insertError) {
-          console.error("❌ Error inserting notification:", insertError);
-          continue;
-        }
+        if (!existingNotif) {
+          // Create notification
+          const notificationData = {
+            type: "expiry",
+            title: isExpired ? "Serial License Expired" : "Serial License Expiring Soon",
+            message: `${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}`,
+            license_id: serial.license_id,
+            serial_id: serial.id,
+            user_id: user.id,
+            is_read: false,
+            priority: daysUntil <= 7 || isExpired ? "high" : "medium",
+            action_required: true,
+            action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+            expires_at: null,
+          };
 
-        totalNotificationsCreated++;
+          const { error: insertError } = await supabase
+            .from("notifications")
+            .insert(notificationData);
 
-        // Send email to fixed email address
-        const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
-        const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
-        
-        try {
-          const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              to: fixedEmail,
-              subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
-              html: `
+          if (insertError) {
+            console.error("❌ Error inserting notification:", insertError);
+            continue;
+          }
+
+          totalNotificationsCreated++;
+
+          // Send email to user
+          const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
+          const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
+          
+          try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                to: user.email,
+                subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
+                html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
                   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
@@ -178,28 +207,24 @@ serve(async (req: Request) => {
                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
                       © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
                     </p>
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #495057;">
-                      <p style="margin: 0; font-size: 11px; color: #6c757d;">
-                        All expiry notifications are sent to: ayezinhtun9@gmail.com
-                      </p>
-                    </div>
                   </div>
                 </div>
               `
-            })
-          });
+              })
+            });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("❌ Error sending email:", errorData);
-          } else {
-            console.log(`📧 Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${fixedEmail} for ${serial.serial_or_contract}`);
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error("❌ Error sending email:", errorData);
+            } else {
+              console.log(`📧 Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${user.email} for ${serial.serial_or_contract}`);
+            }
+          } catch (emailError) {
+            console.error("❌ Error sending email:", emailError);
           }
-        } catch (emailError) {
-          console.error("❌ Error sending email:", emailError);
+        } else {
+          console.log(`⏭️ Notification already sent today to: ${user.email} for ${serial.serial_or_contract}`);
         }
-      } else {
-        console.log(`⏭️ Notification already sent today to: ${fixedEmail} for ${serial.serial_or_contract}`);
       }
     }
 
