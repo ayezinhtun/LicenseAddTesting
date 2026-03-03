@@ -134,11 +134,12 @@ serve(async (req: Request) => {
             action_required: true,
             action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
             expires_at: null,
+            created_at: todayStr + "T00:00:00.000Z",
           };
 
           const { error: insertError } = await supabase
             .from("notifications")
-            .upsert(notificationData, { onConflict: "user_id,license_id,serial_id,message,type" });
+            .insert(notificationData);
 
           if (insertError) {
             console.error(" Error inserting notification:", insertError);
