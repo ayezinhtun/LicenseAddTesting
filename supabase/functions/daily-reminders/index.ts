@@ -167,7 +167,7 @@ serve(async (req: Request) => {
             },
             body: JSON.stringify({
               to: user.email,
-              subject: `${urgencyLevel}: ${serials.length} License Notification(s) for ${projectId}`,
+              subject: `${urgencyLevel}: ${serials.length === 1 ? `${serials[0].serial_or_contract} License ${new Date(serials[0].end_date) < todayUTC ? 'Expired' : 'Expiring Soon'}` : `${serials.length} License Notification(s) for ${projectId}`}`,
               html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
