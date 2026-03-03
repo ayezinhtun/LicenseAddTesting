@@ -77,19 +77,35 @@ serve(async (req: Request) => {
         continue;
       }
 
-      // Get user details
+      // Get user details with role filtering for EMAIL notifications
       const userIds = projectAssignments.map((a: any) => a.user_id);
       const userProfiles: any[] = [];
-      
+
+      //admin users (get ALL email notifications - no project assignment needed)
+      const { data: adminUsers } = await supabase
+        .from("user_profiles")
+        .select("id, email, full_name, role")
+        .eq("role", "admin");
+
+      if (adminUsers) {
+        for (const admin of adminUsers) {
+          userProfiles.push(admin);
+        }
+      }
+
+      // super user and regular users (only get email notifications for assigned projects)
       for (const userId of userIds) {
         const { data: userProfile, error: singleUserError } = await supabase
           .from("user_profiles")
-          .select("id, email, full_name")
+          .select("id, email, full_name, role")
           .eq("user_id", userId)
           .single();
 
         if (!singleUserError && userProfile) {
-          userProfiles.push(userProfile);
+          // Only add if NOT admin (admin already gets all notifications)
+          if (userProfile.role !== "admin") {
+            userProfiles.push(userProfile);
+          }
         }
       }
 
