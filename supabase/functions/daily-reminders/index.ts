@@ -166,15 +166,7 @@ serve(async (req: Request) => {
                     <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
                       ${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}.
                     </p>
-                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
-                      <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 Action Required:</h4>
-                      <ul style="margin: 0; padding-left: 20px; color: #721c24;">
-                        <li>${isExpired ? 'Contact vendor immediately' : 'Review license details'}</li>
-                        <li>Check renewal options</li>
-                        <li>Update license information in system</li>
-                        <li>Notify relevant team members</li>
-                      </ul>
-                    </div>
+                   
                     <div style="text-align: center; margin: 30px 0;">
                       <a href="https://your-app-domain.com${notificationData.action_url}" 
                          style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
