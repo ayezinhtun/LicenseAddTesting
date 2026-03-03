@@ -168,7 +168,7 @@ serve(async (req: Request) => {
                     </p>
                    
                     <div style="text-align: center; margin: 30px 0;">
-                      <a href="https://your-app-domain.com${notificationData.action_url}" 
+                      <a href="" 
                          style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
                         View License Details
                       </a>
