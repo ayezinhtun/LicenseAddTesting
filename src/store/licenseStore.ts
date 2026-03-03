@@ -27,8 +27,6 @@ const ATTACHMENTS_BUCKET =
 export interface License {
   id: string;
 
-  company: string;
-
   vendor: string;
 
   item: string;
@@ -42,8 +40,6 @@ export interface License {
   // project_assign?: 'NPT' | 'YGN' | 'MPT' | null;
 
   project_assign?: string | null;
-
-  customer_name: string;
 
   business_unit: string;
 
@@ -211,7 +207,6 @@ export interface LicenseFilters {
 
   project_assign?: string | "";
 
-  company?: string;
 
   serial_number?: string;
 
@@ -663,9 +658,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         }
       }
 
-      if (filters.company) {
-        query = query.ilike("company", `%${filters.company}%`);
-      }
 
       if (filters.status && filters.status.length > 0) {
         query = query.in("status", filters.status);
@@ -2036,7 +2028,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
         project_name: "",
 
-        company: "",
 
         user_name: "",
 
@@ -3276,24 +3267,14 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
              licenses!inner(
 
-               id, company, vendor, item, item_description, serial_number, project_name, project_assign,
+               id, vendor, item_description, project_name, project_assign,
 
-               customer_name, business_unit, user_name, remark, priority, status, created_at, updated_at,
+               user_id, remark, priority, status, created_at, updated_at,
 
                created_by, last_modified_by
 
              )`,
         )
-
-        // Remove status filter so non-active licenses are included
-
-        // .eq('licenses.status', 'active')
-
-        .not("end_date", "is", null)
-
-        .gte("end_date", startStr)
-
-        .lte("end_date", endStr)
 
         .order("end_date", { ascending: true });
 
@@ -3570,7 +3551,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
           ...(data || []).map(
             (license) =>
-              `"${license.company}","${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.customer_name}","${license.business_unit}","${license.license_start_date}","${license.license_end_date}","${license.license_cost}","${license.quantity}","${license.auto_renew}","${license.user_name}","${license.status}","${license.priority}"`,
+              `"${license.vendor}","${license.item}","${license.item_description}","${license.serial_number}","${license.project_name}","${license.business_unit}","${license.license_start_date}","${license.license_end_date}","${license.license_cost}","${license.quantity}","${license.auto_renew}","${license.user_name}","${license.status}","${license.priority}"`,
           ),
         ].join("\n");
 
@@ -3649,11 +3630,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
             const value = values[index];
 
             switch (header.toLowerCase()) {
-              case "company":
-                licenseData.company = value;
-
-                break;
-
               case "vendor":
                 licenseData.vendor = value;
 
@@ -3676,11 +3652,6 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
               case "project":
                 licenseData.project_name = value;
-
-                break;
-
-              case "customer":
-                licenseData.customer_name = value;
 
                 break;
 

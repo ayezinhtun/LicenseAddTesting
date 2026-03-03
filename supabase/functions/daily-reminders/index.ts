@@ -13,11 +13,9 @@ serve(async (req: Request) => {
   }
 
   try {
-    console.log("🚀 CORRECTED: Daily expiry reminders");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const today = new Date();
@@ -25,8 +23,6 @@ serve(async (req: Request) => {
       Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
     );
     const todayStr = todayUTC.toISOString().slice(0, 10);
-    
-    console.log("📅 Today's date (UTC):", todayStr);
 
     // Get ALL serials
     const { data: allSerials, error: allError } = await supabase
@@ -42,38 +38,27 @@ serve(async (req: Request) => {
       return endDate < todayUTC;
     }) || [];
 
-    console.log(`🔍 Found ${expiredSerials.length} expired serials`);
 
     // Find expiring soon serials - CORRECTED LOGIC
     const expiringSoon = allSerials?.filter((serial: any) => {
       const notifyDays = serial.notify_before_days ?? 30;
-      
-      // ✅ CORRECTED: Calculate notify date properly
+
+      // Calculate notify date properly
       const endDate = new Date(serial.end_date);
       const notifyDate = new Date(endDate.getTime() - (notifyDays * 24 * 60 * 60 * 1000));
-      
-      // ✅ CORRECTED: Only notify when notify date is reached OR passed
+
+      // Only notify when notify date is reached OR passed
       const shouldNotify = todayUTC >= notifyDate && todayUTC <= endDate;
-      
-      console.log(`🔍 ${serial.serial_or_contract}:`);
-      console.log(`   - End Date: ${serial.end_date} (${endDate.toISOString()})`);
-      console.log(`   - Notify Days: ${notifyDays}`);
-      console.log(`   - Notify Date: ${notifyDate.toISOString().slice(0, 10)}`);
-      console.log(`   - Today: ${todayStr}`);
-      console.log(`   - Should Notify: ${shouldNotify}`);
-      console.log(`   - Today >= Notify: ${todayUTC >= notifyDate}`);
-      console.log(`   - Today <= End: ${todayUTC <= endDate}`);
-      console.log(`---`);
-      
+
+
       return shouldNotify;
     }) || [];
 
-    console.log(`🔍 Found ${expiringSoon.length} serials expiring soon`);
 
     // Process all notifications
     const allNotifications = [...expiredSerials, ...expiringSoon];
     let totalNotificationsCreated = 0;
-    
+
     for (const serial of allNotifications) {
       const isExpired = new Date(serial.end_date) < todayUTC;
       const daysUntil = Math.ceil(
@@ -81,31 +66,27 @@ serve(async (req: Request) => {
       );
       const daysOverdue = Math.abs(daysUntil);
 
-      console.log("🔔 Processing: ${serial.serial_or_contract} for ${serial.licenses.item_description} (${serial.licenses.project_assign})");
 
       // Get all users assigned to this project
-      console.log(`🔍 Looking for users assigned to project: ${serial.licenses.project_assign}`);
       const { data: projectAssignments, error: assignError } = await supabase
         .from("user_project_assigns")
         .select("user_id")
         .eq("project_assign", serial.licenses.project_assign);
 
       if (assignError) {
-        console.error("❌ Error getting project assignments:", assignError);
+        console.error("Error getting project assignments:", assignError);
         continue;
       }
 
-      console.log(`📋 Found ${projectAssignments?.length || 0} project assignments:`, projectAssignments);
 
       if (!projectAssignments || projectAssignments.length === 0) {
-        console.log(`⚠️ No users assigned to project: ${serial.licenses.project_assign}`);
+        console.log(`No users assigned to project: ${serial.licenses.project_assign}`);
         continue;
       }
 
       // Get user details for all assigned users
       const userIds = projectAssignments.map((a: any) => a.user_id);
-      console.log("🔍 User IDs to lookup:", userIds);
-      
+
       // Try individual queries instead of OR query
       const userProfiles: any[] = [];
       for (const userId of userIds) {
@@ -113,19 +94,17 @@ serve(async (req: Request) => {
         const { data: userProfile, error: singleUserError } = await supabase
           .from("user_profiles")
           .select("id, email, full_name")
-          .eq("user_id", userId)  // ✅ FIXED: Use user_id instead of id
+          .eq("user_id", userId)
           .single();
-        
+
         if (singleUserError) {
-          console.error(`❌ Error getting user ${userId}:`, singleUserError);
+          console.error(` Error getting user ${userId}:`, singleUserError);
         } else if (userProfile) {
-          console.log(`✅ Found user: ${userProfile.email}`);
+          console.log(` Found user: ${userProfile.email}`);
           userProfiles.push(userProfile);
         }
       }
 
-      console.log("👤 User profiles found:", userProfiles);
-      console.log(`👥 Found ${userProfiles?.length || 0} users for project ${serial.licenses.project_assign}:`, userProfiles?.map((u: any) => u.email));
 
       // Send to each assigned user
       for (const user of userProfiles || []) {
@@ -159,10 +138,10 @@ serve(async (req: Request) => {
 
           const { error: insertError } = await supabase
             .from("notifications")
-            .insert(notificationData);
+            .upsert(notificationData, { onConflict: "user_id,license_id,serial_id,message,type" });
 
           if (insertError) {
-            console.error("❌ Error inserting notification:", insertError);
+            console.error(" Error inserting notification:", insertError);
             continue;
           }
 
@@ -171,7 +150,7 @@ serve(async (req: Request) => {
           // Send email to user
           const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
           const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
-          
+
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
               method: 'POST',
@@ -229,31 +208,29 @@ serve(async (req: Request) => {
 
             if (!response.ok) {
               const errorData = await response.json();
-              console.error("❌ Error sending email:", errorData);
+              console.error("Error sending email:", errorData);
             } else {
-              console.log(`📧 Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${user.email} for ${serial.serial_or_contract}`);
+              console.log(`Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${user.email} for ${serial.serial_or_contract}`);
             }
           } catch (emailError) {
-            console.error("❌ Error sending email:", emailError);
+            console.error(" Error sending email:", emailError);
           }
         } else {
-          console.log(`⏭️ Notification already sent today to: ${user.email} for ${serial.serial_or_contract}`);
+          console.log(`Notification already sent today to: ${user.email} for ${serial.serial_or_contract}`);
         }
       }
     }
 
-    console.log("✅ Daily expiry reminders completed successfully!");
-    console.log(`📊 Summary: ${totalNotificationsCreated} new notifications created`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: "Daily reminders sent successfully",
         expiredCount: expiredSerials.length,
         expiringSoonCount: expiringSoon.length,
         totalProcessed: allNotifications.length,
         notificationsCreated: totalNotificationsCreated,
         todayUTC: todayStr
-      }), 
+      }),
       {
         status: 200,
         headers: corsHeaders,
@@ -261,13 +238,13 @@ serve(async (req: Request) => {
     );
 
   } catch (err: any) {
-    console.error("❌ Error in daily reminders:", err);
+    console.error("Error in daily reminders:", err);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: "Internal server error",
-        message: err.message 
-      }), 
-      { 
+        message: err.message
+      }),
+      {
         status: 500,
         headers: corsHeaders,
       }

@@ -90,7 +90,6 @@ export const NotificationsList: React.FC = () => {
     let mounted = true;
     (async () => {
       const rows = await getSerialsNearExpiry(30);
-      console.debug("nearSerials count:", rows.length, rows); // debug
       if (mounted) setNearSerials(rows);
     })();
     return () => {
