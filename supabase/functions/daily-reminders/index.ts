@@ -176,7 +176,7 @@ serve(async (req: Request) => {
                   </div>
                   <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
                     <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-                      This is an automated notification from 1Cloud Technology License Management System.
+                      1Cloud Technology License Management System
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
                       © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
