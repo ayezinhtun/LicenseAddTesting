@@ -107,28 +107,30 @@ serve(async (req: Request) => {
 
 
       // Send to each assigned user
-      for (const user of userProfiles || []) {
-
-        // Check if notification already sent today
+      for (const serial of allNotifications) {
+        // Check if notification already sent today for this specific serial
         const { data: existingNotif } = await supabase
           .from("notifications")
           .select("id")
           .eq("type", "expiry")
           .eq("license_id", serial.license_id)
           .eq("serial_id", serial.id)
-          .eq("user_id", user.id)
           .gte("created_at", todayStr + "T00:00:00.000Z")
           .maybeSingle();
 
         if (!existingNotif) {
-          // Create notification
+          const isExpired = new Date(serial.end_date) < todayUTC;
+          const daysUntil = Math.ceil((new Date(serial.end_date).getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24));
+          const daysOverdue = Math.abs(daysUntil);
+
+          // Create notification for this specific serial
           const notificationData = {
             type: "expiry",
             title: isExpired ? "Serial License Expired" : "Serial License Expiring Soon",
             message: `${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}`,
             license_id: serial.license_id,
             serial_id: serial.id,
-            user_id: user.id,
+            user_id: serial.licenses.created_by, // Send to license creator
             is_read: false,
             priority: daysUntil <= 7 || isExpired ? "high" : "medium",
             action_required: true,
@@ -148,78 +150,88 @@ serve(async (req: Request) => {
 
           totalNotificationsCreated++;
 
-          // Send email to user
+          // Send email to license creator
           const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
           const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
 
           try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                to: user.email,
-                subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
-                html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
-                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology</p>
-                  </div>
-                  <div style="background: ${urgencyColor}; color: white; padding: 15px 20px; text-align: center; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
-                    ${urgencyLevel} - ACTION REQUIRED
-                  </div>
-                  <div style="padding: 30px 20px; background: white; margin: 0 20px;">
-                    <h2 style="color: #dc3545; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">
-                      ⚠️ License ${isExpired ? 'Expired' : 'Expiring Soon'}
-                    </h2>
-                    <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-                      ${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}.
-                    </p>
-                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
-                      <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 Action Required:</h4>
-                      <ul style="margin: 0; padding-left: 20px; color: #721c24;">
-                        <li>${isExpired ? 'Contact vendor immediately' : 'Review license details'}</li>
-                        <li>Check renewal options</li>
-                        <li>Update license information in system</li>
-                        <li>Notify relevant team members</li>
-                      </ul>
-                    </div>
-                    <div style="text-align: center; margin: 30px 0;">
-                      <a href="https://your-app-domain.com${notificationData.action_url}" 
-                         style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
-                        View License Details
-                      </a>
-                    </div>
-                  </div>
-                  <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
-                    <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-                      This is an automated notification from 1Cloud Technology License Management System.
-                    </p>
-                    <p style="margin: 0; font-size: 12px; color: #6c757d;">
-                      © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
-                    </p>
-                  </div>
-                </div>
-              `
-              })
-            });
+            // Get license creator details
+            const { data: creator } = await supabase
+              .from("user_profiles")
+              .select("email, full_name")
+              .eq("user_id", serial.licenses.created_by)
+              .single();
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.error("Error sending email:", errorData);
-            } else {
-              console.log(`Sent ${isExpired ? 'expiry' : 'expiring'} notification to: ${user.email} for ${serial.serial_or_contract}`);
+            if (creator) {
+              const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  to: creator.email,
+                  subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
+                  html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology</p>
+              </div>
+              <div style="background: ${urgencyColor}; color: white; padding: 15px 20px; text-align: center; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
+                ${urgencyLevel} - ACTION REQUIRED
+              </div>
+              <div style="padding: 30px 20px; background: white; margin: 0 20px;">
+                <h2 style="color: #dc3545; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">
+                  ⚠️ License ${isExpired ? 'Expired' : 'Expiring Soon'}
+                </h2>
+                <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                  ${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}.
+                </p>
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                  <h4 style="margin: 0 0 10px 0; color: #721c24; font-size: 16px; font-weight: 600;">📋 Action Required:</h4>
+                  <ul style="margin: 0; padding-left: 20px; color: #721c24;">
+                    <li>${isExpired ? 'Contact vendor immediately' : 'Review license details'}</li>
+                    <li>Check renewal options</li>
+                    <li>Update license information in system</li>
+                    <li>Notify relevant team members</li>
+                  </ul>
+                </div>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="https://your-app-domain.com${notificationData.action_url}" 
+                     style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
+                    View License Details
+                  </a>
+                </div>
+              </div>
+              <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
+                  This is an automated notification from 1Cloud Technology License Management System.
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                  © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
+                </p>
+              </div>
+            </div>
+            `
+                })
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error sending email:", errorData);
+              } else {
+                console.log(`Sent notification to: ${creator.email} for ${serial.serial_or_contract}`);
+              }
             }
           } catch (emailError) {
             console.error(" Error sending email:", emailError);
           }
         } else {
-          console.log(`Notification already sent today to: ${user.email} for ${serial.serial_or_contract}`);
+          console.log(`Notification already sent today for: ${serial.serial_or_contract}`);
         }
       }
+
     }
 
 
