@@ -6,6 +6,10 @@ on:
     # Run every day at midnight (18:30 UTC previous day)
     - cron: '30 18 * * *'
 
+env: 
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
 jobs:
   run:
     runs-on: ubuntu-latest
