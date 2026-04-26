@@ -191,7 +191,7 @@ export const useAuthStore = create<AuthState>()(
             options: {
               emailRedirectTo: `${window.location.origin}/pending-approval`,
               data: {
-                name,
+                full_name: name, 
                 role: "user",
                 department: "General",
               },
