@@ -16,6 +16,7 @@ import {
   Save as SaveIcon,
   Trash2,
 } from "lucide-react";
+import { MultiSelect } from "../common/MultiSelect";
 
 type Role = "admin" | "super_user" | "user";
 // type Assign = '' | 'NPT' | 'YGN' | 'MPT';
@@ -188,6 +189,27 @@ export const UserManagement: React.FC = () => {
         .update(payload)
         .eq("id", row.id);
       if (error) throw error;
+
+      // Save assignments
+      if (row.user_id) {
+        // Delete existing assignments
+        await supabase
+          .from("user_project_assigns")
+          .delete()
+          .eq("user_id", row.user_id);
+
+        // Insert new assignments
+        if (row.assignments.length > 0) {
+          const newAssignments = row.assignments.map(project => ({
+            user_id: row.user_id,
+            project_assign: project
+          }));
+          await supabase
+            .from("user_project_assigns")
+            .insert(newAssignments);
+        }
+      }
+
       toast.success("User updated");
       // Refresh table from DB to ensure UI matches persisted state
       await fetchProfiles();
@@ -414,7 +436,7 @@ export const UserManagement: React.FC = () => {
                         className="w-40"
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-3">
                         {projectOptions.map((a) => (
                           <label
@@ -431,6 +453,18 @@ export const UserManagement: React.FC = () => {
                           </label>
                         ))}
                       </div>
+                    </td> */}
+
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <MultiSelect
+                        options={projectOptions}
+                        value={u.assignments || []}
+                        onChange={(newAssignments) => {
+                          // Only update local state, don't save to database
+                          patchRow(u.id, { assignments: newAssignments });
+                        }}
+                        placeholder="Select projects"
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Select
