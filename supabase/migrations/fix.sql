@@ -100,3 +100,25 @@ FOR SELECT USING (
   bucket_id = 'attachments' AND 
   auth.role() = 'authenticated'
 );
+
+
+-- Enable RLS for notification_reads
+ALTER TABLE "public"."notification_reads" ENABLE ROW LEVEL SECURITY;
+
+-- Add policies for notification_reads
+CREATE POLICY "notification_reads_insert_authenticated" ON "public"."notification_reads" 
+FOR INSERT TO "authenticated" 
+WITH CHECK (true);
+
+CREATE POLICY "notification_reads_select_authenticated" ON "public"."notification_reads" 
+FOR SELECT TO "authenticated" 
+USING (true);
+
+CREATE POLICY "notification_reads_update_authenticated" ON "public"."notification_reads" 
+FOR UPDATE TO "authenticated" 
+USING (true) 
+WITH CHECK (true);
+
+CREATE POLICY "notification_reads_delete_authenticated" ON "public"."notification_reads" 
+FOR DELETE TO "authenticated" 
+USING (true);
