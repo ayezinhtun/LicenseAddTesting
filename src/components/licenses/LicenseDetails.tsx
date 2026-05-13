@@ -349,7 +349,7 @@ export const LicenseDetails: React.FC = () => {
                 <th>Serial (old)</th>
                 <th>Serial Start (old)</th>
                 <th>Serial End (old)</th>
-                <th>Remark (old)</th>in 
+                <th>Remark (old)</th>
               </tr>
             </thead>
             <tbody>
