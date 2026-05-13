@@ -68,7 +68,7 @@ export const RecentlyDeleted: React.FC = () => {
               <span className="ml-3 text-gray-600">Loading...</span>
             </div>
           ) : rows.length === 0 ? (
-            <div className="px-6 py-6 text-gray-500">
+            <div className="px-6 py-6 text-gray-500 text-center">
               No recently deleted licenses.
             </div>
           ) : (
