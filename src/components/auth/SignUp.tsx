@@ -77,7 +77,7 @@ export const SignUp: React.FC = () => {
             Create Account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Join 1Cloud Technology License Manager
+            Join 1Cloud Technology Subscription Management
           </p>
         </div>
 

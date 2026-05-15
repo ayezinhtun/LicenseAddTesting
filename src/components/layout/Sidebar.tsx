@@ -146,7 +146,7 @@ export const Sidebar: React.FC<{
                 />
                 <div>
                   <h1 className="font-bold text-gray-900 text-lg">
-                    License Manager
+                    Subscription Management
                   </h1>
                   <p className="text-xs text-gray-500">1Cloud Technology</p>
                 </div>

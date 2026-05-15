@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useDistributorStore } from "../../store/useDistributorStore";
 import { Button } from "../common/Button";
 import { Input } from "../common/Input";
+import { Select } from "../common/Select";
 import { Modal } from "../common/Modal";
 import { Card } from "../common/Card";
 import {
@@ -198,32 +199,28 @@ export const DistributorPage: React.FC = () => {
 
           {showFilters && (
             <div className="border-t border-gray-200 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sort by
-                </label>
-                <select
-                  className="block w-full rounded-lg border-gray-300"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                >
-                  <option value="company_name">Name</option>
-                  <option value="created_at">Created</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Order
-                </label>
-                <select
-                  className="block w-full rounded-lg border-gray-300"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as any)}
-                >
-                  <option value="asc">Ascending</option>
-                  <option value="desc">Descending</option>
-                </select>
-              </div>
+              <Select
+                label="Sort by"
+                value={sortBy}
+                onChange={(value) =>
+                  setSortBy(value as "company_name" | "created_at")
+                }
+                options={[
+                  { value: "company_name", label: "Name" },
+                  { value: "created_at", label: "Created" },
+                ]}
+                placeholder=""
+              />
+              <Select
+                label="Order"
+                value={sortOrder}
+                onChange={(value) => setSortOrder(value as SortOrder)}
+                options={[
+                  { value: "asc", label: "Ascending" },
+                  { value: "desc", label: "Descending" },
+                ]}
+                placeholder=""
+              />
             </div>
           )}
         </div>

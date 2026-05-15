@@ -348,9 +348,8 @@ export const AuditLogs: React.FC = () => {
               icon={ChevronDown}
               onClick={() => setShowFilters(!showFilters)}
               className={`transform transition-transform ${showFilters ? "rotate-180" : ""}`}
-            >
-              {showFilters ? "Hide" : "Show"} Filters
-            </Button>
+            />
+              
           </div>
 
           <div className="space-y-4">
