@@ -169,8 +169,8 @@ serve(async (req: Request) => {
                 html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
                   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">License Management System</h1>
-                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology</p>
+                    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Subscription Management System</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">One Cloud Technology</p>
                   </div>
                   <div style="background: ${urgencyColor}; color: white; padding: 15px 20px; text-align: center; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
                     ${urgencyLevel} - ACTION REQUIRED
@@ -192,10 +192,10 @@ serve(async (req: Request) => {
                   </div>
                   <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
                     <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-                      1Cloud Technology License Management System
+                      One Cloud Technology Subscription Management System
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
-                      © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
+                      © ${new Date().getFullYear()} One Cloud Technology. All rights reserved.
                     </p>
                   </div>
                 </div>
