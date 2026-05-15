@@ -152,7 +152,7 @@ export class EmailService {
         <!-- Footer -->
         <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
           <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-            This is an automated license expiry alert from 1Cloud Technology License Management System.
+            This is an automated license expiry alert from 1Cloud Technology Subscription Management System.
           </p>
           <p style="margin: 0; font-size: 12px; color: #6c757d;">
             © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
@@ -260,7 +260,7 @@ export class EmailService {
         <!-- Footer -->
         <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
           <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-            This is an automated renewal confirmation from 1Cloud Technology License Management System.
+            This is an automated renewal confirmation from 1Cloud Technology Subscription Management System.
           </p>
           <p style="margin: 0; font-size: 12px; color: #6c757d;">
             © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
@@ -335,7 +335,7 @@ export class EmailService {
         <!-- Footer -->
         <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
           <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-            This is an automated comment notification from 1Cloud Technology License Management System.
+            This is an automated comment notification from 1Cloud Technology Subscription Management System.
           </p>
           <p style="margin: 0; font-size: 12px; color: #6c757d;">
             © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
