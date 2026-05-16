@@ -38,54 +38,7 @@ export const Notifications: React.FC = () => {
 
   const licensesNearExpiry = getLicensesNearExpiry(30);
 
-  const allNotifications = [
-    ...notifications,
-    ...licensesNearExpiry.map((license) => ({
-      id: `expiry-${license.id}`,
-      type: "expiry" as const,
-      title: "License Expiring Soon",
-      message: `${license.item_description} license for ${license.project_name} expires on ${format(parseISO(license.license_end_date), "MMM dd, yyyy")}`,
-      time: "Today",
-      isRead: false,
-      icon: AlertTriangle,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      created_at: new Date().toISOString(),
-      user_id: "current-user",
-      is_read: false,
-      priority: "high" as const,
-      action_required: true,
-      action_url: `/licenses/${license.id}`,
-      license_id: license.id,
-      expires_at: null,
-    })),
-
-    // Add some system notifications if no real notifications exist
-    ...(notifications.length === 0
-      ? [
-          {
-            id: "welcome",
-            type: "system" as const,
-            title: "Welcome to License Manager",
-            message:
-              "Your license management system is ready to use. Email notifications are enabled.",
-            time: "2 hours ago",
-            icon: CheckCircle,
-            color: "text-green-600",
-            bgColor: "bg-green-50",
-            isRead: true,
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            user_id: "current-user",
-            is_read: true,
-            priority: "low" as const,
-            action_required: false,
-            action_url: null,
-            license_id: null,
-            expires_at: null,
-          },
-        ]
-      : []),
-  ].slice(0, 20);
+  const allNotifications = notifications.filter((n) => n.user_id === user?.id);
 
   const unreadCount = allNotifications.filter((n) => !n.is_read).length;
 
