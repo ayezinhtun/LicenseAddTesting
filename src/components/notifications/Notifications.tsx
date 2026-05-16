@@ -38,8 +38,15 @@ export const Notifications: React.FC = () => {
 
   const licensesNearExpiry = getLicensesNearExpiry(30);
 
+  const currentUserId = user?.id;
+
+  const userNotifications = notifications.filter(
+    (n) => n.user_id === currentUserId,
+  );
+
+
   const allNotifications = [
-    ...notifications,
+    ...userNotifications, 
     ...licensesNearExpiry.map((license) => ({
       id: `expiry-${license.id}`,
       type: "expiry" as const,
@@ -51,7 +58,7 @@ export const Notifications: React.FC = () => {
       color: "text-orange-600",
       bgColor: "bg-orange-50",
       created_at: new Date().toISOString(),
-      user_id: "current-user",
+      user_id: currentUserId,
       is_read: false,
       priority: "high" as const,
       action_required: true,
