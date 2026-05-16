@@ -1,3 +1,258 @@
+// import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// const corsHeaders = {
+//   "Access-Control-Allow-Origin": "*",
+//   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+//   "Access-Control-Allow-Methods": "POST, OPTIONS",
+// };
+
+// serve(async (req: Request) => {
+//   if (req.method === "OPTIONS") {
+//     return new Response("ok", { headers: corsHeaders });
+//   }
+
+//   try {
+//     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+//     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!;
+
+//     const supabase = createClient(supabaseUrl, supabaseKey);
+
+//     const today = new Date();
+//     const todayUTC = new Date(
+//       Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+//     );
+//     const todayStr = todayUTC.toISOString().slice(0, 10);
+
+//     // Get ALL serials
+//     const { data: allSerials, error: allError } = await supabase
+//       .from("license_serials")
+//       .select(`*, licenses!inner(created_by, item_description, project_assign)`);
+
+//     if (allError) throw allError;
+//     console.log(`🔍 Found ${allSerials?.length || 0} total serials`);
+
+//     // Find expired serials
+//     const expiredSerials = allSerials?.filter((serial: any) => {
+//       const endDate = new Date(serial.end_date);
+//       return endDate < todayUTC;
+//     }) || [];
+
+
+//     // Find expiring soon serials - CORRECTED LOGIC
+//     const expiringSoon = allSerials?.filter((serial: any) => {
+//       const notifyDays = serial.notify_before_days ?? 30;
+
+//       // Calculate notify date properly
+//       const endDate = new Date(serial.end_date);
+//       const notifyDate = new Date(endDate.getTime() - (notifyDays * 24 * 60 * 60 * 1000));
+
+//       // Only notify when notify date is reached OR passed
+//       const shouldNotify = todayUTC >= notifyDate && todayUTC <= endDate;
+
+
+//       return shouldNotify;
+//     }) || [];
+
+
+//     // Process all notifications
+//     const allNotifications = [...expiredSerials, ...expiringSoon];
+//     let totalNotificationsCreated = 0;
+
+//     // Process each serial individually (no project grouping)
+//     for (const serial of allNotifications) {
+//       // Get users for this serial's project
+//       const { data: projectAssignments, error: assignError } = await supabase
+//         .from("user_project_assigns")
+//         .select("user_id")
+//         .eq("project_assign", serial.licenses.project_assign);
+
+//       if (assignError) {
+//         console.error("Error getting project assignments:", assignError);
+//         continue;
+//       }
+
+//       if (!projectAssignments || projectAssignments.length === 0) {
+//         console.log(`No users assigned to project: ${serial.licenses.project_assign}`);
+//         continue;
+//       }
+
+//       // Get user details with role filtering for EMAIL notifications
+//       const userIds = projectAssignments.map((a: any) => a.user_id);
+//       const userProfiles: any[] = [];
+
+//       //admin users (get ALL email notifications - no project assignment needed)
+//       const { data: adminUsers } = await supabase
+//         .from("user_profiles")
+//         .select("id, email, full_name, role")
+//         .eq("role", "admin");
+
+//       if (adminUsers) {
+//         for (const admin of adminUsers) {
+//           userProfiles.push(admin);
+//         }
+//       }
+
+//       // super user and regular users (only get email notifications for assigned projects)
+//       for (const userId of userIds) {
+//         const { data: userProfile, error: singleUserError } = await supabase
+//           .from("user_profiles")
+//           .select("id, email, full_name, role")
+//           .eq("user_id", userId)
+//           .single();
+
+//         if (!singleUserError && userProfile) {
+//           // Only add if NOT admin (admin already gets all notifications)
+//           if (userProfile.role !== "admin") {
+//             userProfiles.push(userProfile);
+//           }
+//         }
+//       }
+
+//       // Check if notification already sent today
+//       const { data: existingNotif } = await supabase
+//         .from("notifications")
+//         .select("id")
+//         .eq("type", "expiry")
+//         .eq("license_id", serial.license_id)
+//         .eq("serial_id", serial.id)
+//         .gte("created_at", todayStr + "T00:00:00.000Z")
+//         .maybeSingle();
+
+//       if (!existingNotif) {
+//         const isExpired = new Date(serial.end_date) < todayUTC;
+//         const daysUntil = Math.ceil((new Date(serial.end_date).getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24));
+//         const daysOverdue = Math.abs(daysUntil);
+
+//         // Create notification for this specific serial
+//         const notificationData = {
+//           type: "expiry",
+//           title: isExpired ? "Serial License Expired" : "Serial License Expiring Soon",
+//           message: `${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}`,
+//           license_id: serial.license_id,
+//           serial_id: serial.id,
+//           user_id: userProfiles[0]?.id || 'system',
+//           is_read: false,
+//           priority: daysUntil <= 7 || isExpired ? "high" : "medium",
+//           action_required: true,
+//           action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
+//           expires_at: null,
+//           created_at: todayStr + "T00:00:00.000Z",
+//         };
+
+//         const { error: insertError } = await supabase
+//           .from("notifications")
+//           .insert(notificationData);
+
+//         if (insertError) {
+//           console.error(" Error inserting notification:", insertError);
+//           continue;
+//         }
+
+//         totalNotificationsCreated++;
+
+//         // Send email for THIS SPECIFIC serial to ALL users
+//         const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
+//         const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
+
+//         for (const user of userProfiles) {
+//           try {
+//             const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+//               method: 'POST',
+//               headers: {
+//                 'Authorization': `Bearer ${supabaseKey}`,
+//                 'Content-Type': 'application/json'
+//               },
+//               body: JSON.stringify({
+//                 to: user.email,
+//                 subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
+//                 html: `
+//                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+//                   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+//                     <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Subscription Management System</h1>
+//                     <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology</p>
+//                   </div>
+//                   <div style="background: ${urgencyColor}; color: white; padding: 15px 20px; text-align: center; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
+//                     ${urgencyLevel} - ACTION REQUIRED
+//                   </div>
+//                   <div style="padding: 30px 20px; background: white; margin: 0 20px;">
+//                     <h2 style="color: #dc3545; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">
+//                       ⚠️ License ${isExpired ? 'Expired' : 'Expiring Soon'}
+//                     </h2>
+//                     <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+//                       ${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}.
+//                     </p>
+                   
+//                     <div style="text-align: center; margin: 30px 0;">
+//                       <a href="" 
+//                          style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
+//                         View License Details
+//                       </a>
+//                     </div>
+//                   </div>
+//                   <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
+//                     <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
+//                       1Cloud Technology Subscription Management System
+//                     </p>
+//                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
+//                       © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
+//                     </p>
+//                   </div>
+//                 </div>
+//               `
+//               })
+//             });
+
+//             if (!response.ok) {
+//               const errorData = await response.json();
+//               console.error("Error sending email:", errorData);
+//             } else {
+//               console.log(`Sent notification to: ${user.email} for ${serial.serial_or_contract}`);
+//             }
+//           } catch (emailError) {
+//             console.error(" Error sending email:", emailError);
+//           }
+//         }
+//       } else {
+//         console.log(`Notification already sent today for: ${serial.serial_or_contract}`);
+//       }
+//     }
+
+
+//     return new Response(
+//       JSON.stringify({
+//         message: "Daily reminders sent successfully",
+//         expiredCount: expiredSerials.length,
+//         expiringSoonCount: expiringSoon.length,
+//         totalProcessed: allNotifications.length,
+//         notificationsCreated: totalNotificationsCreated,
+//         todayUTC: todayStr
+//       }),
+//       {
+//         status: 200,
+//         headers: corsHeaders,
+//       }
+//     );
+
+//   } catch (err: any) {
+//     console.error("Error in daily reminders:", err);
+//     return new Response(
+//       JSON.stringify({
+//         error: "Internal server error",
+//         message: err.message
+//       }),
+//       {
+//         status: 500,
+//         headers: corsHeaders,
+//       }
+//     );
+//   }
+// });
+
+
+
+
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -14,103 +269,93 @@ serve(async (req: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseKey =
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+      Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const today = new Date();
     const todayUTC = new Date(
-      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
     );
+
     const todayStr = todayUTC.toISOString().slice(0, 10);
 
-    // Get ALL serials
-    const { data: allSerials, error: allError } = await supabase
+    // =====================
+    // GET SERIALS
+    // =====================
+    const { data: allSerials, error } = await supabase
       .from("license_serials")
-      .select(`*, licenses!inner(created_by, item_description, project_assign)`);
+      .select(`*, licenses!inner(id, item_description, project_assign)`);
 
-    if (allError) throw allError;
-    console.log(`🔍 Found ${allSerials?.length || 0} total serials`);
+    if (error) throw error;
 
-    // Find expired serials
-    const expiredSerials = allSerials?.filter((serial: any) => {
-      const endDate = new Date(serial.end_date);
-      return endDate < todayUTC;
+    const expired = allSerials?.filter(
+      (s) => new Date(s.end_date) < todayUTC
+    ) || [];
+
+    const expiring = allSerials?.filter((s) => {
+      const notifyDays = s.notify_before_days ?? 30;
+      const end = new Date(s.end_date);
+      const notifyDate = new Date(end.getTime() - notifyDays * 86400000);
+
+      return todayUTC >= notifyDate && todayUTC <= end;
     }) || [];
 
+    const targets = [...expired, ...expiring];
 
-    // Find expiring soon serials - CORRECTED LOGIC
-    const expiringSoon = allSerials?.filter((serial: any) => {
-      const notifyDays = serial.notify_before_days ?? 30;
+    let notificationsCreated = 0;
 
-      // Calculate notify date properly
-      const endDate = new Date(serial.end_date);
-      const notifyDate = new Date(endDate.getTime() - (notifyDays * 24 * 60 * 60 * 1000));
+    // =====================
+    // PROCESS SERIALS
+    // =====================
+    for (const serial of targets) {
+      const project = serial.licenses.project_assign;
 
-      // Only notify when notify date is reached OR passed
-      const shouldNotify = todayUTC >= notifyDate && todayUTC <= endDate;
-
-
-      return shouldNotify;
-    }) || [];
-
-
-    // Process all notifications
-    const allNotifications = [...expiredSerials, ...expiringSoon];
-    let totalNotificationsCreated = 0;
-
-    // Process each serial individually (no project grouping)
-    for (const serial of allNotifications) {
-      // Get users for this serial's project
-      const { data: projectAssignments, error: assignError } = await supabase
+      // =====================
+      // PROJECT USERS
+      // =====================
+      const { data: assigns } = await supabase
         .from("user_project_assigns")
         .select("user_id")
-        .eq("project_assign", serial.licenses.project_assign);
+        .eq("project_assign", project);
 
-      if (assignError) {
-        console.error("Error getting project assignments:", assignError);
-        continue;
-      }
+      const userIds = assigns?.map((u) => u.user_id) || [];
 
-      if (!projectAssignments || projectAssignments.length === 0) {
-        console.log(`No users assigned to project: ${serial.licenses.project_assign}`);
-        continue;
-      }
-
-      // Get user details with role filtering for EMAIL notifications
-      const userIds = projectAssignments.map((a: any) => a.user_id);
-      const userProfiles: any[] = [];
-
-      //admin users (get ALL email notifications - no project assignment needed)
-      const { data: adminUsers } = await supabase
+      const { data: users } = await supabase
         .from("user_profiles")
-        .select("id, email, full_name, role")
+        .select("id, user_id, email, role")
+        .in("user_id", userIds);
+
+      // =====================
+      // ADMIN USERS (ALL ACCESS)
+      // =====================
+      const { data: admins } = await supabase
+        .from("user_profiles")
+        .select("id, user_id, email, role")
         .eq("role", "admin");
 
-      if (adminUsers) {
-        for (const admin of adminUsers) {
-          userProfiles.push(admin);
+      const finalUsers = new Map();
+
+      // admin gets ALL
+      admins?.forEach((a) => finalUsers.set(a.user_id, a));
+
+      // project users (non-admin duplicates avoided)
+      users?.forEach((u) => {
+        if (u.role !== "admin") {
+          finalUsers.set(u.user_id, u);
         }
-      }
+      });
 
-      // super user and regular users (only get email notifications for assigned projects)
-      for (const userId of userIds) {
-        const { data: userProfile, error: singleUserError } = await supabase
-          .from("user_profiles")
-          .select("id, email, full_name, role")
-          .eq("user_id", userId)
-          .single();
+      const recipients = Array.from(finalUsers.values());
 
-        if (!singleUserError && userProfile) {
-          // Only add if NOT admin (admin already gets all notifications)
-          if (userProfile.role !== "admin") {
-            userProfiles.push(userProfile);
-          }
-        }
-      }
+      if (recipients.length === 0) continue;
 
-      // Check if notification already sent today
-      const { data: existingNotif } = await supabase
+      // =====================
+      // CHECK DUPLICATE
+      // =====================
+      const { data: existing } = await supabase
         .from("notifications")
         .select("id")
         .eq("type", "expiry")
@@ -119,132 +364,85 @@ serve(async (req: Request) => {
         .gte("created_at", todayStr + "T00:00:00.000Z")
         .maybeSingle();
 
-      if (!existingNotif) {
-        const isExpired = new Date(serial.end_date) < todayUTC;
-        const daysUntil = Math.ceil((new Date(serial.end_date).getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24));
-        const daysOverdue = Math.abs(daysUntil);
+      if (existing) continue;
 
-        // Create notification for this specific serial
-        const notificationData = {
-          type: "expiry",
-          title: isExpired ? "Serial License Expired" : "Serial License Expiring Soon",
-          message: `${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}`,
-          license_id: serial.license_id,
-          serial_id: serial.id,
-          user_id: userProfiles[0]?.id || 'system',
-          is_read: false,
-          priority: daysUntil <= 7 || isExpired ? "high" : "medium",
-          action_required: true,
-          action_url: `/licenses/${serial.license_id}?serial=${serial.id}`,
-          expires_at: null,
-          created_at: todayStr + "T00:00:00.000Z",
-        };
+      const isExpired = new Date(serial.end_date) < todayUTC;
 
+      const daysUntil = Math.ceil(
+        (new Date(serial.end_date).getTime() - todayUTC.getTime()) /
+          86400000
+      );
+
+      // =====================
+      // CREATE NOTIFICATION PER USER (🔥 FIX)
+      // =====================
+      for (const user of recipients) {
         const { error: insertError } = await supabase
           .from("notifications")
-          .insert(notificationData);
+          .insert({
+            type: "expiry",
+            title: isExpired
+              ? "License Expired"
+              : "License Expiring Soon",
+            message: `${serial.serial_or_contract} - ${
+              serial.licenses.item_description
+            } ${
+              isExpired
+                ? "expired"
+                : `expires in ${daysUntil} days`
+            }`,
+            license_id: serial.license_id,
+            serial_id: serial.id,
+            user_id: user.user_id, // ✅ FIXED (REAL USER ID)
+            is_read: false,
+            priority: isExpired || daysUntil <= 7 ? "high" : "medium",
+            created_at: todayStr + "T00:00:00.000Z",
+          });
 
-        if (insertError) {
-          console.error(" Error inserting notification:", insertError);
-          continue;
+        if (!insertError) {
+          notificationsCreated++;
         }
 
-        totalNotificationsCreated++;
-
-        // Send email for THIS SPECIFIC serial to ALL users
-        const urgencyLevel = isExpired || daysUntil <= 7 ? "URGENT" : "IMPORTANT";
-        const urgencyColor = isExpired || daysUntil <= 7 ? "#dc3545" : "#fd7e14";
-
-        for (const user of userProfiles) {
-          try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                to: user.email,
-                subject: `${urgencyLevel}: ${serial.serial_or_contract} License ${isExpired ? 'Expired' : 'Expiring Soon'}`,
-                html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Subscription Management System</h1>
-                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">1Cloud Technology</p>
-                  </div>
-                  <div style="background: ${urgencyColor}; color: white; padding: 15px 20px; text-align: center; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
-                    ${urgencyLevel} - ACTION REQUIRED
-                  </div>
-                  <div style="padding: 30px 20px; background: white; margin: 0 20px;">
-                    <h2 style="color: #dc3545; margin: 0 0 20px 0; font-size: 22px; font-weight: 600;">
-                      ⚠️ License ${isExpired ? 'Expired' : 'Expiring Soon'}
-                    </h2>
-                    <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-                      ${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}.
-                    </p>
-                   
-                    <div style="text-align: center; margin: 30px 0;">
-                      <a href="" 
-                         style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
-                        View License Details
-                      </a>
-                    </div>
-                  </div>
-                  <div style="background: #343a40; color: white; padding: 25px 20px; text-align: center; margin: 0 20px;">
-                    <p style="margin: 0 0 10px 0; font-size: 14px; color: #adb5bd;">
-                      1Cloud Technology Subscription Management System
-                    </p>
-                    <p style="margin: 0; font-size: 12px; color: #6c757d;">
-                      © ${new Date().getFullYear()} 1Cloud Technology. All rights reserved.
-                    </p>
-                  </div>
-                </div>
-              `
-              })
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.error("Error sending email:", errorData);
-            } else {
-              console.log(`Sent notification to: ${user.email} for ${serial.serial_or_contract}`);
-            }
-          } catch (emailError) {
-            console.error(" Error sending email:", emailError);
+        // =====================
+        // EMAIL PER USER
+        // =====================
+        await fetch(
+          `${supabaseUrl}/functions/v1/send-email-notification`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              to: user.email,
+              subject: `${
+                isExpired ? "URGENT" : "IMPORTANT"
+              }: License Update`,
+              html: `<p>${serial.serial_or_contract} - ${
+                serial.licenses.item_description
+              }</p>`,
+            }),
           }
-        }
-      } else {
-        console.log(`Notification already sent today for: ${serial.serial_or_contract}`);
+        );
       }
     }
-
 
     return new Response(
       JSON.stringify({
         message: "Daily reminders sent successfully",
-        expiredCount: expiredSerials.length,
-        expiringSoonCount: expiringSoon.length,
-        totalProcessed: allNotifications.length,
-        notificationsCreated: totalNotificationsCreated,
-        todayUTC: todayStr
+        expiredCount: expired.length,
+        expiringSoonCount: expiring.length,
+        totalProcessed: targets.length,
+        notificationsCreated,
+        todayUTC: todayStr,
       }),
-      {
-        status: 200,
-        headers: corsHeaders,
-      }
+      { status: 200, headers: corsHeaders }
     );
-
   } catch (err: any) {
-    console.error("Error in daily reminders:", err);
     return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        message: err.message
-      }),
-      {
-        status: 500,
-        headers: corsHeaders,
-      }
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: corsHeaders }
     );
   }
 });

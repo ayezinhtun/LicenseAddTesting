@@ -103,8 +103,10 @@ export const Sidebar: React.FC<{
   // const { getLicensesNearExpiry } = useLicenseStore();
 
   const { notifications } = useNotificationStore();
-  const notificationCount = notifications.filter((n) => !n.is_read).length;
-
+  const notificationCount = (notifications || []).filter(
+    (n) => n.user_id === user?.id && !n.is_read,
+  ).length;
+  
   const handleLogout = () => {
     logout();
   };
@@ -289,7 +291,6 @@ export const Sidebar: React.FC<{
           </motion.div>
         )}
       </nav>
-      
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
@@ -304,8 +305,6 @@ export const Sidebar: React.FC<{
         >
           {!isCollapsed && "Sign Out"}
         </Button>
-
-        
       </div>
     </motion.div>
   );
