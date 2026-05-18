@@ -147,18 +147,12 @@ export const PendingApproval: React.FC = () => {
               </div>
             </div>
           )}
-          <div className="mt-6 border-t pt-4 flex items-center justify-between">
-            <Button onClick={handleRefreshStatus} className="px-4">
-              Refresh
-            </Button>
+          <div className="mt-6 flex gap-3">
+            <Button onClick={handleRefreshStatus} className="flex-1 rounded-full px-2 py-2">Refresh status</Button>
 
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-red-600 hover:underline"
-            >
-              Sign out
-            </button>
+            <Button onClick={handleSignOut} className="flex-1 rounded-full px-2 py-2 bg-red-600 text-white">Sign out</Button>{" "}
           </div>
+
         </div>
       </Card>
     </div>
