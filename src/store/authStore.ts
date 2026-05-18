@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthState>()(
             const userData: User = {
               id: user.id,
               name:
-                (profileRow?.name as string) ||
+                (profileRow?.full_name as string) ||
                 user.user_metadata?.name ||
                 user.email?.split("@")[0] ||
                 "User",
