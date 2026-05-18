@@ -14,7 +14,7 @@ import { useNotificationStore } from "../../store/notificationStore";
 import { parseISO, differenceInDays } from "date-fns";
 import type { Notification } from "../../store/notificationStore";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../store/authStore";
+
 
 const getNotificationIcon = (type: Notification["type"]) => {
   switch (type) {
@@ -33,6 +33,7 @@ const getNotificationIcon = (type: Notification["type"]) => {
       return Info;
   }
 };
+
 
 const getNotificationColor = (
   type: Notification["type"],
@@ -77,20 +78,13 @@ const getNotificationColor = (
 };
 
 export const NotificationsList: React.FC = () => {
-  const { notifications } = useNotificationStore();
 
-  const { user } = useAuthStore();
+  const { notifications } = useNotificationStore();
 
   const navigate = useNavigate();
 
-  const currentUserId = user?.id;
-
-  const userNotifications = notifications.filter(
-    (n) => n.user_id === currentUserId,
-  );
-
   // Normalize real notifications to have `isRead`
-  const normalizedNotifications = userNotifications.map((n) => ({
+  const normalizedNotifications = notifications.map((n) => ({
     ...n,
     isRead: n.is_read,
   }));
