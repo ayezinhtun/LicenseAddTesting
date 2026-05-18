@@ -15,6 +15,7 @@ import { parseISO, differenceInDays } from "date-fns";
 import type { Notification } from "../../store/notificationStore";
 import { useNavigate } from "react-router-dom";
 
+
 const getNotificationIcon = (type: Notification["type"]) => {
   switch (type) {
     case "expiry":
@@ -32,6 +33,7 @@ const getNotificationIcon = (type: Notification["type"]) => {
       return Info;
   }
 };
+
 
 const getNotificationColor = (
   type: Notification["type"],
@@ -76,26 +78,10 @@ const getNotificationColor = (
 };
 
 export const NotificationsList: React.FC = () => {
-  const navigate = useNavigate();
-
-  const { getSerialsNearExpiry } = useLicenseStore();
 
   const { notifications } = useNotificationStore();
 
-  const [nearSerials, setNearSerials] = useState<
-    Array<{ license: any; serial: any }>
-  >([]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const rows = await getSerialsNearExpiry(30);
-      if (mounted) setNearSerials(rows);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [getSerialsNearExpiry]);
+  const navigate = useNavigate();
 
   // Normalize real notifications to have `isRead`
   const normalizedNotifications = notifications.map((n) => ({
@@ -103,27 +89,8 @@ export const NotificationsList: React.FC = () => {
     isRead: n.is_read,
   }));
 
-  const serialExpiryNotifications = nearSerials
-    .slice(0, 2)
-    .map(({ license, serial }) => {
-      const days = differenceInDays(parseISO(serial.end_date), new Date());
-      const daysText =
-        days <= 0 ? "Expired" : days === 1 ? "1 day" : `${days} days`;
-
-      return {
-        id: `serial-expiry-${serial.id}`,
-        type: "expiry" as const,
-        title: "Serial Expiring Soon",
-        message: `${serial.serial_or_contract} expires in ${daysText}`,
-        time: "Today",
-        priority: "high" as const,
-        isRead: false,
-      };
-    });
-
   const allNotifications = [
     ...normalizedNotifications.slice(0, 3),
-    ...serialExpiryNotifications,
     ...(notifications.length === 0
       ? [
           {
