@@ -57,7 +57,7 @@ export const SignUp: React.FC = () => {
 
     try {
       await signup(formData.name, formData.email, formData.password);
-      toast.success("Verification email sent! Please check your inbox.");
+      toast.success("Account created successfully");
       navigate("/verify-email");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Signup failed");

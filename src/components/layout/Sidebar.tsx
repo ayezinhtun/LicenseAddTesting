@@ -93,7 +93,11 @@ export const Sidebar: React.FC<{
   onHideToggle?: () => void;
 }> = ({ isCollapsed, onToggle, isHidden = false, onHideToggle }) => {
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoading } = useAuthStore();
+
+  if(isLoading || !user?.name) {
+    return null;
+  }
 
   const visibleItems = menuItems.filter(
     (item) =>

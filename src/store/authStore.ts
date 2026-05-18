@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
       assignments: [],
 
       getCurrentUser: async () => {
+        set({ isLoading: true });
         try {
           const {
             data: { user },
@@ -78,10 +79,7 @@ export const useAuthStore = create<AuthState>()(
             const userData: User = {
               id: user.id,
               name:
-                (profileRow?.full_name as string) ||
-                user.user_metadata?.name ||
-                user.email?.split("@")[0] ||
-                "User",
+                (profileRow?.name as string) || user.user_metadata?.name || "",
               email: user.email || "",
               role: roleFromProfile,
               isVerified: user.email_confirmed_at !== null,
@@ -115,6 +113,8 @@ export const useAuthStore = create<AuthState>()(
           console.error("Unexpected error getting current user:", error);
           set({ user: null, isAuthenticated: false });
           return null;
+        } finally {
+          set({ isLoading: false });
         }
       },
 
@@ -155,8 +155,7 @@ export const useAuthStore = create<AuthState>()(
               id: data.user.id,
               name:
                 data.user.user_metadata?.name ||
-                data.user.email?.split("@")[0] ||
-                "User",
+                "",
               email: data.user.email || "",
               role: roleFromProfile,
               isVerified: data.user.email_confirmed_at !== null,
@@ -191,7 +190,7 @@ export const useAuthStore = create<AuthState>()(
             options: {
               emailRedirectTo: `${window.location.origin}/pending-approval`,
               data: {
-                full_name: name, 
+                full_name: name,
                 role: "user",
                 department: "General",
               },
