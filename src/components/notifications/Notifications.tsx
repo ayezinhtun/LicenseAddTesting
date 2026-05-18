@@ -40,10 +40,10 @@ export const Notifications: React.FC = () => {
 
   const currentUserId = user?.id;
 
+
   const userNotifications = notifications.filter(
     (n) => n.user_id === currentUserId,
   );
-
 
   const allNotifications = [
     ...userNotifications,
