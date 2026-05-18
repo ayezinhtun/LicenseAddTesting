@@ -83,13 +83,17 @@ export const NotificationsList: React.FC = () => {
 
   const navigate = useNavigate();
 
+  const currentUserId = user?.id;
+
+  const userNotifications = notifications.filter(
+    (n) => n.user_id === currentUserId,
+  );
+
   // Normalize real notifications to have `isRead`
-  const normalizedNotifications = notifications
-    .filter((n) => n.user_id === user?.id)
-    .map((n) => ({
-      ...n,
-      isRead: n.is_read,
-    }));
+  const normalizedNotifications = userNotifications.map((n) => ({
+    ...n,
+    isRead: n.is_read,
+  }));
 
   const allNotifications = [
     ...normalizedNotifications.slice(0, 3),

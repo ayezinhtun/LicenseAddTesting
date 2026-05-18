@@ -40,16 +40,10 @@ export const Notifications: React.FC = () => {
 
   const currentUserId = user?.id;
 
-  console.log("CURRENT USER ID:", user?.id);
-
   const userNotifications = notifications.filter(
     (n) => n.user_id === currentUserId,
   );
 
-  console.log(
-    "NOTIFICATION USER IDS:",
-    notifications.map((n) => n.user_id),
-  );
 
   const allNotifications = [
     ...userNotifications,
