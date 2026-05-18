@@ -38,7 +38,6 @@
 //       return endDate < todayUTC;
 //     }) || [];
 
-
 //     // Find expiring soon serials - CORRECTED LOGIC
 //     const expiringSoon = allSerials?.filter((serial: any) => {
 //       const notifyDays = serial.notify_before_days ?? 30;
@@ -50,10 +49,8 @@
 //       // Only notify when notify date is reached OR passed
 //       const shouldNotify = todayUTC >= notifyDate && todayUTC <= endDate;
 
-
 //       return shouldNotify;
 //     }) || [];
-
 
 //     // Process all notifications
 //     const allNotifications = [...expiredSerials, ...expiringSoon];
@@ -182,9 +179,9 @@
 //                     <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
 //                       ${serial.serial_or_contract} for ${serial.licenses.item_description} ${isExpired ? `expired ${daysOverdue} day(s) ago` : `expires in ${daysUntil} day(s)`}.
 //                     </p>
-                   
+
 //                     <div style="text-align: center; margin: 30px 0;">
-//                       <a href="" 
+//                       <a href=""
 //                          style="background: ${urgencyColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 14px;">
 //                         View License Details
 //                       </a>
@@ -218,7 +215,6 @@
 //       }
 //     }
 
-
 //     return new Response(
 //       JSON.stringify({
 //         message: "Daily reminders sent successfully",
@@ -249,16 +245,13 @@
 //   }
 // });
 
-
-
-
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -277,7 +270,7 @@ serve(async (req: Request) => {
 
     const today = new Date();
     const todayUTC = new Date(
-      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
     );
 
     const todayStr = todayUTC.toISOString().slice(0, 10);
@@ -291,17 +284,17 @@ serve(async (req: Request) => {
 
     if (error) throw error;
 
-    const expired = allSerials?.filter(
-      (s) => new Date(s.end_date) < todayUTC
-    ) || [];
+    const expired =
+      allSerials?.filter((s) => new Date(s.end_date) < todayUTC) || [];
 
-    const expiring = allSerials?.filter((s) => {
-      const notifyDays = s.notify_before_days ?? 30;
-      const end = new Date(s.end_date);
-      const notifyDate = new Date(end.getTime() - notifyDays * 86400000);
+    const expiring =
+      allSerials?.filter((s) => {
+        const notifyDays = s.notify_before_days ?? 30;
+        const end = new Date(s.end_date);
+        const notifyDate = new Date(end.getTime() - notifyDays * 86400000);
 
-      return todayUTC >= notifyDate && todayUTC <= end;
-    }) || [];
+        return todayUTC >= notifyDate && todayUTC <= end;
+      }) || [];
 
     const targets = [...expired, ...expiring];
 
@@ -369,8 +362,7 @@ serve(async (req: Request) => {
       const isExpired = new Date(serial.end_date) < todayUTC;
 
       const daysUntil = Math.ceil(
-        (new Date(serial.end_date).getTime() - todayUTC.getTime()) /
-          86400000
+        (new Date(serial.end_date).getTime() - todayUTC.getTime()) / 86400000,
       );
 
       // =====================
@@ -381,16 +373,10 @@ serve(async (req: Request) => {
           .from("notifications")
           .insert({
             type: "expiry",
-            title: isExpired
-              ? "License Expired"
-              : "License Expiring Soon",
+            title: isExpired ? "License Expired" : "License Expiring Soon",
             message: `${serial.serial_or_contract} - ${
               serial.licenses.item_description
-            } ${
-              isExpired
-                ? "expired"
-                : `expires in ${daysUntil} days`
-            }`,
+            } ${isExpired ? "expired" : `expires in ${daysUntil} days`}`,
             license_id: serial.license_id,
             serial_id: serial.id,
             user_id: user.user_id, // ✅ FIXED (REAL USER ID)
@@ -406,25 +392,53 @@ serve(async (req: Request) => {
         // =====================
         // EMAIL PER USER
         // =====================
-        await fetch(
+        const emailResponse = await fetch(
           `${supabaseUrl}/functions/v1/send-email-notification`,
           {
             method: "POST",
             headers: {
               Authorization: `Bearer ${supabaseKey}`,
+              apikey: supabaseKey,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
               to: user.email,
               subject: `${
                 isExpired ? "URGENT" : "IMPORTANT"
-              }: License Update`,
-              html: `<p>${serial.serial_or_contract} - ${
-                serial.licenses.item_description
-              }</p>`,
+              }: License Expiry Notification`,
+
+              html: `
+        <div style="font-family: Arial; padding:20px;">
+          <h2>
+            ${isExpired ? "🚨 License Expired" : "⚠️ License Expiring Soon"}
+          </h2>
+
+          <p>
+            <strong>${serial.serial_or_contract}</strong>
+          </p>
+
+          <p>
+            ${serial.licenses.item_description}
+          </p>
+
+          <p>
+            ${
+              isExpired
+                ? "This license has already expired."
+                : `This license expires in ${daysUntil} days.`
+            }
+          </p>
+        </div>
+      `,
             }),
-          }
+          },
         );
+
+        const emailText = await emailResponse.text();
+
+        console.log("EMAIL STATUS:", emailResponse.status);
+        console.log("EMAIL RESPONSE:", emailText);
+        console.log("EMAIL TO:", user.email);
       }
     }
 
@@ -437,12 +451,12 @@ serve(async (req: Request) => {
         notificationsCreated,
         todayUTC: todayStr,
       }),
-      { status: 200, headers: corsHeaders }
+      { status: 200, headers: corsHeaders },
     );
   } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: corsHeaders }
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 });

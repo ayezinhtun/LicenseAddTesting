@@ -142,7 +142,7 @@ export const Sidebar: React.FC<{
                 className="flex items-center space-x-3"
               >
                 <img
-                  src="https://1cloudtechnology.com/assets/onecloudlogo.png"
+                  src="/logo.png"
                   alt="1Cloud Technology"
                   className="h-10 w-auto"
                 />

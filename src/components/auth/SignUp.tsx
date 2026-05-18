@@ -69,9 +69,9 @@ export const SignUp: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img
-            src="https://1cloudtechnology.com/assets/onecloudlogo.png"
+            src="/logo.png"
             alt="1Cloud Technology"
-            className="mx-auto h-16 w-auto"
+            className="mx-auto h-20 w-auto"
           />
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Create Account
