@@ -122,3 +122,37 @@ WITH CHECK (true);
 CREATE POLICY "notification_reads_delete_authenticated" ON "public"."notification_reads" 
 FOR DELETE TO "authenticated" 
 USING (true);
+
+
+
+-- Enable RLS
+ALTER TABLE public.notification_deletions ENABLE ROW LEVEL SECURITY;
+
+-- SELECT
+CREATE POLICY "notification_deletions_select_authenticated"
+ON public.notification_deletions
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- INSERT
+CREATE POLICY "notification_deletions_insert_authenticated"
+ON public.notification_deletions
+FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
+-- DELETE
+CREATE POLICY "notification_deletions_delete_authenticated"
+ON public.notification_deletions
+FOR DELETE
+TO authenticated
+USING (auth.uid() = user_id);
+
+-- UPDATE
+CREATE POLICY "notification_deletions_update_authenticated"
+ON public.notification_deletions
+FOR UPDATE
+TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);

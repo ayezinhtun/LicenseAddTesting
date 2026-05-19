@@ -138,7 +138,7 @@ export const UserManagement: React.FC = () => {
       return;
     }
     const confirmed = window.confirm(
-      `Delete user ${row.email}? This removes their profile and assignments. The auth account will remain.`,
+      `Are you sure want to delete user ${row.email}?`,
     );
     if (!confirmed) return;
     try {
@@ -157,7 +157,13 @@ export const UserManagement: React.FC = () => {
         .eq("id", row.id);
       if (delProfileErr) throw delProfileErr;
 
-      toast.success("User profile deleted");
+      const { error } = await supabase.rpc("delete_user_full", {
+        uid: row.user_id,
+      });
+
+      if (error) throw error;
+      
+      toast.success("User Delete Successfully");
       await fetchProfiles();
     } catch (err: any) {
       console.error(err);
@@ -200,13 +206,11 @@ export const UserManagement: React.FC = () => {
 
         // Insert new assignments
         if (row.assignments.length > 0) {
-          const newAssignments = row.assignments.map(project => ({
+          const newAssignments = row.assignments.map((project) => ({
             user_id: row.user_id,
-            project_assign: project
+            project_assign: project,
           }));
-          await supabase
-            .from("user_project_assigns")
-            .insert(newAssignments);
+          await supabase.from("user_project_assigns").insert(newAssignments);
         }
       }
 
