@@ -26,7 +26,13 @@ import { useDistributorStore } from "../../store/useDistributorStore";
 
 import toast from "react-hot-toast";
 
-import { differenceInDays, subDays, parseISO, format } from "date-fns";
+import {
+  differenceInDays,
+  subDays,
+  parseISO,
+  format,
+  startOfToday,
+} from "date-fns";
 
 interface LicenseFormProps {
   license?: License | null;
@@ -68,7 +74,11 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     try {
       const end = parseISO(endDate);
 
-      const offsetEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      const offsetEnd = new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate(),
+      );
 
       const on = subDays(offsetEnd, notifyBeforeDays);
 
@@ -727,16 +737,34 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     setIsSubmitting(true);
 
     if (attachmentError) {
-      setErrors([attachmentError]);
-
       toast.error(attachmentError);
-
       setIsSubmitting(false);
-
       return;
     }
 
     try {
+      const today = startOfToday();
+
+      const invalidNotifySerials = formData.serials.filter((s) => {
+        if (!s.end_date || !s.notify_before_days) return false;
+
+        const notifyDate = computeNotifyDate(s.end_date, s.notify_before_days);
+
+        if (!notifyDate) return false;
+
+        return parseISO(notifyDate) < today;
+      });
+
+      if (invalidNotifySerials.length > 0) {
+        const message = "Notify On date cannot be less than today";
+
+        setErrors([message]);
+
+        toast.error(message);
+
+        setIsSubmitting(false);
+        return; // BLOCK SUBMIT
+      }
       // Build payload for new schema
 
       const payload: any = {
@@ -784,10 +812,9 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
       const validation = validateLicense(payload);
 
       if (!validation.isValid) {
-        setErrors(validation.errors);
+        validation.errors.forEach((err) => toast.error(err));
 
         setIsSubmitting(false);
-
         return;
       }
 
@@ -883,7 +910,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Error Display */}
 
-      {errors.length > 0 && (
+      {/* {errors.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h4 className="text-red-800 font-medium mb-2">
             Please fix the following errors:
@@ -895,7 +922,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
             ))}
           </ul>
         </div>
-      )}
+      )} */}
 
       {/* License Information */}
 
@@ -1096,7 +1123,34 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                       label="End Date"
                       type="date"
                       value={s.end_date}
-                      onChange={(v) => updateSerial(idx, "end_date", v)}
+                      onChange={(v) => {
+                        updateSerial(idx, "end_date", v);
+
+                        if (!v) return;
+
+                        const today = startOfToday();
+                        const end = parseISO(v);
+
+                        const defaultDays = 30;
+
+                        let notifyDate = subDays(end, defaultDays);
+
+                        // If calculated notify date is in the past → use today
+                        if (notifyDate < today) {
+                          notifyDate = today;
+                        }
+
+                        const notifyBeforeDays = differenceInDays(
+                          end,
+                          notifyDate,
+                        );
+
+                        updateSerial(
+                          idx,
+                          "notify_before_days",
+                          notifyBeforeDays,
+                        );
+                      }}
                       required
                     />
 
@@ -1128,6 +1182,16 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                       )}
                       disabled={!s.end_date} // cannot select notify-on before end_date is chosen
                       onChange={(notifyOn) => {
+                        if (!notifyOn) return;
+
+                        const today = startOfToday();
+                        const selectedDate = parseISO(notifyOn);
+
+                        if (selectedDate < today) {
+                          toast.error("Notify date cannot be less than today");
+                          return;
+                        }
+
                         // guard: ensure notify-on is not after end_date
 
                         let chosen = notifyOn;
