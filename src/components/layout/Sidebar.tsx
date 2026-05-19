@@ -86,18 +86,21 @@ const menuItems = [
   { icon: Settings, label: "Account Settings", path: "/account", badge: null },
 ];
 
+// const quickActions = [
+//   { icon: Zap, label: 'Quick Add License', action: 'add-license' },
+//   { icon: Shield, label: 'Security Check', action: 'security-check' },
+//   { icon: HelpCircle, label: 'Help & Support', action: 'help' }
+// ];
+
 export const Sidebar: React.FC<{
   isCollapsed: boolean;
   onToggle: () => void;
   isHidden?: boolean;
   onHideToggle?: () => void;
 }> = ({ isCollapsed, onToggle, isHidden = false, onHideToggle }) => {
+  // const [showQuickActions, setShowQuickActions] = useState(false);
   const location = useLocation();
-  const { user, logout, isLoading } = useAuthStore();
-
-  if(isLoading || !user?.name) {
-    return null;
-  }
+  const { user, logout } = useAuthStore();
 
   const visibleItems = menuItems.filter(
     (item) =>
@@ -110,7 +113,7 @@ export const Sidebar: React.FC<{
   const notificationCount = (notifications || []).filter(
     (n) => n.user_id === user?.id && !n.is_read,
   ).length;
-  
+
   const handleLogout = () => {
     logout();
   };
@@ -295,6 +298,7 @@ export const Sidebar: React.FC<{
           </motion.div>
         )}
       </nav>
+
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
