@@ -79,7 +79,9 @@ export const useAuthStore = create<AuthState>()(
             const userData: User = {
               id: user.id,
               name:
-                (profileRow?.full_name as string) || user.user_metadata?.full_name || "",
+                (profileRow?.full_name as string) ||
+                user.user_metadata?.full_name ||
+                "",
               email: user.email || "",
               role: roleFromProfile,
               isVerified: user.email_confirmed_at !== null,
@@ -154,7 +156,9 @@ export const useAuthStore = create<AuthState>()(
             const userData: User = {
               id: data.user.id,
               name:
-                data.user.user_metadata?.name ||
+                profileRow?.full_name ||
+                data.user.user_metadata?.full_name ||
+                data.user.email ||
                 "",
               email: data.user.email || "",
               role: roleFromProfile,
