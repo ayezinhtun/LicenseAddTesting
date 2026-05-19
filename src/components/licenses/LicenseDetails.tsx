@@ -503,8 +503,32 @@ export const LicenseDetails: React.FC = () => {
       !renewalData.serialStartDate ||
       !renewalData.newEndDate ||
       renewalData.cost === null
-    )
+    ) {
+      toast.error("Please fill all required fields");
       return;
+    }
+
+    // Validate dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(renewalData.serialStartDate);
+    const endDate = new Date(renewalData.newEndDate);
+
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    // End date cannot be less than start date
+    if (endDate < startDate) {
+      toast.error("End date cannot be earlier than start date");
+      return;
+    }
+
+    // End date cannot be less than today
+    if (endDate < today) {
+      toast.error("End date cannot be earlier than today");
+      return;
+    }
 
     try {
       setIsRenewing(true);
@@ -534,7 +558,7 @@ export const LicenseDetails: React.FC = () => {
     } catch {
       toast.error("Failed to renew license");
     } finally {
-      setIsLoading(false);
+      setIsRenewing(false);
     }
   };
 
