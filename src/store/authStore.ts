@@ -203,10 +203,16 @@ export const useAuthStore = create<AuthState>()(
 
           if (error) throw error;
 
-          set({ isLoading: false });
+          if (data?.user?.identities && data.user.identities.length === 0) {
+            throw new Error("This email is already registered");
+          }
+
+          return data;
+
         } catch (error) {
-          set({ isLoading: false });
           throw error;
+        } finally {
+          set({ isLoading: false })
         }
       },
 

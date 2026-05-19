@@ -31,11 +31,11 @@ export const SignUp: React.FC = () => {
     }
 
     if (formData.password.length < 8) {
-      toast.error("Password must be at least 6 characters");
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
-        if (!/[A-Z]/.test(formData.password)) {
+    if (!/[A-Z]/.test(formData.password)) {
       toast.error("Password must contain at least one uppercase letter");
       return;
     }
@@ -59,8 +59,15 @@ export const SignUp: React.FC = () => {
       await signup(formData.name, formData.email, formData.password);
       toast.success("Account created successfully");
       navigate("/verify-email");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Signup failed");
+    } catch (error: any) {
+      if (
+        error.message?.includes("User already registered") ||
+        error.message?.includes("already registered")
+      ) {
+        toast.error("This email is already registered");
+      } else {
+        toast.error(error instanceof Error ? error.message : "Signup failed");
+      }
     }
   };
 
