@@ -26,7 +26,7 @@ import { useDistributorStore } from "../../store/useDistributorStore";
 
 import toast from "react-hot-toast";
 
-import { differenceInDays, subDays, parseISO, format } from "date-fns";
+import { differenceInDays, subDays, parseISO, format, startOfDay, startOfToday } from "date-fns";
 
 interface LicenseFormProps {
   license?: License | null;
@@ -1128,6 +1128,17 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
                       )}
                       disabled={!s.end_date} // cannot select notify-on before end_date is chosen
                       onChange={(notifyOn) => {
+                        if (!notifyOn) return;
+
+                        const today = startOfToday();
+
+                        const selectedDate = parseISO(notifyOn);
+
+                        if(selectedDate < today) {
+                          toast.error("Notify date cannot be less than today");
+                          return;
+                        }
+
                         // guard: ensure notify-on is not after end_date
 
                         let chosen = notifyOn;

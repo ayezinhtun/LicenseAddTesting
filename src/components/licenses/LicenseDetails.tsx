@@ -82,6 +82,8 @@ export const LicenseDetails: React.FC = () => {
     }
   }, [id]);
 
+  const [isRenewing, setIsRenewing] = useState(false);
+
   const loadLicenseDetails = async (licenseId: string) => {
     setIsLoading(true);
     try {
@@ -505,6 +507,8 @@ export const LicenseDetails: React.FC = () => {
       return;
 
     try {
+      setIsRenewing(true);
+
       await renewLicense(selectedLicense.id, {
         selectedSerialId,
         productName: renewalData.productName,
@@ -529,6 +533,8 @@ export const LicenseDetails: React.FC = () => {
       toast.success("License renewed successfully");
     } catch {
       toast.error("Failed to renew license");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1537,6 +1543,7 @@ export const LicenseDetails: React.FC = () => {
             </Button>
             <Button
               onClick={handleRenewal}
+              loading={isRenewing}
               disabled={
                 !renewalData.productName ||
                 !renewalData.serialNo ||
