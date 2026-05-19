@@ -15,6 +15,7 @@ import { parseISO, differenceInDays } from "date-fns";
 import type { Notification } from "../../store/notificationStore";
 import { useNavigate } from "react-router-dom";
 
+
 const getNotificationIcon = (type: Notification["type"]) => {
   switch (type) {
     case "expiry":
@@ -32,6 +33,7 @@ const getNotificationIcon = (type: Notification["type"]) => {
       return Info;
   }
 };
+
 
 const getNotificationColor = (
   type: Notification["type"],
@@ -76,6 +78,7 @@ const getNotificationColor = (
 };
 
 export const NotificationsList: React.FC = () => {
+
   const { notifications } = useNotificationStore();
 
   const navigate = useNavigate();
@@ -148,8 +151,7 @@ export const NotificationsList: React.FC = () => {
           </div>
         ) : (
           allNotifications.map((notification) => {
-            const IconComponent =
-              getNotificationIcon(notification.type) || Info;
+            const IconComponent = getNotificationIcon(notification.type);
             const { color, bgColor } = getNotificationColor(
               notification.type,
               notification.priority,
