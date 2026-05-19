@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>()(
             const userData: User = {
               id: user.id,
               name:
-                (profileRow?.name as string) || user.user_metadata?.name || "",
+                (profileRow?.full_name as string) || user.user_metadata?.full_name || "",
               email: user.email || "",
               role: roleFromProfile,
               isVerified: user.email_confirmed_at !== null,
