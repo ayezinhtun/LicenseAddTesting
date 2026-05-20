@@ -71,27 +71,27 @@ export const Notifications: React.FC = () => {
     // Add some system notifications if no real notifications exist
     ...(notifications.length === 0
       ? [
-          {
-            id: "welcome",
-            type: "system" as const,
-            title: "Welcome to License Manager",
-            message:
-              "Your license management system is ready to use. Email notifications are enabled.",
-            time: "2 hours ago",
-            icon: CheckCircle,
-            color: "text-green-600",
-            bgColor: "bg-green-50",
-            isRead: true,
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            user_id: "current-user",
-            is_read: true,
-            priority: "low" as const,
-            action_required: false,
-            action_url: null,
-            license_id: null,
-            expires_at: null,
-          },
-        ]
+        {
+          id: "welcome",
+          type: "system" as const,
+          title: "Welcome to License Manager",
+          message:
+            "Your license management system is ready to use. Email notifications are enabled.",
+          time: "2 hours ago",
+          icon: CheckCircle,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+          isRead: true,
+          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          user_id: "current-user",
+          is_read: true,
+          priority: "low" as const,
+          action_required: false,
+          action_url: null,
+          license_id: null,
+          expires_at: null,
+        },
+      ]
       : []),
   ].slice(0, 20);
 
@@ -208,8 +208,27 @@ export const Notifications: React.FC = () => {
     try {
       const date = new Date(dateString);
       const now = new Date();
+
+      // Convert both to UTC timestamps for accurate comparison
+      const dateUtc = Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        date.getUTCHours(),
+        date.getUTCMinutes(),
+        date.getUTCSeconds()
+      );
+      const nowUtc = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds()
+      );
+
       const diffInHours = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60),
+        (nowUtc - dateUtc) / (1000 * 60 * 60),
       );
 
       if (diffInHours < 1) return "Just now";
@@ -376,11 +395,10 @@ export const Notifications: React.FC = () => {
               return (
                 <div
                   key={notification.id}
-                  className={`p-6 hover:bg-gray-50 transition-colors duration-150 ${
-                    !notification.is_read
+                  className={`p-6 hover:bg-gray-50 transition-colors duration-150 ${!notification.is_read
                       ? "bg-blue-50/30 border-l-4 border-l-blue-500"
                       : ""
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4 flex-1">

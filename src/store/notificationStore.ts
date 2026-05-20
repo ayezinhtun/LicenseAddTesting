@@ -797,6 +797,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
           user_id: currentUser.id,
 
+          created_at: new Date().toISOString(),
+
         })
 
         .select()
