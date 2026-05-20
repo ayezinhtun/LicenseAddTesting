@@ -118,7 +118,7 @@ export const ProjectAssignPage: React.FC = () => {
             Project Assign Management
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage locations/groups used in license project assignment
+            Manage locations/groups used in subscription project assignment
           </p>
         </div>
         <div className="flex space-x-3">

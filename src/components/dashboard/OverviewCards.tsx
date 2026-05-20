@@ -82,7 +82,7 @@ export const OverviewCards: React.FC = () => {
 
   const cards: CardDef[] = [
     {
-      title: "Total Licenses",
+      title: "Total Subscriptions",
       value: licenses.length.toString(),
       change: `+${getGrowthPercentage(licenses.length, "total")}%`,
       changeType: "positive" as const,
@@ -90,7 +90,7 @@ export const OverviewCards: React.FC = () => {
       color: "bg-blue-500",
       textColor: "text-blue-600",
       bgColor: "bg-blue-50",
-      description: "All licenses in system",
+      description: "All subscriptions in system",
     },
     {
       title: "Serial Expiring Soon",
@@ -105,7 +105,7 @@ export const OverviewCards: React.FC = () => {
       description: "Require attention",
     },
     {
-      title: "Active Licenses",
+      title: "Active Subscriptions",
       value: activeLicenses.length.toString(),
       change: `${Math.round((activeLicenses.length / licenses.length) * 100)}%`,
       changeType: "neutral" as const,

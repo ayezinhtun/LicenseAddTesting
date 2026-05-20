@@ -35,7 +35,7 @@ export const Dashboard: React.FC = () => {
             {getGreeting()}, {user?.name?.split(" ")[0]}! 👋
           </h1>
           <p className="text-gray-600 mt-2 text-lg">
-            Here's what's happening with your licenses today
+            Here's what's happening with your subscriptions today
           </p>
         </div>
         <div className="text-right">

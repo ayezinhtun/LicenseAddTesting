@@ -928,11 +928,11 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
 
       <div className="bg-gray-50 p-6 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-900">
-          License Information
+          Subscription Information
         </h3>
 
         <p className="text-sm text-gray-600 mb-4">
-          Core details about this license
+          Core details about this subscription
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1582,7 +1582,7 @@ export const LicenseForm: React.FC<LicenseFormProps> = ({
           loading={isSubmitting}
           disabled={isSubmitting}
         >
-          {license ? "Update License" : "Create License"}
+          {license ? "Update Subscription" : "Create Subscription"}
         </Button>
       </div>
     </form>

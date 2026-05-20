@@ -122,7 +122,7 @@ export const Reports: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `license-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `subscription-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
@@ -138,7 +138,7 @@ export const Reports: React.FC = () => {
 
         <head>
 
-          <title>License Report</title>
+          <title>Subscription Report</title>
 
           <style>
 
@@ -164,7 +164,7 @@ export const Reports: React.FC = () => {
 
           <div class="header">
 
-            <h1>1Cloud Technology License Report</h1>
+            <h1>1Cloud Technology Subscription Report</h1>
 
             <p>Generated on ${format(new Date(), "MMMM dd, yyyy")}</p>
 
@@ -178,7 +178,7 @@ export const Reports: React.FC = () => {
 
               <h3>${filteredLicenses.length}</h3>
 
-              <p>Total Licenses</p>
+              <p>Total Subscriptions</p>
 
             </div>
 
@@ -353,7 +353,7 @@ export const Reports: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            License Details
+            Subscription Details
           </h2>
         </div>
 

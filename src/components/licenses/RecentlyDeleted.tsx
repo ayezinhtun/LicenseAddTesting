@@ -30,18 +30,18 @@ export const RecentlyDeleted: React.FC = () => {
     await useLicenseStore.getState().recoverLicense(id);
     await useLicenseStore.getState().fetchLicenses();
     await load();
-    toast.success("License recovered");
+    toast.success("Subscription recovered successfully");
   };
 
   const handlePermanentDelete = async (id: string) => {
     if (
-      !window.confirm("Permanently delete this license? This cannot be undone.")
+      !window.confirm("Permanently delete this subscription? This cannot be undone.")
     )
       return;
     await useLicenseStore.getState().permanentlyDeleteLicense(id);
     await useLicenseStore.getState().fetchLicenses();
     await load();
-    toast.success("License permanently deleted");
+    toast.success("Subscription permanently deleted");
   };
 
   return (
@@ -50,7 +50,7 @@ export const RecentlyDeleted: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Recently Deleted</h1>
           <p className="text-gray-600 mt-1">
-            Items deleted within the last 30 days
+            Subscriptions deleted within the last 30 days
           </p>
         </div>
         <div className="flex gap-3">
@@ -69,7 +69,7 @@ export const RecentlyDeleted: React.FC = () => {
             </div>
           ) : rows.length === 0 ? (
             <div className="px-6 py-6 text-gray-500 text-center">
-              No recently deleted licenses.
+              No recently deleted subscriptions.
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">

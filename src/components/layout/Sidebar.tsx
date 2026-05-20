@@ -62,11 +62,11 @@ const menuItems = [
     badge: null,
     adminOnly: true,
   },
-  { icon: FileText, label: "License Manager", path: "/licenses", badge: null },
+  { icon: FileText, label: "Subscription Manager", path: "/subscriptions", badge: null },
   {
     icon: Clock,
     label: "Recent Deleted",
-    path: "/licenses/deleted",
+    path: "/subscriptions/deleted",
     badge: null,
     adminOnly: true,
   },

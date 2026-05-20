@@ -125,7 +125,7 @@ export const VendorPage: React.FC = () => {
             Vendor Management
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage your approved vendor list used in licenses
+            Manage your approved vendor list used in subscriptions
           </p>
         </div>
         <div className="flex space-x-3">

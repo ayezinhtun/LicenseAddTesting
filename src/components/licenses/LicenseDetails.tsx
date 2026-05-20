@@ -233,7 +233,7 @@ export const LicenseDetails: React.FC = () => {
     return `
     <html>
       <head>
-        <title>License Detail - ${selectedLicense.vendor || ""}</title>
+        <title>Subscription Detail - ${selectedLicense.vendor || ""}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
           h1,h2 { margin: 0; }
@@ -250,12 +250,12 @@ export const LicenseDetails: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>License Detail</h1>
+          <h1>Subscription Detail</h1>
           <div class="meta">Generated on ${new Date().toLocaleDateString()}</div>
         </div>
 
         <div class="section">
-          <h2>License Information</h2>
+          <h2>Subscription Information</h2>
           <div class="grid">
             <div>
               <div class="label">Vendor</div>
@@ -341,7 +341,7 @@ export const LicenseDetails: React.FC = () => {
         </div>
         
         <div class="section">
-          <h2>Old License Data</h2>
+          <h2>Old Subscription Data</h2>
           <table>
             <thead>
               <tr>
@@ -465,7 +465,7 @@ export const LicenseDetails: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `license-${selectedLicense?.id}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `subscription-${selectedLicense?.id}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
@@ -567,15 +567,15 @@ export const LicenseDetails: React.FC = () => {
 
     if (
       window.confirm(
-        "Are you sure you want to delete this license? This action cannot be undone.",
+        "Are you sure you want to delete this subscription? This action cannot be undone.",
       )
     ) {
       try {
         await deleteLicense(selectedLicense.id);
-        navigate("/licenses");
-        toast.success("License deleted successfully");
+        navigate("/subscriptions");
+        toast.success("Subscription deleted successfully");
       } catch (error) {
-        toast.error("Failed to delete license");
+        toast.error("Failed to delete subscription");
       }
     }
   };
@@ -672,9 +672,9 @@ export const LicenseDetails: React.FC = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          License Not Found
+          Subscription Not Found
         </h2>
-        <Button onClick={() => navigate("/licenses")}>Back to Licenses</Button>
+        <Button onClick={() => navigate("/subscriptions")}>Back to Licenses</Button>
       </div>
     );
   }
@@ -694,13 +694,12 @@ export const LicenseDetails: React.FC = () => {
           <Button
             variant="ghost"
             icon={ArrowLeft}
-            onClick={() => navigate("/licenses")}
-          >
-            Back to Licenses
-          </Button>
+            onClick={() => navigate("/subscriptions")}
+          />
+
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              License Details
+              Subscription Details
             </h1>
             <p className="text-gray-600 mt-1">
               {selectedLicense.vendor} • {selectedLicense.project_name}
@@ -759,7 +758,7 @@ export const LicenseDetails: React.FC = () => {
               icon={Edit}
               onClick={() => {
                 if (!selectedLicense) return;
-                navigate("/licenses", {
+                navigate("/subscriptions", {
                   state: { editLicenseId: selectedLicense.id },
                 });
               }}
@@ -794,7 +793,7 @@ export const LicenseDetails: React.FC = () => {
             <Card>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  License Information
+                  Subscription Information
                 </h3>
 
                 {/* Top summary: Vendor and Project */}
@@ -1284,7 +1283,7 @@ export const LicenseDetails: React.FC = () => {
               <Card>
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Old License Data
+                    Old Subscription Data
                   </h3>
                   {renewalHistory.length === 0 ? (
                     <p className="text-sm text-gray-500">No old data found.</p>
@@ -1422,7 +1421,7 @@ export const LicenseDetails: React.FC = () => {
       <Modal
         isOpen={showRenewalModal}
         onClose={() => setShowRenewalModal(false)}
-        title="Renew License"
+        title="Renew Subscription"
       >
         <div className="space-y-6">
           {/* Project Name - Editable */}

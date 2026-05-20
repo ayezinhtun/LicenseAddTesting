@@ -390,7 +390,7 @@ export const LicenseManagement: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `licenses-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `subscriptions-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
@@ -579,12 +579,14 @@ export const LicenseManagement: React.FC = () => {
       }
 
       // Clear the navigation state so it doesn’t reopen on refresh/back
-      navigate("/licenses", { replace: true, state: {} });
+      navigate("/subscriptions", { replace: true, state: {} });
     };
 
     openEditFromState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state, licenses]);
+
+  
 
   return (
     <div className="space-y-6">
@@ -597,10 +599,10 @@ export const LicenseManagement: React.FC = () => {
       >
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            License Management
+            Subscription Management
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage and track all your software licenses in one place
+            Manage and track all your software subscriptions in one place
           </p>
         </div>
         <div className="flex space-x-3">
@@ -612,7 +614,7 @@ export const LicenseManagement: React.FC = () => {
           </Button>
           {user?.role !== "user" && (
             <Button icon={Plus} onClick={handleAddLicense}>
-              Add License
+              Add Subscription
             </Button>
           )}
         </div>
@@ -630,7 +632,7 @@ export const LicenseManagement: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex-1">
                 <Input
-                  placeholder="Search licenses by name..."
+                  placeholder="Search subscriptions by name..."
                   value={localFilters.search}
                   onChange={(value) =>
                     setLocalFilters((prev) => ({ ...prev, search: value }))
@@ -782,7 +784,7 @@ export const LicenseManagement: React.FC = () => {
               </div>
 
               <div className="text-sm text-gray-500">
-                Showing {licenses.length} of {totalCount} licenses
+                Showing {licenses.length} of {totalCount} subscriptions
               </div>
             </div>
           </div>
@@ -830,7 +832,7 @@ export const LicenseManagement: React.FC = () => {
           setIsFormOpen(false);
           setEditingLicense(null);
         }}
-        title={editingLicense ? "Edit License" : "Add New License"}
+        title={editingLicense ? "Edit Subscription" : "Add New Subscription"}
         maxWidth="4xl"
       >
         <LicenseForm

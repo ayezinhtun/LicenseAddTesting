@@ -18,12 +18,12 @@ export const QuickActions: React.FC = () => {
 
   const actions = [
     {
-      title: "Add New License",
-      description: "Quickly add a new license to your inventory",
+      title: "Add New Subscription",
+      description: "Quickly add a new subscription to your inventory",
       icon: Plus,
       color: "bg-blue-500",
       hoverColor: "hover:bg-blue-600",
-      action: () => navigate("/licenses?action=add"),
+      action: () => navigate("/subscriptions?action=add"),
     },
     {
       title: "Export Report",
@@ -34,8 +34,8 @@ export const QuickActions: React.FC = () => {
       action: () => navigate("/reports"),
     },
     {
-      title: "Import Licenses",
-      description: "Bulk import licenses from spreadsheet",
+      title: "Import Subscriptions",
+      description: "Bulk import subscriptions from spreadsheet",
       icon: Upload,
       color: "bg-purple-500",
       hoverColor: "hover:bg-purple-600",
@@ -58,7 +58,7 @@ export const QuickActions: React.FC = () => {
       icon: AlertTriangle,
       color: "bg-red-500",
       hoverColor: "hover:bg-red-600",
-      action: () => navigate("/licenses?filter=expiring"),
+      action: () => navigate("/subscriptions?filter=expiring"),
     },
     {
       title: "View Analytics",

@@ -19,8 +19,10 @@ import { useNotificationStore } from "../../store/notificationStore";
 import { useAuthStore } from "../../store/authStore";
 import { format, parseISO, differenceInDays } from "date-fns";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export const Notifications: React.FC = () => {
+  const navigate = useNavigate();
   const { getLicensesNearExpiry } = useLicenseStore();
   const {
     notifications,
@@ -44,7 +46,6 @@ export const Notifications: React.FC = () => {
     (n) => n.user_id === currentUserId,
   );
 
-
   const allNotifications = [
     ...userNotifications,
     ...licensesNearExpiry.map((license) => ({
@@ -62,7 +63,7 @@ export const Notifications: React.FC = () => {
       is_read: false,
       priority: "high" as const,
       action_required: true,
-      action_url: `/licenses/${license.id}`,
+      action_url: `/subscriptions/${license.id}`,
       license_id: license.id,
       expires_at: null,
     })),
@@ -422,12 +423,24 @@ export const Notifications: React.FC = () => {
                             {formatNotificationTime(notification.created_at)}
                           </p>
                           {notification.action_url && (
-                            <a
-                              href={notification.action_url}
+                            <button
+                              onClick={() => {
+                                console.log(
+                                  "NAVIGATE TO:",
+                                  notification.action_url,
+                                );
+                                console.log(
+                                  "USER NOTIFICATIONS:",
+                                  userNotifications,
+                                );
+                                navigate(
+                                  `/subscriptions/${notification.license_id}`,
+                                );
+                              }}
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                             >
                               View Details →
-                            </a>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -489,7 +502,7 @@ export const Notifications: React.FC = () => {
                   Comment Notifications
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Get notified when someone comments on licenses
+                  Get notified when someone comments on subscriptions
                 </p>
               </div>
               <input
@@ -504,7 +517,7 @@ export const Notifications: React.FC = () => {
                   Renewal Confirmations
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Get notified when licenses are renewed
+                  Get notified when subscriptions are renewed
                 </p>
               </div>
               <input

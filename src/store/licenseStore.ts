@@ -1127,7 +1127,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: "system",
 
-          title: "New License Added",
+          title: "New Subscription Added",
 
           message: `${currentUser.name} added license for ${licenseData.item_description}`,
 
@@ -1664,7 +1664,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: "system",
 
-          title: "License Updated",
+          title: "Subscription Updated",
 
           message: `${currentUser.name} updated ${currentLicense?.item_description || "license"}`,
 
@@ -1940,7 +1940,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: "system",
 
-          title: "License Deleted",
+          title: "Subscription Deleted",
 
           message: `${currentUser.name} deleted ${licenseBeforeDelete?.item_description || "license"}`,
 
@@ -2565,7 +2565,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
         await notificationStore.createNotification({
           type: "renewal",
 
-          title: "License Renewed",
+          title: "Subscription Renewed",
 
           message: `${license.item_description || license.item} renewed until ${format(new Date(payload.newEndDate), "MMM dd, yyyy")}`,
 

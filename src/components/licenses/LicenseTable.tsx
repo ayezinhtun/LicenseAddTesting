@@ -70,7 +70,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
     if (onView) {
       onView(license);
     } else {
-      navigate(`/licenses/${license.id}`);
+      navigate(`/subscriptions/${license.id}`);
     }
   };
 
@@ -125,7 +125,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              License Details
+              Subscription Details
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Project & Customer
@@ -235,7 +235,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
                             e.stopPropagation();
                             if (
                               window.confirm(
-                                "Are you sure you want to delete this license?",
+                                "Are you sure you want to delete this subscription?",
                               )
                             ) {
                               onDelete(license.id);

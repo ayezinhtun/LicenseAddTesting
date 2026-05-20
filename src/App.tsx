@@ -305,11 +305,11 @@ function App() {
 
             <Route path="/distributors" element={<DistributorPage />} />
 
-            <Route path="/licenses" element={<LicenseManagement />} />
+            <Route path="/subscriptions" element={<LicenseManagement />} />
 
-            <Route path="/licenses/deleted" element={<RecentlyDeleted />} />
+            <Route path="/subscriptions/deleted" element={<RecentlyDeleted />} />
 
-            <Route path="/licenses/:id" element={<LicenseDetails />} />
+            <Route path="/subscriptions/:id" element={<LicenseDetails />} />
 
             <Route path="/users" element={user?.role === 'admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />} />
 
